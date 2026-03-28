@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useScanSciAuth } from "../../auth";
 import { useLanguage } from "../../i18n";
 import { generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
-import { PAPERDECK_PROFILE_APP_ID } from "../../api/scansci";
 import InterestWorkspace from "./InterestWorkspace";
 
 function getProfileSeedCount(profile) {
@@ -30,9 +29,10 @@ export default function SeedView({
   const { locale, t } = useLanguage();
   const {
     status: authStatus,
-    favoriteItemsStatus,
     startLogin,
     loadFavoriteItems,
+    paperDeckProfileStatus,
+    loadPaperDeckProfile,
     saveInterestProfile,
     getPaperDeckProfile,
   } = useScanSciAuth();
@@ -52,13 +52,11 @@ export default function SeedView({
   const [savedProfileLoadError, setSavedProfileLoadError] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle");
   const inputRef = useRef(null);
-  const savedProfileLoadFailedText =
-    locale === "en" ? "Saved profile could not be loaded right now." : "暂时无法加载已保存画像。";
+  const loadingGuardRef = useRef(null);
+  const savedProfileLoadFailedText = locale === "en" ? "Saved profile could not be loaded right now." : "暂时无法加载已保存画像。";
   const retryText = locale === "en" ? "Retry" : "重试";
 
   useEffect(() => {
-    let cancelled = false;
-
     async function loadSavedProfile() {
       if (authStatus !== "authenticated") {
         setSavedProfile(null);
@@ -75,26 +73,26 @@ export default function SeedView({
         });
         setSavedProfileLoadError("");
         setIsLoadingSavedProfile(false);
-        if (favoriteItemsStatus === "idle") {
-          void loadFavoriteItems(false);
+        if (paperDeckProfileStatus === "idle") {
+          void loadPaperDeckProfile(true);
         }
         return;
       }
 
-      if (favoriteItemsStatus === "loading") {
+      if (paperDeckProfileStatus === "loading") {
         setSavedProfileLoadError("");
         setIsLoadingSavedProfile(true);
         return;
       }
 
-      if (favoriteItemsStatus === "ready") {
+      if (paperDeckProfileStatus === "ready") {
         setSavedProfile(null);
         setSavedProfileLoadError("");
         setIsLoadingSavedProfile(false);
         return;
       }
 
-      if (favoriteItemsStatus === "error") {
+      if (paperDeckProfileStatus === "error") {
         setSavedProfileLoadError(savedProfileLoadFailedText);
         setIsLoadingSavedProfile(false);
         return;
@@ -102,37 +100,33 @@ export default function SeedView({
 
       setSavedProfileLoadError("");
       setIsLoadingSavedProfile(true);
-      try {
-        const items = await loadFavoriteItems(false);
-        if (cancelled) return;
-
-        const profileItem = items.find((item) => item.app_id === PAPERDECK_PROFILE_APP_ID);
-        if (!profileItem) {
-          setSavedProfile(null);
-          return;
-        }
-
-        setSavedProfile({
-          ...profileItem.payload,
-          created_at: profileItem.created_at,
-        });
-        setSavedProfileLoadError("");
-      } catch (_) {
-        if (!cancelled) {
-          setSavedProfileLoadError(savedProfileLoadFailedText);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingSavedProfile(false);
-        }
-      }
+      void loadPaperDeckProfile(false);
     }
 
     loadSavedProfile();
+  }, [authStatus, getPaperDeckProfile, loadPaperDeckProfile, paperDeckProfileStatus, savedProfileLoadFailedText]);
+
+  useEffect(() => {
+    if (!isLoadingSavedProfile) {
+      if (loadingGuardRef.current) {
+        clearTimeout(loadingGuardRef.current);
+        loadingGuardRef.current = null;
+      }
+      return;
+    }
+
+    loadingGuardRef.current = setTimeout(() => {
+      setSavedProfileLoadError(savedProfileLoadFailedText);
+      setIsLoadingSavedProfile(false);
+    }, 7000);
+
     return () => {
-      cancelled = true;
+      if (loadingGuardRef.current) {
+        clearTimeout(loadingGuardRef.current);
+        loadingGuardRef.current = null;
+      }
     };
-  }, [authStatus, favoriteItemsStatus, getPaperDeckProfile, loadFavoriteItems, savedProfileLoadFailedText]);
+  }, [isLoadingSavedProfile, savedProfileLoadFailedText]);
 
   useEffect(() => {
     setSeeds(initialSeeds || []);
@@ -258,7 +252,7 @@ export default function SeedView({
   async function retryLoadSavedProfile() {
     setSavedProfileLoadError("");
     setIsLoadingSavedProfile(true);
-    await loadFavoriteItems(true);
+    await loadPaperDeckProfile(true);
   }
 
   async function handleGenerate() {
@@ -618,3 +612,4 @@ export default function SeedView({
     </div>
   );
 }
+

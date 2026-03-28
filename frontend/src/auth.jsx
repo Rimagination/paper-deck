@@ -5,6 +5,7 @@ import {
   buildCardFavoritePayload,
   buildScanSciLoginUrl,
   getScanSciActionItems,
+  getScanSciLatestActionItem,
   getScanSciMe,
   savePaperDeckProfile,
   toggleScanSciFavorite,
@@ -19,8 +20,10 @@ const ScanSciAuthContext = createContext({
   favorites: new Set(),
   favoriteItems: [],
   favoriteItemsStatus: "idle",
+  paperDeckProfileStatus: "idle",
   refresh: async () => null,
   loadFavoriteItems: async () => [],
+  loadPaperDeckProfile: async () => null,
   startLogin: () => {},
   isFavorite: () => false,
   getCollectedPaperIds: () => new Set(),
@@ -132,14 +135,20 @@ export function ScanSciAuthProvider({ children }) {
   const [localFavoriteItems, setLocalFavoriteItems] = useState(() => loadLocalCardItems());
   const [cachedProfileItem, setCachedProfileItem] = useState(null);
   const [favoriteItemsStatus, setFavoriteItemsStatus] = useState("idle");
+  const [paperDeckProfileStatus, setPaperDeckProfileStatus] = useState("idle");
   const favoriteItemsRequestRef = useRef(null);
+  const profileItemRequestRef = useRef(null);
 
   async function refresh() {
     try {
       const payload = await getScanSciMe();
-      setUser(payload?.user || null);
+      const nextUser = payload?.user || null;
+      const nextCachedProfileItem = loadCachedProfileItem(nextUser?.id);
+      setUser(nextUser);
       setRemoteFavorites(normalizeFavorites(payload?.favorites));
-      setStatus(payload?.user ? "authenticated" : "guest");
+      setCachedProfileItem(nextCachedProfileItem);
+      setPaperDeckProfileStatus(nextCachedProfileItem ? "ready" : "idle");
+      setStatus(nextUser ? "authenticated" : "guest");
       return payload;
     } catch (error) {
       if (error?.response?.status === 401) {
@@ -148,11 +157,13 @@ export function ScanSciAuthProvider({ children }) {
         setFavoriteItems([]);
         setCachedProfileItem(null);
         setFavoriteItemsStatus("idle");
+        setPaperDeckProfileStatus("idle");
         setStatus("guest");
         return null;
       }
       setUser(null);
       setCachedProfileItem(null);
+      setPaperDeckProfileStatus("idle");
       setStatus("guest");
       return null;
     }
@@ -167,7 +178,9 @@ export function ScanSciAuthProvider({ children }) {
   }, [localFavoriteItems]);
 
   useEffect(() => {
-    setCachedProfileItem(loadCachedProfileItem(user?.id));
+    const cached = loadCachedProfileItem(user?.id);
+    setCachedProfileItem(cached);
+    setPaperDeckProfileStatus(cached ? "ready" : "idle");
   }, [user?.id]);
 
   function startLogin() {
@@ -230,6 +243,43 @@ export function ScanSciAuthProvider({ children }) {
     })();
 
     favoriteItemsRequestRef.current = request;
+    return request;
+  }
+
+  async function loadPaperDeckProfile(force = false) {
+    if (status !== "authenticated") {
+      setCachedProfileItem(null);
+      setPaperDeckProfileStatus("idle");
+      return null;
+    }
+
+    if (!force && cachedProfileItem) {
+      return cachedProfileItem;
+    }
+
+    if (profileItemRequestRef.current) return profileItemRequestRef.current;
+
+    setPaperDeckProfileStatus("loading");
+    const request = (async () => {
+      try {
+        const nextItem = await getScanSciLatestActionItem(PAPERDECK_PROFILE_APP_ID, "profile_upsert");
+        setCachedProfileItem(nextItem);
+        persistCachedProfileItem(user?.id, nextItem);
+        setFavoriteItems((current) => {
+          if (!nextItem) return current.filter((item) => item.app_id !== PAPERDECK_PROFILE_APP_ID);
+          return normalizeActionItems([nextItem, ...current.filter((item) => item.app_id !== PAPERDECK_PROFILE_APP_ID)]);
+        });
+        setPaperDeckProfileStatus("ready");
+        return nextItem;
+      } catch (_) {
+        setPaperDeckProfileStatus("error");
+        return null;
+      } finally {
+        profileItemRequestRef.current = null;
+      }
+    })();
+
+    profileItemRequestRef.current = request;
     return request;
   }
 
@@ -306,6 +356,7 @@ export function ScanSciAuthProvider({ children }) {
       setCachedProfileItem(nextItem);
       persistCachedProfileItem(user?.id, nextItem);
       setFavoriteItemsStatus("ready");
+      setPaperDeckProfileStatus("ready");
       return { ok: true, payload };
     } catch (error) {
       return { ok: false, requiresAuth: false, error };
@@ -334,8 +385,10 @@ export function ScanSciAuthProvider({ children }) {
       favorites,
       favoriteItems,
       favoriteItemsStatus,
+      paperDeckProfileStatus,
       refresh,
       loadFavoriteItems,
+      loadPaperDeckProfile,
       startLogin,
       isFavorite,
       getCollectedPaperIds,
@@ -345,7 +398,7 @@ export function ScanSciAuthProvider({ children }) {
       getCardCollection,
       getPaperDeckProfile,
     }),
-    [cachedProfileItem, favoriteItems, favoriteItemsStatus, favorites, status, user]
+    [cachedProfileItem, favoriteItems, favoriteItemsStatus, favorites, paperDeckProfileStatus, status, user]
   );
 
   return <ScanSciAuthContext.Provider value={value}>{children}</ScanSciAuthContext.Provider>;

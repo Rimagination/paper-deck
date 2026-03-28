@@ -73,15 +73,44 @@ export async function getScanSciMe() {
   return response.data;
 }
 
-export async function getScanSciActionItems(actionType = null) {
+export async function getScanSciActionItems(options = null) {
+  let params = undefined;
+
+  if (typeof options === "string" && options.trim()) {
+    params = { type: options.trim() };
+  } else if (options && typeof options === "object") {
+    const nextParams = {};
+    if (typeof options.type === "string" && options.type.trim()) nextParams.type = options.type.trim();
+    if (typeof options.appId === "string" && options.appId.trim()) nextParams.app_id = options.appId.trim();
+    if (typeof options.actionType === "string" && options.actionType.trim()) {
+      nextParams.action_type = options.actionType.trim();
+    }
+    if (Number.isFinite(options.limit)) nextParams.limit = options.limit;
+    if (Object.keys(nextParams).length > 0) params = nextParams;
+  }
+
   const response = await scansciClient.get("/actions", {
-    params: actionType ? { type: actionType } : undefined,
+    params,
   });
   return response.data;
 }
 
 export async function getScanSciFavoriteItems() {
   return getScanSciActionItems("favorite");
+}
+
+export async function getScanSciLatestActionItem(appId, actionType = null) {
+  const response = await scansciClient.get("/actions", {
+    params: {
+      app_id: appId,
+      ...(actionType ? { action_type: actionType } : {}),
+      limit: 1,
+    },
+    timeout: 6000,
+  });
+
+  const items = Array.isArray(response.data?.items) ? response.data.items : [];
+  return items[0] || null;
 }
 
 export async function toggleScanSciFavorite(appId, payload) {
