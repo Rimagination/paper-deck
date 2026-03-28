@@ -1300,6 +1300,181 @@ body::before {
     margin-top: 24px;
   }
 
+  /* ── draw stage 2-col grid (no left stack column) ── */
+  .draw-stage-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 22px;
+    align-items: stretch;
+    margin-top: 24px;
+  }
+
+  /* counter badge */
+  .draw-counter {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .draw-counter-inf {
+    font-size: 20px;
+    line-height: 1;
+    opacity: 0.45;
+  }
+
+  /* progress bar pulse for infinite mode */
+  .draw-progress-pulse {
+    width: 100% !important;
+    background: linear-gradient(90deg, #818cf8, #38bdf8, #818cf8);
+    background-size: 200% 100%;
+    animation: draw-progress-shimmer 2.4s ease-in-out infinite;
+  }
+  @keyframes draw-progress-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  /* stage caption text */
+  .draw-stage-meta {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.62;
+  }
+  .gacha-shell.is-light .draw-stage-meta { color: #475569; opacity: 1; }
+
+  /* inspector body text */
+  .draw-inspector-body {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+    opacity: 0.68;
+  }
+  .gacha-shell.is-light .draw-inspector-body { color: #475569; opacity: 1; }
+
+  /* fetch in-progress row */
+  .draw-fetch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.45);
+  }
+  .gacha-shell.is-light .draw-fetch-row { color: #6366f1; }
+  .draw-fetch-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #818cf8;
+    animation: draw-dot-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes draw-dot-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .draw-fetch-error {
+    font-size: 12px;
+    color: #f87171;
+    font-weight: 500;
+  }
+
+  /* card loading placeholder */
+  .draw-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 26px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.03);
+  }
+  .gacha-shell.is-light .draw-card-placeholder {
+    border-color: rgba(99,102,241,0.1);
+    background: rgba(99,102,241,0.04);
+  }
+
+  /* full-area loading state */
+  .draw-loading-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-height: calc(100vh - 200px);
+    position: relative;
+    z-index: 1;
+  }
+  .draw-loading-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.46);
+  }
+  .gacha-stage-view.is-light .draw-loading-label { color: rgba(79,70,229,0.7); }
+
+  .draw-loading-spinner {
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    border: 3px solid rgba(255,255,255,0.08);
+    border-top-color: #818cf8;
+    animation: draw-spin 0.9s linear infinite;
+  }
+  .gacha-stage-view.is-light .draw-loading-spinner {
+    border-color: rgba(99,102,241,0.12);
+    border-top-color: #6366f1;
+  }
+  @keyframes draw-spin { to { transform: rotate(360deg); } }
+
+  /* ── light-theme floating glow orbs ── */
+  .draw-glow-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(70px);
+    pointer-events: none;
+    animation: draw-orb-float 8s ease-in-out infinite;
+  }
+  .draw-glow-orb-a {
+    width: 380px;
+    height: 380px;
+    left: -8%;
+    top: 5%;
+    background: radial-gradient(circle, rgba(129,140,248,0.55), rgba(99,102,241,0.2));
+    animation-duration: 9s;
+    animation-delay: 0s;
+  }
+  .draw-glow-orb-b {
+    width: 300px;
+    height: 300px;
+    right: -4%;
+    bottom: 10%;
+    background: radial-gradient(circle, rgba(56,189,248,0.5), rgba(14,165,233,0.18));
+    animation-duration: 11s;
+    animation-delay: -3s;
+  }
+  .draw-glow-orb-c {
+    width: 240px;
+    height: 240px;
+    left: 42%;
+    bottom: -5%;
+    background: radial-gradient(circle, rgba(167,139,250,0.42), rgba(139,92,246,0.14));
+    animation-duration: 7s;
+    animation-delay: -5s;
+  }
+  @keyframes draw-orb-float {
+    0%, 100% { transform: translate(0, 0) scale(1);    opacity: 0.85; }
+    33%       { transform: translate(18px, -22px) scale(1.06); opacity: 1; }
+    66%       { transform: translate(-12px, 14px) scale(0.96); opacity: 0.75; }
+  }
+
   .gacha-side-stack,
   .gacha-inspector {
     display: flex;

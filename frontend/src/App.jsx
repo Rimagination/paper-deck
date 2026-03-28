@@ -5,7 +5,6 @@ import { useTheme } from "./theme";
 import SeedView from "./components/seeds/SeedView";
 import LibraryView from "./components/library/LibraryView";
 import DrawView from "./components/gacha/DrawView";
-import GachaDraw from "./components/gacha/GachaDraw";
 import CardDetail from "./components/cards/CardDetail";
 import SubscriptionView from "./components/subscriptions/SubscriptionView";
 import { loadStoredSubscriptions, saveStoredSubscriptions } from "./subscriptionsStore";
@@ -117,8 +116,6 @@ export default function App() {
   const [profileReady, setProfileReady] = useState(false);
   const [interestProfile, setInterestProfile] = useState(null);
   const [subscribedVenues, setSubscribedVenues] = useState(() => loadStoredSubscriptions());
-  const [gachaCards, setGachaCards] = useState(null);
-  const [gachaActive, setGachaActive] = useState(false);
   const [detailCard, setDetailCard] = useState(null);
   const [cardMode, setCardMode] = useState("research");
 
@@ -138,11 +135,6 @@ export default function App() {
     setSeedPaperIds(nextSeeds.map((paper) => paper.paper_id));
     setProfileReady(false);
     setInterestProfile(null);
-  }
-
-  function handleStartGacha(cards) {
-    setGachaCards(cards);
-    setGachaActive(true);
   }
 
   return (
@@ -185,45 +177,34 @@ export default function App() {
         </header>
 
         <main className="flex-1 pb-8">
-          {gachaActive && gachaCards ? (
-            <GachaDraw
-              cards={gachaCards}
-              cardMode={cardMode}
-              onClose={() => { setGachaActive(false); setGachaCards(null); }}
+          {view === "seeds" && (
+            <SeedView
+              initialSeeds={seedPapers}
+              initialProfile={interestProfile}
+              onProfileGenerated={handleProfileGenerated}
+              onSeedsUpdated={handleSeedsUpdated}
+              onOpenDraw={() => setView("draw")}
             />
-          ) : (
-            <>
-              {view === "seeds" && (
-                <SeedView
-                  initialSeeds={seedPapers}
-                  initialProfile={interestProfile}
-                  onProfileGenerated={handleProfileGenerated}
-                  onSeedsUpdated={handleSeedsUpdated}
-                  onOpenDraw={() => setView("draw")}
-                />
-              )}
-              {view === "draw" && (
-                <DrawView
-                  profileInfo={interestProfile}
-                  profileReady={profileReady}
-                  seedPaperIds={seedPaperIds}
-                  cardMode={cardMode}
-                  onStartGacha={handleStartGacha}
-                  onOpenDiscover={() => setView("seeds")}
-                />
-              )}
-              {view === "library" && <LibraryView cardMode={cardMode} onViewCard={setDetailCard} />}
-              {view === "subscriptions" && (
-                <SubscriptionView
-                  profileInfo={interestProfile}
-                  profileReady={profileReady}
-                  seedPaperIds={seedPaperIds}
-                  subscribedVenues={subscribedVenues}
-                  onSubscriptionsChange={setSubscribedVenues}
-                  onViewCard={setDetailCard}
-                />
-              )}
-            </>
+          )}
+          {view === "draw" && (
+            <DrawView
+              profileInfo={interestProfile}
+              profileReady={profileReady}
+              seedPaperIds={seedPaperIds}
+              cardMode={cardMode}
+              onOpenDiscover={() => setView("seeds")}
+            />
+          )}
+          {view === "library" && <LibraryView cardMode={cardMode} onViewCard={setDetailCard} />}
+          {view === "subscriptions" && (
+            <SubscriptionView
+              profileInfo={interestProfile}
+              profileReady={profileReady}
+              seedPaperIds={seedPaperIds}
+              subscribedVenues={subscribedVenues}
+              onSubscriptionsChange={setSubscribedVenues}
+              onViewCard={setDetailCard}
+            />
           )}
         </main>
       </div>

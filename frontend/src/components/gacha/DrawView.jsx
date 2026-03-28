@@ -1,39 +1,36 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useScanSciAuth } from "../../auth";
 import { gachaDraw } from "../../api/backend";
 import { useLanguage } from "../../i18n";
 import { useTheme } from "../../theme";
-import { getTierConfig } from "../cards/TierBadge";
-import { buildInterestMemory } from "../seeds/interestMemory";
+import TierBadge, { getTierConfig } from "../cards/TierBadge";
+import PaperCard from "../cards/PaperCard";
 
-function PreviewCardBack({ theme, zoneLabel, modeLabel, flipLabel }) {
+function CardBack({ zone, tier, modeLabel }) {
+  const { t } = useLanguage();
+  const theme = getTierConfig(zone || tier);
   return (
-    <div className={`deck-preview-card ${theme.cardClass}`}>
-      <div className="deck-preview-grid" />
-      <div className="deck-preview-foil" />
-      <div className="relative z-[1] flex h-full flex-col justify-between p-5">
+    <div className={`gacha-card-back ${theme.cardClass}`}>
+      <div className="gacha-card-back-grid" />
+      <div className="gacha-card-back-foil" />
+      <div className="relative z-[1] flex h-full w-full flex-col justify-between p-6">
         <div className="flex items-start justify-between gap-3">
-          <span className={`inline-flex rounded-xl border px-3 py-1 text-xs font-bold ${theme.tagClass}`}>
-            {zoneLabel}
-          </span>
-          <span className={`text-[10px] font-semibold uppercase tracking-[0.28em] ${theme.authorColor}`}>
+          <TierBadge zone={zone} tier={tier} />
+          <span className={`text-[10px] font-semibold uppercase tracking-[0.26em] ${theme.authorColor}`}>
             {modeLabel}
           </span>
         </div>
         <div className="space-y-4 text-center">
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.34em] ${theme.authorColor}`}>PaperDeck</p>
-          <div className={`deck-preview-emblem ${theme.tagClass}`}>
-            <span className="deck-preview-emblem-core">*</span>
+          <div className={`gacha-card-back-sigil ${theme.tagClass}`}>
+            <div className="gacha-card-back-sigil-core" />
           </div>
-          <div className="space-y-2">
-            <div className={`h-2 rounded-full ${theme.tagClass}`} />
-            <div className={`mx-auto h-2 w-4/5 rounded-full ${theme.tagClass}`} />
-            <div className={`mx-auto h-2 w-3/5 rounded-full ${theme.tagClass}`} />
+          <div>
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.36em] ${theme.authorColor}`}>PaperDeck</p>
+            <p className={`mt-3 text-sm font-semibold ${theme.bodyColor}`}>{t("gacha.tapToReveal")}</p>
           </div>
         </div>
         <div className="flex items-end justify-between">
           <div className={`deck-preview-orb ${theme.loaderCoreClass}`} />
-          <div className={`text-[10px] font-medium ${theme.authorColor}`}>{flipLabel}</div>
         </div>
       </div>
     </div>
@@ -54,71 +51,66 @@ function EmptyState({ title, body, actionLabel, onAction }) {
   );
 }
 
-function formatYearRange(t, memory) {
-  if (memory.yearMin && memory.yearMax) {
-    return memory.yearMin === memory.yearMax
-      ? String(memory.yearMin)
-      : `${memory.yearMin}-${memory.yearMax}`;
-  }
-  return t("seeds.memoryYearsFallback");
-}
-
-export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onStartGacha, onOpenDiscover }) {
+export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onOpenDiscover }) {
   const { t, locale } = useLanguage();
   const { theme: appTheme } = useTheme();
-  const { getCollectedPaperIds } = useScanSciAuth();
-  const [drawCount, setDrawCount] = useState(3);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [drawError, setDrawError] = useState("");
-  const [previewMotion, setPreviewMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+  const { getCollectedPaperIds, toggleFavorite } = useScanSciAuth();
 
-  const memory = useMemo(() => buildInterestMemory(profileInfo), [profileInfo]);
-  const theme = getTierConfig(memory.dominantZone);
-  const excludedPaperIds = useMemo(() => [...getCollectedPaperIds()], [getCollectedPaperIds]);
-  const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
-  const yearRange = useMemo(() => formatYearRange(t, memory), [memory, t]);
-  const leadVenue = memory.venues[0]?.name;
-  const memorySummary = leadVenue
-    ? t("seeds.memorySummary", { venue: leadVenue, years: yearRange })
-    : t("seeds.memorySummaryFallback", { years: yearRange });
-  const echoList = memory.echoes.length > 0 ? memory.echoes : [memory.headline];
+  const [cards, setCards] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [flipped, setFlipped] = useState({});
+  const [collected, setCollected] = useState(new Set());
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState("");
+  const [cardMotion, setCardMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+
   const isDark = appTheme === "dark";
+  const seenIds = useRef(new Set());
 
-  const previewStyle = {
-    "--deck-tilt-x": `${previewMotion.tiltX}deg`,
-    "--deck-tilt-y": `${previewMotion.tiltY}deg`,
-    "--deck-glow-x": `${previewMotion.glowX}%`,
-    "--deck-glow-y": `${previewMotion.glowY}%`,
-  };
-
-  function handlePreviewMove(event) {
-    if (isDrawing) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    setPreviewMotion({ tiltX: (0.5 - y) * 14, tiltY: (x - 0.5) * 18, glowX: x * 100, glowY: y * 100 });
-  }
-
-  function resetPreviewMotion() {
-    setPreviewMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
-  }
-
-  async function handleDraw() {
-    if (!profileReady || seedPaperIds.length === 0 || isDrawing) return;
-    setIsDrawing(true);
-    setDrawError("");
+  async function fetchMore() {
+    if (isFetching || !profileReady || seedPaperIds.length === 0) return;
+    setIsFetching(true);
+    setFetchError("");
     try {
-      const result = await gachaDraw(seedPaperIds, drawCount, cardMode, locale, excludedPaperIds);
+      const excluded = [...new Set([...getCollectedPaperIds(), ...seenIds.current])];
+      const result = await gachaDraw(seedPaperIds, 5, cardMode, locale, excluded);
       if (Array.isArray(result.cards) && result.cards.length > 0) {
-        onStartGacha?.(result.cards);
+        result.cards.forEach((c) => seenIds.current.add(c.paper_id));
+        setCards((prev) => [...prev, ...result.cards]);
       } else {
-        setDrawError(t("draw.emptyPool"));
+        // pool exhausted – reset seen set and retry with only collected excluded
+        seenIds.current = new Set(getCollectedPaperIds());
+        const retry = await gachaDraw(seedPaperIds, 5, cardMode, locale, [...seenIds.current]);
+        if (Array.isArray(retry.cards) && retry.cards.length > 0) {
+          retry.cards.forEach((c) => seenIds.current.add(c.paper_id));
+          setCards((prev) => [...prev, ...retry.cards]);
+        }
       }
     } catch {
-      setDrawError(t("draw.error"));
+      setFetchError(t("draw.error"));
     }
-    setIsDrawing(false);
+    setIsFetching(false);
   }
+
+  // initial fetch
+  useEffect(() => {
+    if (profileReady && seedPaperIds.length > 0) fetchMore();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileReady, seedPaperIds.join(","), cardMode]);
+
+  // pre-fetch when running low
+  useEffect(() => {
+    const remaining = cards.length - currentIndex - 1;
+    if (profileReady && seedPaperIds.length > 0 && remaining <= 1 && !isFetching) {
+      fetchMore();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, cards.length, isFetching]);
+
+  // reset tilt on card change
+  useEffect(() => {
+    setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+  }, [currentIndex]);
 
   if (!profileReady || seedPaperIds.length === 0) {
     return (
@@ -131,102 +123,218 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     );
   }
 
+  const currentCard = cards[currentIndex];
+  const isFlipped = !!flipped[currentIndex];
+  const isCollected = collected.has(currentIndex);
+  const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
+  const currentTheme = currentCard ? getTierConfig(currentCard.zone || currentCard.tier) : null;
+  const authorLine = currentCard ? (currentCard.authors || []).slice(0, 2).join(", ") : "";
+  const metaLine = currentCard ? [authorLine, currentCard.venue, currentCard.year].filter(Boolean).join(" / ") : "";
+
+  const cardStyle = {
+    "--gacha-tilt-x": `${cardMotion.tiltX}deg`,
+    "--gacha-tilt-y": `${cardMotion.tiltY}deg`,
+    "--gacha-glow-x": `${cardMotion.glowX}%`,
+    "--gacha-glow-y": `${cardMotion.glowY}%`,
+  };
+
+  function handleFlip() {
+    if (!isFlipped && currentCard) {
+      setFlipped((prev) => ({ ...prev, [currentIndex]: true }));
+    }
+  }
+
+  function handleCardMove(e) {
+    if (isFlipped) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setCardMotion({ tiltX: (0.5 - y) * 12, tiltY: (x - 0.5) * 14, glowX: x * 100, glowY: y * 100 });
+  }
+
+  function resetCardMotion() {
+    setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+  }
+
+  async function handleCollect() {
+    if (!currentCard || !isFlipped || isCollected) return;
+    await toggleFavorite(currentCard, currentCard.zone || currentCard.tier, cardMode);
+    setCollected((prev) => new Set(prev).add(currentIndex));
+  }
+
+  function handleNext() {
+    setCurrentIndex((prev) => prev + 1);
+  }
+
+  const metadata = useMemo(
+    () => [
+      { label: t("draw.deckMode"), value: modeLabel },
+      { label: t("draw.deckCollectedCount"), value: collected.size },
+      ...(currentCard ? [{ label: t("card.citations"), value: currentCard.citation_count || 0 }] : []),
+    ],
+    [collected.size, currentCard?.citation_count, modeLabel, t],
+  );
+
+  // loading: no cards yet
+  if (cards.length === 0) {
+    return (
+      <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}>
+        {!isDark && (
+          <>
+            <div className="draw-glow-orb draw-glow-orb-a" />
+            <div className="draw-glow-orb draw-glow-orb-b" />
+            <div className="draw-glow-orb draw-glow-orb-c" />
+          </>
+        )}
+        <div className="draw-loading-center">
+          <div className="draw-loading-spinner" />
+          <p className="draw-loading-label">{t("draw.drawing")}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`draw-arena ${isDark ? "is-dark" : "is-light"}`} style={previewStyle}>
-      {/* ambient layers */}
-      <div className="draw-arena-mesh" />
-      <div className="draw-arena-spot draw-arena-spot-a" />
-      <div className="draw-arena-spot draw-arena-spot-b" />
-      <div className="draw-arena-spot draw-arena-spot-c" />
+    <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}>
+      {/* light-theme floating glow orbs */}
+      {!isDark && (
+        <>
+          <div className="draw-glow-orb draw-glow-orb-a" />
+          <div className="draw-glow-orb draw-glow-orb-b" />
+          <div className="draw-glow-orb draw-glow-orb-c" />
+        </>
+      )}
 
-      {/* top bar: memory chips + meta */}
-      <div className="draw-arena-topbar">
-        <div className="draw-arena-chips">
-          {echoList.slice(0, 5).map((entry, i) => (
-            <span key={`${entry}-${i}`} className="draw-arena-chip" style={{ animationDelay: `${i * 0.3}s` }}>
-              {entry}
+      <div className={`gacha-shell ${isDark ? "is-dark" : "is-light"}`}>
+        {/* header */}
+        <header className="gacha-shell-header">
+          <div>
+            <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
+            <h2 className="font-heading text-2xl font-semibold">{t("gacha.title")}</h2>
+          </div>
+          <div className="gacha-shell-progress">
+            <span className="draw-counter">
+              {currentIndex + 1} <span className="draw-counter-inf">∞</span>
             </span>
-          ))}
-        </div>
-        <div className="draw-arena-meta">
-          <span className="draw-arena-pill">{modeLabel}</span>
-          <span className="draw-arena-pill">{memory.dominantZone || "Unrated"}</span>
-        </div>
-      </div>
+            <div className="gacha-shell-progress-track">
+              <div className="gacha-shell-progress-fill draw-progress-pulse" />
+            </div>
+          </div>
+        </header>
 
-      {/* central headline */}
-      <div className="draw-arena-headline">
-        <p className="draw-arena-eyebrow">{t("draw.eyebrow")}</p>
-        <h2 className="draw-arena-title">{memory.headline}</h2>
-        <p className="draw-arena-sub">{memorySummary}</p>
-      </div>
+        {/* 2-column: stage + inspector */}
+        <div className="draw-stage-grid">
+          {/* center card stage */}
+          <div className="gacha-stage">
+            <div className="gacha-stage-ring gacha-stage-ring-a" />
+            <div className="gacha-stage-ring gacha-stage-ring-b" />
+            <div className="gacha-stage-pedestal" />
 
-      {/* clickable card stack */}
-      <div
-        className={`draw-arena-stack-shell ${isDrawing ? "is-drawing" : ""}`}
-        onMouseMove={handlePreviewMove}
-        onMouseLeave={resetPreviewMotion}
-        onClick={handleDraw}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && handleDraw()}
-        aria-label={t("draw.drawButton")}
-      >
-        <div className="draw-arena-ring draw-arena-ring-a" />
-        <div className="draw-arena-ring draw-arena-ring-b" />
-        <div className="draw-arena-shadow" />
+            <div className="gacha-stage-topline">
+              {currentCard && <TierBadge zone={currentCard.zone} tier={currentCard.tier} />}
+              {currentCard?.similarity_score > 0 && currentTheme && (
+                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${currentTheme.matchClass}`}>
+                  {Math.round(currentCard.similarity_score * 100)}% {t("recommend.matchScore")}
+                </span>
+              )}
+            </div>
 
-        <div className="draw-stage-card-wrap draw-stage-card-back">
-          <PreviewCardBack theme={theme} zoneLabel={memory.dominantZone || "Deck"} modeLabel={modeLabel} flipLabel={t("gacha.tapToReveal")} />
-        </div>
-        <div className="draw-stage-card-wrap draw-stage-card-mid">
-          <PreviewCardBack theme={theme} zoneLabel={memory.dominantZone || "Deck"} modeLabel={modeLabel} flipLabel={t("gacha.tapToReveal")} />
-        </div>
-        <div className="draw-stage-card-wrap draw-stage-card-front">
-          <PreviewCardBack theme={theme} zoneLabel={memory.dominantZone || "Deck"} modeLabel={modeLabel} flipLabel={t("gacha.tapToReveal")} />
-        </div>
-
-        {isDrawing && <div className="draw-arena-spinner" />}
-      </div>
-
-      {/* count selector + draw CTA */}
-      <div className="draw-arena-controls">
-        <div className="draw-arena-count-row">
-          {[1, 3, 5].map((count) => (
-            <button
-              key={count}
-              onClick={(e) => { e.stopPropagation(); setDrawCount(count); }}
-              className={`draw-count-chip ${drawCount === count ? "is-active" : ""}`}
+            <div
+              className="gacha-card-stage perspective-1000"
+              onClick={handleFlip}
+              onMouseMove={handleCardMove}
+              onMouseLeave={resetCardMotion}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && handleFlip()}
+              aria-label={t("gacha.tapToReveal")}
             >
-              {t("draw.countLabel", { count })}
-            </button>
-          ))}
+              {currentCard ? (
+                <div
+                  className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`}
+                  style={cardStyle}
+                >
+                  <div className="backface-hidden absolute inset-0 cursor-pointer">
+                    <div className="gacha-card-face gacha-card-face-back">
+                      <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
+                    </div>
+                  </div>
+                  <div className="backface-hidden rotate-y-180 absolute inset-0">
+                    <div className="gacha-card-face gacha-card-face-front overflow-y-auto">
+                      <PaperCard card={currentCard} mode={cardMode} />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="draw-card-placeholder">
+                  <div className="draw-loading-spinner" />
+                </div>
+              )}
+            </div>
+
+            <div className="gacha-stage-caption">
+              <p className="gacha-shell-kicker">
+                {isFlipped && currentCard ? currentCard.title : t("gacha.tapToReveal")}
+              </p>
+              <p className="draw-stage-meta">
+                {isFlipped && currentCard ? metaLine || modeLabel : modeLabel}
+              </p>
+            </div>
+          </div>
+
+          {/* right inspector */}
+          <aside className="gacha-inspector">
+            <div className="gacha-inspector-panel">
+              <p className="gacha-shell-kicker">{t("draw.memorySource")}</p>
+              <div className="mt-4 space-y-3">
+                {metadata.map((item) => (
+                  <div key={item.label} className="gacha-inspector-row">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="gacha-inspector-panel">
+              <p className="gacha-shell-kicker">{t("draw.filterEyebrow")}</p>
+              <p className="draw-inspector-body">
+                {isCollected ? t("card.collected") : t("draw.filterBody", { count: collected.size })}
+              </p>
+            </div>
+            {isFetching && (
+              <div className="draw-fetch-row">
+                <div className="draw-fetch-dot" />
+                <span>{t("draw.drawing")}</span>
+              </div>
+            )}
+            {fetchError && <p className="draw-fetch-error">{fetchError}</p>}
+          </aside>
         </div>
 
-        <button
-          onClick={handleDraw}
-          disabled={isDrawing}
-          className="app-accent-button draw-arena-cta"
-        >
-          {isDrawing ? t("draw.drawing") : t("draw.drawButton")}
-        </button>
-
-        {drawError && <p className="draw-arena-error">{drawError}</p>}
-      </div>
-
-      {/* bottom stats strip */}
-      <div className="draw-arena-footer">
-        <span className="draw-arena-stat">
-          <span className="draw-arena-stat-num">{memory.papers.length}</span>
-          {t("draw.deckSeedCount")}
-        </span>
-        <span className="draw-arena-stat">
-          <span className="draw-arena-stat-num">{excludedPaperIds.length}</span>
-          {t("draw.deckCollectedCount")}
-        </span>
-        <button onClick={onOpenDiscover} className="app-outline-button draw-arena-back-btn">
-          {t("draw.backToDiscover")}
-        </button>
+        {/* action bar */}
+        <div className="gacha-actions">
+          <div className="gacha-actions-group">
+            <button
+              onClick={handleCollect}
+              disabled={!isFlipped || isCollected || !currentCard}
+              className={`gacha-action-button is-primary ${!isFlipped || isCollected || !currentCard ? "is-disabled" : ""}`}
+            >
+              {isCollected ? t("card.collected") : t("card.collect")}
+            </button>
+            <button
+              onClick={handleNext}
+              disabled={!isFlipped || !currentCard}
+              className={`gacha-action-button is-accent ${!isFlipped || !currentCard ? "is-disabled" : ""}`}
+            >
+              {t("gacha.nextCard")}
+            </button>
+          </div>
+          <div className="gacha-secondary-actions">
+            <button onClick={onOpenDiscover} className="gacha-text-button">
+              {t("draw.backToDiscover")}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
