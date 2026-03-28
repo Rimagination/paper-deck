@@ -1056,22 +1056,41 @@ body::before {
     padding-bottom: 0;
   }
 
+  /* legacy alias kept for safety */
   .gacha-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
+    position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 28px;
-    background: rgba(2, 6, 23, 0.62);
-    backdrop-filter: blur(18px);
+    padding: 8px 0 24px;
   }
 
-  .gacha-overlay.is-light {
-    background:
-      linear-gradient(180deg, rgba(248, 250, 252, 0.48), rgba(15, 23, 42, 0.72)),
-      rgba(15, 23, 42, 0.52);
+  /* new inline stage view — sits inside <main>, nav stays visible */
+  .gacha-stage-view {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: calc(100vh - 140px);
+    padding: 8px 0 32px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+
+  .gacha-stage-view.is-dark {
+    background: linear-gradient(180deg, rgba(8, 13, 28, 0.98) 0%, rgba(4, 9, 22, 0.96) 100%);
+  }
+
+  .gacha-stage-view.is-light {
+    background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 50%, #dbeafe 100%);
+  }
+
+  .gacha-stage-view.is-light .gacha-overlay-glow-a {
+    background: rgba(99, 102, 241, 0.22);
+  }
+
+  .gacha-stage-view.is-light .gacha-overlay-glow-b {
+    background: rgba(14, 165, 233, 0.16);
   }
 
   .gacha-overlay-noise {
@@ -1123,6 +1142,111 @@ body::before {
     padding: 28px;
     color: white;
     overflow: hidden;
+  }
+
+  .gacha-shell.is-light {
+    border-color: rgba(99, 102, 241, 0.14);
+    background: linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(238,242,255,0.92) 100%);
+    box-shadow:
+      0 24px 80px rgba(99, 102, 241, 0.12),
+      0 2px 0 rgba(255,255,255,0.9) inset;
+    color: #1e293b;
+  }
+
+  .gacha-shell.is-light .gacha-shell-kicker {
+    color: rgba(79, 70, 229, 0.7);
+  }
+
+  .gacha-shell.is-light .gacha-shell-header {
+    border-bottom-color: rgba(99, 102, 241, 0.12);
+  }
+
+  .gacha-shell.is-light .gacha-shell-progress {
+    color: #334155;
+  }
+
+  .gacha-shell.is-light .gacha-shell-progress-track {
+    background: rgba(99, 102, 241, 0.1);
+  }
+
+  .gacha-shell.is-light h2 {
+    color: #1e293b;
+  }
+
+  .gacha-shell.is-light .gacha-inspector-panel {
+    background: rgba(255,255,255,0.6);
+    border-color: rgba(99, 102, 241, 0.1);
+  }
+
+  .gacha-shell.is-light .gacha-inspector-row {
+    color: #475569;
+    border-bottom-color: rgba(99, 102, 241, 0.08);
+  }
+
+  .gacha-shell.is-light .gacha-inspector-row strong {
+    color: #1e293b;
+  }
+
+  .gacha-shell.is-light .gacha-stage-caption p {
+    color: #475569;
+  }
+
+  .gacha-shell.is-light .gacha-side-label {
+    color: rgba(79, 70, 229, 0.65);
+  }
+
+  .gacha-shell.is-light .gacha-text-button {
+    color: #6366f1;
+  }
+
+  .gacha-shell.is-light .gacha-text-button:hover {
+    color: #4f46e5;
+  }
+
+  .gacha-shell.is-light .gacha-action-button {
+    background: rgba(99, 102, 241, 0.08);
+    color: #4f46e5;
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+
+  .gacha-shell.is-light .gacha-action-button.is-primary {
+    background: #6366f1;
+    color: white;
+    border-color: transparent;
+  }
+
+  .gacha-shell.is-light .gacha-action-button.is-accent {
+    background: linear-gradient(135deg, #6366f1, #38bdf8);
+    color: white;
+    border-color: transparent;
+  }
+
+  .gacha-shell.is-light .gacha-action-button.is-disabled {
+    opacity: 0.4;
+  }
+
+  .gacha-shell.is-light .gacha-stage {
+    border-color: rgba(99, 102, 241, 0.12);
+    background:
+      radial-gradient(circle at center, rgba(99, 102, 241, 0.1), transparent 34%),
+      linear-gradient(180deg, rgba(238,242,255,0.72), rgba(219,234,254,0.52));
+  }
+
+  .gacha-shell.is-light .gacha-stage-ring {
+    border-color: rgba(99, 102, 241, 0.16);
+  }
+
+  .gacha-shell.is-light .gacha-side-stack-shell {
+    border-color: rgba(99, 102, 241, 0.1);
+    background: rgba(99, 102, 241, 0.04);
+  }
+
+  .gacha-shell.is-light .gacha-side-stack-empty {
+    color: rgba(99, 102, 241, 0.35);
+  }
+
+  .gacha-shell.is-light .gacha-actions {
+    border-top-color: rgba(99, 102, 241, 0.1);
   }
 
   .gacha-shell-header {

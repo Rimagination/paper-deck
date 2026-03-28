@@ -185,42 +185,48 @@ export default function App() {
         </header>
 
         <main className="flex-1 pb-8">
-          {view === "seeds" && (
-            <SeedView
-              initialSeeds={seedPapers}
-              initialProfile={interestProfile}
-              onProfileGenerated={handleProfileGenerated}
-              onSeedsUpdated={handleSeedsUpdated}
-              onOpenDraw={() => setView("draw")}
-            />
-          )}
-          {view === "draw" && (
-            <DrawView
-              profileInfo={interestProfile}
-              profileReady={profileReady}
-              seedPaperIds={seedPaperIds}
+          {gachaActive && gachaCards ? (
+            <GachaDraw
+              cards={gachaCards}
               cardMode={cardMode}
-              onStartGacha={handleStartGacha}
-              onOpenDiscover={() => setView("seeds")}
+              onClose={() => { setGachaActive(false); setGachaCards(null); }}
             />
-          )}
-          {view === "library" && <LibraryView cardMode={cardMode} onViewCard={setDetailCard} />}
-          {view === "subscriptions" && (
-            <SubscriptionView
-              profileInfo={interestProfile}
-              profileReady={profileReady}
-              seedPaperIds={seedPaperIds}
-              subscribedVenues={subscribedVenues}
-              onSubscriptionsChange={setSubscribedVenues}
-              onViewCard={setDetailCard}
-            />
+          ) : (
+            <>
+              {view === "seeds" && (
+                <SeedView
+                  initialSeeds={seedPapers}
+                  initialProfile={interestProfile}
+                  onProfileGenerated={handleProfileGenerated}
+                  onSeedsUpdated={handleSeedsUpdated}
+                  onOpenDraw={() => setView("draw")}
+                />
+              )}
+              {view === "draw" && (
+                <DrawView
+                  profileInfo={interestProfile}
+                  profileReady={profileReady}
+                  seedPaperIds={seedPaperIds}
+                  cardMode={cardMode}
+                  onStartGacha={handleStartGacha}
+                  onOpenDiscover={() => setView("seeds")}
+                />
+              )}
+              {view === "library" && <LibraryView cardMode={cardMode} onViewCard={setDetailCard} />}
+              {view === "subscriptions" && (
+                <SubscriptionView
+                  profileInfo={interestProfile}
+                  profileReady={profileReady}
+                  seedPaperIds={seedPaperIds}
+                  subscribedVenues={subscribedVenues}
+                  onSubscriptionsChange={setSubscribedVenues}
+                  onViewCard={setDetailCard}
+                />
+              )}
+            </>
           )}
         </main>
       </div>
-
-      {gachaActive && gachaCards && (
-        <GachaDraw cards={gachaCards} cardMode={cardMode} onClose={() => setGachaActive(false)} />
-      )}
 
       {detailCard && <CardDetail card={detailCard} mode={cardMode} onClose={() => setDetailCard(null)} />}
     </div>

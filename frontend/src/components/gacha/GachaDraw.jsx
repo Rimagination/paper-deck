@@ -168,13 +168,15 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
     [collected.size, currentCard.citation_count, modeLabel, t]
   );
 
+  const isDark = appTheme === "dark";
+
   return (
-    <div className={`gacha-overlay ${appTheme === "dark" ? "is-dark" : "is-light"}`}>
+    <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}>
       <div className="gacha-overlay-noise" />
       <div className="gacha-overlay-glow gacha-overlay-glow-a" />
       <div className="gacha-overlay-glow gacha-overlay-glow-b" />
 
-      <div className="gacha-shell">
+      <div className={`gacha-shell ${isDark ? "is-dark" : "is-light"}`}>
         <header className="gacha-shell-header">
           <div>
             <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
