@@ -24,6 +24,7 @@ export default function LibraryView({ cardMode, onViewCard }) {
     let items = collection.map((item) => ({
       paper_id: item.payload?.paper_id || "",
       title: item.payload?.title || "Untitled",
+      title_zh: item.payload?.title_zh || "",
       authors: item.payload?.authors || [],
       year: item.payload?.year,
       venue: item.payload?.venue,

@@ -180,7 +180,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
         <header className="gacha-shell-header">
           <div>
             <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
-            <h2 className="font-heading text-2xl font-semibold text-white">{t("gacha.title")}</h2>
+            <h2 className="font-heading-cn text-2xl font-semibold text-white">{t("gacha.title")}</h2>
           </div>
           <div className="gacha-shell-progress">
             <span>

@@ -358,6 +358,12 @@ class CardGenerator:
     async def close(self) -> None:
         await self.translator.close()
 
+    async def localize_title(self, title: str, language: str = "zh") -> str:
+        cleaned = _clean_text(title)
+        if not cleaned:
+            return cleaned
+        return await self.translator.translate_text(cleaned, language)
+
     async def _localize_card(self, content: dict[str, Any], mode: str, language: str) -> dict[str, Any]:
         if not language.startswith("zh"):
             return content

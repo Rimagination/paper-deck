@@ -155,7 +155,7 @@ export default function RecommendView({
       <div className="paper-surface rounded-2xl p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-heading text-lg font-semibold text-slate-900">{t("recommend.title")}</h2>
+            <h2 className="font-heading-cn text-lg font-semibold text-slate-900">{t("recommend.title")}</h2>
             <p className="mt-1 text-sm text-slate-500">
               {hasSubscriptions
                 ? `${subscribedVenues.length} subscriptions active. New papers are prioritized from your journals.`

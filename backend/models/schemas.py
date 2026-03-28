@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class PaperSummary(BaseModel):
     paper_id: str
     title: str
+    title_zh: Optional[str] = None
     authors: list[str]
     year: Optional[int] = None
     citation_count: int = 0
@@ -73,6 +74,7 @@ class DiscoveryCardContent(BaseModel):
 class CardResponse(BaseModel):
     paper_id: str
     title: str
+    title_zh: Optional[str] = None
     authors: list[str]
     year: Optional[int] = None
     venue: Optional[str] = None

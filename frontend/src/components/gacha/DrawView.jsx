@@ -13,6 +13,7 @@ function CardBack({ zone, tier, modeLabel }) {
     <div className={`gacha-card-back ${theme.cardClass}`}>
       <div className="gacha-card-back-grid" />
       <div className="gacha-card-back-foil" />
+      <div className="gacha-card-back-sheen" />
       <div className="relative z-[1] flex h-full w-full flex-col justify-between p-6">
         <div className="flex items-start justify-between gap-3">
           <TierBadge zone={zone} tier={tier} />
@@ -41,7 +42,7 @@ function EmptyState({ title, body, actionLabel, onAction }) {
   return (
     <section className="paper-surface flex min-h-[360px] flex-col items-center justify-center rounded-[30px] px-6 py-14 text-center">
       <div className="max-w-lg">
-        <h2 className="font-heading text-3xl font-semibold" style={{ color: "var(--text-main)" }}>{title}</h2>
+        <h2 className="font-heading-cn text-3xl font-semibold" style={{ color: "var(--text-main)" }}>{title}</h2>
         <p className="mt-3 text-sm leading-7" style={{ color: "var(--text-muted)" }}>{body}</p>
       </div>
       <button onClick={onAction} className="app-primary-button mt-8 rounded-2xl px-5 py-3 text-sm font-medium">
@@ -64,9 +65,12 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const [fetchError, setFetchError] = useState("");
   const [cardMotion, setCardMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
   const [settled, setSettled] = useState({});
+  const [stageMotion, setStageMotion] = useState({ x: 0, y: 0 });
+  const [flipFlashActive, setFlipFlashActive] = useState(false);
 
   const isDark = appTheme === "dark";
   const seenIds = useRef(new Set());
+  const flipFlashTimeoutRef = useRef(null);
 
   async function fetchMore() {
     if (isFetching || !profileReady || seedPaperIds.length === 0) return;
@@ -113,6 +117,14 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
   }, [currentIndex]);
 
+  useEffect(() => {
+    return () => {
+      if (flipFlashTimeoutRef.current) {
+        clearTimeout(flipFlashTimeoutRef.current);
+      }
+    };
+  }, []);
+
   if (!profileReady || seedPaperIds.length === 0) {
     return (
       <EmptyState
@@ -138,12 +150,23 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     "--gacha-glow-x": `${cardMotion.glowX}%`,
     "--gacha-glow-y": `${cardMotion.glowY}%`,
   };
+  const stageStyle = {
+    "--draw-parallax-x": `${stageMotion.x}px`,
+    "--draw-parallax-y": `${stageMotion.y}px`,
+  };
 
   const isSettled = !!settled[currentIndex];
+  const showScrollCard = Boolean(isSettled && currentCard);
 
   function handleFlip() {
     if (!isFlipped && currentCard) {
       setFlipped((prev) => ({ ...prev, [currentIndex]: true }));
+      setFlipFlashActive(false);
+      if (flipFlashTimeoutRef.current) {
+        clearTimeout(flipFlashTimeoutRef.current);
+      }
+      requestAnimationFrame(() => setFlipFlashActive(true));
+      flipFlashTimeoutRef.current = setTimeout(() => setFlipFlashActive(false), 420);
       // After flip animation completes, flatten 3D so scroll is smooth
       setTimeout(() => {
         setSettled((prev) => ({ ...prev, [currentIndex]: true }));
@@ -161,6 +184,17 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
   function resetCardMotion() {
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+  }
+
+  function handleStageMove(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 22;
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 18;
+    setStageMotion({ x, y });
+  }
+
+  function resetStageMotion() {
+    setStageMotion({ x: 0, y: 0 });
   }
 
   async function handleCollect() {
@@ -185,7 +219,11 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   // loading: no cards yet
   if (cards.length === 0) {
     return (
-      <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}>
+      <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`} style={stageStyle}>
+        <div className="draw-light-wheel draw-light-wheel-a" />
+        <div className="draw-light-wheel draw-light-wheel-b" />
+        <div className="draw-light-sweep draw-light-sweep-a" />
+        <div className="draw-light-sweep draw-light-sweep-b" />
         {!isDark && (
           <>
             <div className="draw-glow-orb draw-glow-orb-a" />
@@ -202,7 +240,16 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   }
 
   return (
-    <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}>
+    <div
+      className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}
+      style={stageStyle}
+      onMouseMove={handleStageMove}
+      onMouseLeave={resetStageMotion}
+    >
+      <div className="draw-light-wheel draw-light-wheel-a" />
+      <div className="draw-light-wheel draw-light-wheel-b" />
+      <div className="draw-light-sweep draw-light-sweep-a" />
+      <div className="draw-light-sweep draw-light-sweep-b" />
       {/* light-theme floating glow orbs */}
       {!isDark && (
         <>
@@ -217,7 +264,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
         <header className="gacha-shell-header">
           <div>
             <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
-            <h2 className="font-heading text-2xl font-semibold">{t("gacha.title")}</h2>
+            <h2 className="font-heading-cn text-2xl font-semibold">{t("gacha.title")}</h2>
           </div>
           <div className="gacha-shell-progress">
             <span className="draw-counter">
@@ -249,38 +296,45 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             <div
               className="gacha-card-stage perspective-1000"
               onClick={handleFlip}
-              onMouseMove={handleCardMove}
-              onMouseLeave={resetCardMotion}
+              onMouseMove={showScrollCard ? undefined : handleCardMove}
+              onMouseLeave={showScrollCard ? undefined : resetCardMotion}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => e.key === "Enter" && handleFlip()}
               aria-label={t("gacha.tapToReveal")}
             >
-              {currentCard ? (
+              {currentCard && !showScrollCard ? (
                 <div
-                  className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""} ${isSettled ? "is-settled" : ""}`}
+                  className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`}
                   style={cardStyle}
                 >
                   {/* back face — hidden once settled to free GPU layers */}
-                  {!isSettled && (
                     <div className="backface-hidden absolute inset-0 cursor-pointer">
                       <div className="gacha-card-face gacha-card-face-back">
                         <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
                       </div>
                     </div>
-                  )}
                   {/* front face — becomes normal scrollable element once settled */}
-                  <div className={isSettled ? "absolute inset-0" : "backface-hidden rotate-y-180 absolute inset-0"}>
+                  <div className="backface-hidden rotate-y-180 absolute inset-0">
                     <div className="gacha-card-face gacha-card-face-front gacha-card-scroll">
                       <PaperCard card={currentCard} mode={cardMode} />
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : null}
+              {showScrollCard ? (
+                <div className={`gacha-card-scroll-shell ${isCollected ? "is-collected" : "is-expanded"}`}>
+                  <div className="gacha-card-scroll-shell-inner">
+                    <PaperCard card={currentCard} mode={cardMode} />
+                  </div>
+                </div>
+              ) : null}
+              {!currentCard ? (
                 <div className="draw-card-placeholder">
                   <div className="draw-loading-spinner" />
                 </div>
-              )}
+              ) : null}
+              <div className={`draw-flip-flash ${flipFlashActive ? "is-active" : ""}`} aria-hidden="true" />
             </div>
 
             <div className="gacha-stage-caption">

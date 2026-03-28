@@ -149,20 +149,33 @@ function CardGeneratingState({ title, theme, t }) {
   );
 }
 
+function getBilingualTitle(card) {
+  const title = (card?.title || "").trim();
+  const titleZh = (card?.title_zh || "").trim();
+  const hasZh = /[\u4e00-\u9fff]/.test(titleZh);
+  const sameText = title && titleZh && title.toLowerCase() === titleZh.toLowerCase();
+
+  return {
+    title,
+    titleZh: hasZh && !sameText ? titleZh : "",
+  };
+}
+
 export default function PaperCard({ card, mode = "research", compact = false, onClick }) {
   const { t } = useLanguage();
   const theme = getTierConfig(card.zone || card.tier);
   const content = card.card_content;
+  const { title, titleZh } = getBilingualTitle(card);
 
   return (
     <div
       onClick={onClick}
-      className={`${theme.cardClass} relative overflow-hidden rounded-2xl transition-all ${
+      className={`${theme.cardClass} relative aspect-[9/16] w-full overflow-hidden rounded-[28px] transition-all ${
         onClick ? "cursor-pointer hover:scale-[1.015] hover:brightness-110" : ""
       }`}
     >
-      <div className="relative z-[1]">
-        <div className="px-5 pb-4 pt-5">
+      <div className="relative z-[1] flex h-full flex-col">
+        <div className="shrink-0 px-5 pb-4 pt-5">
           <div className="flex items-start justify-between gap-2">
             <TierBadge zone={card.zone} tier={card.tier} />
             <div className="flex items-center gap-1">
@@ -175,9 +188,16 @@ export default function PaperCard({ card, mode = "research", compact = false, on
             </div>
           </div>
 
-          <h3 className={`mt-3 font-bold leading-snug ${theme.titleColor} ${compact ? "line-clamp-2 text-sm" : "line-clamp-3 text-[15px]"}`}>
-            {card.title}
-          </h3>
+          <div className="mt-3 space-y-1.5">
+            <h3 className={`font-bold leading-snug ${theme.titleColor} ${compact ? "line-clamp-2 text-sm" : "line-clamp-3 text-[15px]"}`}>
+              {title}
+            </h3>
+            {titleZh && (
+              <p className={`font-heading-cn leading-snug ${theme.authorColor} ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-3 text-[12px]"}`}>
+                {titleZh}
+              </p>
+            )}
+          </div>
           <p className={`mt-1.5 text-[11px] leading-relaxed ${theme.authorColor}`}>
             {card.authors?.slice(0, 2).join(", ")}
             {card.authors?.length > 2 ? ` +${card.authors.length - 2}` : ""}
@@ -190,13 +210,15 @@ export default function PaperCard({ card, mode = "research", compact = false, on
         <div className={`mx-5 border-t ${theme.dividerClass}`} />
 
         {compact && content && (
-          <p className={`line-clamp-3 px-5 pb-4 pt-3 text-[11px] leading-relaxed ${theme.bodyColor}`}>
+          <div className="min-h-0 flex-1 overflow-hidden px-5 pb-4 pt-3">
+            <p className={`line-clamp-5 text-[11px] leading-relaxed ${theme.bodyColor}`}>
             {mode === "research" ? content.core_contribution : content.plain_summary || content.headline}
-          </p>
+            </p>
+          </div>
         )}
 
         {!compact && content && (
-          <div className="px-5 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             {mode === "research" ? (
               <ResearchContent content={content} t={t} theme={theme} />
             ) : (
@@ -207,8 +229,8 @@ export default function PaperCard({ card, mode = "research", compact = false, on
 
         {!compact && !content && <CardGeneratingState title={card.title} theme={theme} t={t} />}
 
-        <div className={`mx-5 border-t ${theme.dividerClass}`} />
-        <div className="flex items-center justify-between px-5 py-3">
+        <div className={`mx-5 mt-auto border-t ${theme.dividerClass}`} />
+        <div className="flex shrink-0 items-center justify-between px-5 py-3">
           <span className={`text-[11px] ${theme.citationClass}`}>
             {t("card.citations")}: {card.citation_count?.toLocaleString?.() ?? card.citation_count ?? 0}
           </span>

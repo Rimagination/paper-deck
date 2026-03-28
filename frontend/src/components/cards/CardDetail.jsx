@@ -57,7 +57,7 @@ export default function CardDetail({ card, mode, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="mx-4 w-full max-w-lg animate-fade-in" onClick={(event) => event.stopPropagation()}>
+      <div className="mx-4 w-full max-w-[26rem] animate-fade-in" onClick={(event) => event.stopPropagation()}>
         <div className="mb-3 flex items-center justify-center gap-2">
           <button
             onClick={() => handleModeSwitch("research")}

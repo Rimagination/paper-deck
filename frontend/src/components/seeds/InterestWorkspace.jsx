@@ -196,7 +196,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
             {t("seeds.memoryEyebrow")}
           </p>
-          <h3 className="mt-3 font-heading text-3xl font-semibold text-slate-950 sm:text-[34px]">
+          <h3 className="mt-3 font-heading-cn text-3xl font-semibold text-slate-950 sm:text-[34px]">
             {t("seeds.memoryTitle")}
           </h3>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
@@ -257,7 +257,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700/70">
                 {t("seeds.memoryCloudEyebrow")}
               </p>
-              <h4 className="mt-2 text-2xl font-semibold text-slate-950">{memory.headline}</h4>
+              <h4 className="font-heading-cn mt-2 text-2xl font-semibold text-slate-950">{memory.headline}</h4>
             </div>
           </div>
         </div>

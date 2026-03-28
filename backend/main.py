@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import traceback
 from contextlib import asynccontextmanager
@@ -59,11 +60,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             card_generator = CardGenerator(app_settings)
             journal_zone = JournalZoneService()
             journal_zone_index = _resolve_journal_zone_index_path(app_settings)
-            if journal_zone_index is not None:
-                journal_zone.load(journal_zone_index)
-                logger.info("Journal zone index loaded from %s", journal_zone_index)
-            else:
-                logger.warning("Journal zone index not found; zone lookup will rely on fallback matching only")
             logger.info("Services initialized")
 
             app.state.settings = app_settings
@@ -73,10 +69,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.card_generator = card_generator
             app.state.journal_zone = journal_zone
 
+            journal_zone_task = None
+            if journal_zone_index is not None:
+                async def _load_journal_zone() -> None:
+                    await asyncio.to_thread(journal_zone.load, journal_zone_index)
+                    logger.info("Journal zone index loaded from %s", journal_zone_index)
+
+                journal_zone_task = asyncio.create_task(_load_journal_zone())
+            else:
+                logger.warning("Journal zone index not found; zone lookup will rely on fallback matching only")
+
             logger.info("Startup complete!")
             yield
 
             logger.info("Shutting down...")
+            if journal_zone_task is not None and not journal_zone_task.done():
+                journal_zone_task.cancel()
             await s2_client.close()
             await oa_client.close()
             await card_generator.close()

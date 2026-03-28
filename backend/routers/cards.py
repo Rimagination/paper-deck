@@ -32,6 +32,7 @@ async def generate_card(request: Request, body: CardGenerateRequest) -> CardResp
             raise HTTPException(status_code=503, detail="Paper details unavailable.")
 
     card_content = await card_gen.generate_card(paper, mode=body.mode, language=body.language)
+    title_zh = await card_gen.localize_title(paper.get("title") or "Untitled", "zh")
     metadata = enrich_paper_metadata(paper, journal_zone)
     tier = classify_tier(
         citation_count=paper.get("citationCount") or 0,
@@ -42,6 +43,7 @@ async def generate_card(request: Request, body: CardGenerateRequest) -> CardResp
     response = CardResponse(
         paper_id=paper.get("paperId", ""),
         title=paper.get("title") or "Untitled",
+        title_zh=title_zh,
         authors=normalize_authors(paper),
         year=paper.get("year"),
         venue=paper.get("venue"),

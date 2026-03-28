@@ -5,24 +5,21 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+ENV PYTHONPATH=/app \
+    PORT=7860 \
+    REDIS_URL="" \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 COPY backend/requirements.txt /app/backend/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /app/backend/requirements.txt
+RUN pip install -r /app/backend/requirements.txt
 
 COPY backend/ /app/backend/
 COPY frontend/dist /app/frontend/dist
 
-ENV PYTHONPATH=/app
-ENV PORT=7860
-ENV REDIS_URL=""
-
 EXPOSE 7860
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
-    CMD curl -f http://localhost:7860/health || exit 1
+    CMD python -c "import sys, urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/health', timeout=2); sys.exit(0)"
 
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7860", "--log-level", "info"]

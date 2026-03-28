@@ -342,7 +342,7 @@ export default function SeedView({
     <div className="space-y-6">
       <section className="paper-surface rounded-[28px] p-6 sm:p-7">
         <div className="max-w-3xl">
-          <h2 className="font-heading text-2xl font-semibold text-slate-950">{t("seeds.title")}</h2>
+          <h2 className="font-heading-cn text-2xl font-semibold text-slate-950">{t("seeds.title")}</h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">{t("seeds.subtitle")}</p>
         </div>
 
@@ -558,7 +558,7 @@ export default function SeedView({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="app-dialog mx-4 max-h-[80vh] w-full max-w-lg overflow-hidden rounded-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h3 className="font-heading text-base font-semibold">{t("seeds.importTitle")}</h3>
+              <h3 className="font-heading-cn text-base font-semibold">{t("seeds.importTitle")}</h3>
               <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600">
                 {t("common.close")}
               </button>
