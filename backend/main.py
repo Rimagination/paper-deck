@@ -7,6 +7,8 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.config import Settings, get_settings
 from backend.routers.cards import router as cards_router
@@ -108,6 +110,44 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(recommend_router, prefix="/api")
     app.include_router(cards_router, prefix="/api")
     app.include_router(subscriptions_router, prefix="/api")
+
+    # --- Serve pre-built frontend (SPA) ---
+    # Resolve dist folder: /app/frontend/dist in Docker, or local dev path
+    _here = Path(__file__).resolve().parent
+    _dist_candidates = [
+        Path("/app/frontend/dist"),           # Docker layout
+        _here.parent / "frontend" / "dist",   # local dev
+    ]
+    _dist_dir: Path | None = None
+    for _d in _dist_candidates:
+        if (_d / "index.html").exists():
+            _dist_dir = _d
+            break
+
+    if _dist_dir is not None:
+        logger.info("Serving frontend from %s", _dist_dir)
+
+        # Serve /assets/* with aggressive cache
+        if (_dist_dir / "assets").is_dir():
+            app.mount(
+                "/assets",
+                StaticFiles(directory=str(_dist_dir / "assets")),
+                name="frontend-assets",
+            )
+
+        # SPA catch-all: any non-API, non-health route -> index.html
+        _index_html = _dist_dir / "index.html"
+
+        @app.get("/{full_path:path}")
+        async def _spa_catchall(full_path: str) -> HTMLResponse:
+            # Serve specific static files (favicon etc.) if they exist
+            candidate = _dist_dir / full_path
+            if full_path and candidate.exists() and candidate.is_file():
+                return FileResponse(str(candidate))
+            return HTMLResponse(content=_index_html.read_text(), status_code=200)
+    else:
+        logger.warning("Frontend dist not found; API-only mode")
+
     return app
 
 
