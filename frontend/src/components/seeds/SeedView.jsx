@@ -27,7 +27,7 @@ export default function SeedView({
   onSeedsUpdated,
   onOpenDraw,
 }) {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const {
     status: authStatus,
     favoriteItemsStatus,
@@ -49,8 +49,12 @@ export default function SeedView({
   const [importSelected, setImportSelected] = useState(new Set());
   const [savedProfile, setSavedProfile] = useState(null);
   const [isLoadingSavedProfile, setIsLoadingSavedProfile] = useState(false);
+  const [savedProfileLoadError, setSavedProfileLoadError] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle");
   const inputRef = useRef(null);
+  const savedProfileLoadFailedText =
+    locale === "en" ? "Saved profile could not be loaded right now." : "暂时无法加载已保存画像。";
+  const retryText = locale === "en" ? "Retry" : "重试";
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +62,7 @@ export default function SeedView({
     async function loadSavedProfile() {
       if (authStatus !== "authenticated") {
         setSavedProfile(null);
+        setSavedProfileLoadError("");
         setIsLoadingSavedProfile(false);
         return;
       }
@@ -68,21 +73,31 @@ export default function SeedView({
           ...cachedProfileItem.payload,
           created_at: cachedProfileItem.created_at,
         });
+        setSavedProfileLoadError("");
         setIsLoadingSavedProfile(false);
         return;
       }
 
       if (favoriteItemsStatus === "loading") {
+        setSavedProfileLoadError("");
         setIsLoadingSavedProfile(true);
         return;
       }
 
       if (favoriteItemsStatus === "ready") {
         setSavedProfile(null);
+        setSavedProfileLoadError("");
         setIsLoadingSavedProfile(false);
         return;
       }
 
+      if (favoriteItemsStatus === "error") {
+        setSavedProfileLoadError(savedProfileLoadFailedText);
+        setIsLoadingSavedProfile(false);
+        return;
+      }
+
+      setSavedProfileLoadError("");
       setIsLoadingSavedProfile(true);
       try {
         const items = await loadFavoriteItems(false);
@@ -98,6 +113,11 @@ export default function SeedView({
           ...profileItem.payload,
           created_at: profileItem.created_at,
         });
+        setSavedProfileLoadError("");
+      } catch (_) {
+        if (!cancelled) {
+          setSavedProfileLoadError(savedProfileLoadFailedText);
+        }
       } finally {
         if (!cancelled) {
           setIsLoadingSavedProfile(false);
@@ -109,7 +129,7 @@ export default function SeedView({
     return () => {
       cancelled = true;
     };
-  }, [authStatus, favoriteItemsStatus]);
+  }, [authStatus, favoriteItemsStatus, getPaperDeckProfile, loadFavoriteItems, savedProfileLoadFailedText]);
 
   useEffect(() => {
     setSeeds(initialSeeds || []);
@@ -230,6 +250,12 @@ export default function SeedView({
     setProfileInfo(restoredProfile);
     setSyncStatus("saved");
     onProfileGenerated?.(restoredSeeds.map((paper) => paper.paper_id), restoredProfile);
+  }
+
+  async function retryLoadSavedProfile() {
+    setSavedProfileLoadError("");
+    setIsLoadingSavedProfile(true);
+    await loadFavoriteItems(true);
   }
 
   async function handleGenerate() {
@@ -412,7 +438,7 @@ export default function SeedView({
         </p>
       </section>
 
-      {authStatus === "authenticated" && (isLoadingSavedProfile || savedProfile) && (
+      {authStatus === "authenticated" && (isLoadingSavedProfile || savedProfile || savedProfileLoadError) && (
         <section className="paper-surface rounded-[28px] p-6 sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -429,6 +455,16 @@ export default function SeedView({
                       {t("seeds.syncedAt")}: {savedProfileTime}
                     </p>
                   )}
+                </div>
+              ) : savedProfileLoadError ? (
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                  <p className="text-rose-600">{savedProfileLoadError}</p>
+                  <button
+                    onClick={retryLoadSavedProfile}
+                    className="app-inline-link font-medium hover:underline"
+                  >
+                    {retryText}
+                  </button>
                 </div>
               ) : null}
             </div>

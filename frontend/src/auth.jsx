@@ -158,11 +158,11 @@ export function ScanSciAuthProvider({ children }) {
     setFavoriteItemsStatus("loading");
     const request = (async () => {
       try {
-      const payload = await getScanSciActionItems();
-      const nextItems = normalizeActionItems(payload?.items);
-      setFavoriteItems(nextItems);
-      setFavoriteItemsStatus("ready");
-      return nextItems;
+        const payload = await getScanSciActionItems();
+        const nextItems = normalizeActionItems(payload?.items);
+        setFavoriteItems(nextItems);
+        setFavoriteItemsStatus("ready");
+        return nextItems;
       } catch (_) {
         setFavoriteItemsStatus("error");
         return [];
