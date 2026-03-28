@@ -11,7 +11,6 @@ backend/.pytest_cache/
 backend/.mypy_cache/
 backend/.ruff_cache/
 frontend/node_modules/
-frontend/dist/
 frontend/.vite/
 
 .cache/
