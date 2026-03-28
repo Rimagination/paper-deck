@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useScanSciAuth } from "../../auth";
 import { gachaDraw } from "../../api/backend";
 import { useLanguage } from "../../i18n";
+import { useTheme } from "../../theme";
 import { getTierConfig } from "../cards/TierBadge";
 import { buildInterestMemory } from "../seeds/interestMemory";
 
@@ -9,6 +10,7 @@ function PreviewCardBack({ theme, zoneLabel, modeLabel, flipLabel }) {
   return (
     <div className={`deck-preview-card ${theme.cardClass}`}>
       <div className="deck-preview-grid" />
+      <div className="deck-preview-foil" />
       <div className="relative z-[1] flex h-full flex-col justify-between p-5">
         <div className="flex items-start justify-between gap-3">
           <span className={`inline-flex rounded-xl border px-3 py-1 text-xs font-bold ${theme.tagClass}`}>
@@ -19,14 +21,15 @@ function PreviewCardBack({ theme, zoneLabel, modeLabel, flipLabel }) {
           </span>
         </div>
 
-        <div className="space-y-3">
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.34em] ${theme.authorColor}`}>
-            PaperDeck
-          </p>
+        <div className="space-y-4 text-center">
+          <p className={`text-[11px] font-semibold uppercase tracking-[0.34em] ${theme.authorColor}`}>PaperDeck</p>
+          <div className={`deck-preview-emblem ${theme.tagClass}`}>
+            <span className="deck-preview-emblem-core">*</span>
+          </div>
           <div className="space-y-2">
             <div className={`h-2 rounded-full ${theme.tagClass}`} />
-            <div className={`h-2 w-4/5 rounded-full ${theme.tagClass}`} />
-            <div className={`h-2 w-3/5 rounded-full ${theme.tagClass}`} />
+            <div className={`mx-auto h-2 w-4/5 rounded-full ${theme.tagClass}`} />
+            <div className={`mx-auto h-2 w-3/5 rounded-full ${theme.tagClass}`} />
           </div>
         </div>
 
@@ -56,17 +59,71 @@ function EmptyState({ title, body, actionLabel, onAction }) {
   );
 }
 
+function MetricStrip({ label, value }) {
+  return (
+    <div className="draw-ritual-metric">
+      <p className="draw-ritual-kicker">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function StageChip({ children, index }) {
+  return (
+    <span className="draw-stage-memory-chip" style={{ animationDelay: `${index * 0.35}s` }}>
+      {children}
+    </span>
+  );
+}
+
+function formatYearRange(t, memory) {
+  if (memory.yearMin && memory.yearMax) {
+    return memory.yearMin === memory.yearMax ? String(memory.yearMin) : `${memory.yearMin}-${memory.yearMax}`;
+  }
+  return t("seeds.memoryYearsFallback");
+}
+
 export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onStartGacha, onOpenDiscover }) {
   const { t, locale } = useLanguage();
+  const { theme: appTheme } = useTheme();
   const { getCollectedPaperIds } = useScanSciAuth();
   const [drawCount, setDrawCount] = useState(3);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawError, setDrawError] = useState("");
+  const [previewMotion, setPreviewMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
 
   const memory = useMemo(() => buildInterestMemory(profileInfo), [profileInfo]);
   const theme = getTierConfig(memory.dominantZone);
   const excludedPaperIds = useMemo(() => [...getCollectedPaperIds()], [getCollectedPaperIds]);
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
+  const yearRange = useMemo(() => formatYearRange(t, memory), [memory, t]);
+  const leadVenue = memory.venues[0]?.name;
+  const memorySummary = leadVenue
+    ? t("seeds.memorySummary", { venue: leadVenue, years: yearRange })
+    : t("seeds.memorySummaryFallback", { years: yearRange });
+  const echoList = memory.echoes.length > 0 ? memory.echoes : [memory.headline];
+  const previewStyle = {
+    "--deck-tilt-x": `${previewMotion.tiltX}deg`,
+    "--deck-tilt-y": `${previewMotion.tiltY}deg`,
+    "--deck-glow-x": `${previewMotion.glowX}%`,
+    "--deck-glow-y": `${previewMotion.glowY}%`,
+  };
+
+  function handlePreviewMove(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    setPreviewMotion({
+      tiltX: (0.5 - y) * 10,
+      tiltY: (x - 0.5) * 12,
+      glowX: x * 100,
+      glowY: y * 100,
+    });
+  }
+
+  function resetPreviewMotion() {
+    setPreviewMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+  }
 
   async function handleDraw() {
     if (!profileReady || seedPaperIds.length === 0 || isDrawing) return;
@@ -102,16 +159,14 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
   return (
     <div className="space-y-6">
-      <section className="paper-surface rounded-[30px] p-6 sm:p-7">
+      <section className="paper-surface draw-ritual-shell rounded-[34px] p-6 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-indigo-500">
-              {t("draw.eyebrow")}
-            </p>
+            <p className="draw-ritual-kicker text-indigo-500">{t("draw.eyebrow")}</p>
             <h2 className="mt-3 font-heading text-3xl font-semibold text-slate-950 sm:text-[34px]">
               {t("draw.title")}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600">{t("draw.subtitle")}</p>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{t("draw.subtitle")}</p>
           </div>
           <button
             onClick={onOpenDiscover}
@@ -121,88 +176,31 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           </button>
         </div>
 
-        <div className="mt-7 grid gap-8 lg:grid-cols-[380px_minmax(0,1fr)]">
-          <div className="overflow-hidden rounded-[28px] bg-slate-950 text-white shadow-[0_28px_80px_rgba(15,23,42,0.34)]">
-            <div className="border-b border-white/10 px-6 py-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/45">
-                {t("draw.previewEyebrow")}
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold">{memory.headline}</h3>
-              <p className="mt-2 text-sm leading-6 text-white/62">{t("draw.previewSubtitle")}</p>
+        <div className="mt-8 draw-ritual-grid">
+          <aside className="draw-ritual-sidebar">
+            <div className="draw-ritual-panel">
+              <p className="draw-ritual-kicker">{t("seeds.memoryEyebrow")}</p>
+              <h3 className="mt-3 font-heading text-[28px] font-semibold text-slate-950">{memory.headline}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{memorySummary}</p>
             </div>
 
-            <div className="px-6 py-6">
-              <div className="deck-preview-stage">
-                <div className="deck-preview-shadow" />
-                <div className="deck-preview-layer deck-preview-layer-back opacity-55">
-                  <PreviewCardBack
-                    theme={theme}
-                    zoneLabel={memory.dominantZone || "Deck"}
-                    modeLabel={modeLabel}
-                    flipLabel={t("gacha.tapToReveal")}
-                  />
-                </div>
-                <div className="deck-preview-layer deck-preview-layer-mid opacity-75">
-                  <PreviewCardBack
-                    theme={theme}
-                    zoneLabel={memory.dominantZone || "Deck"}
-                    modeLabel={modeLabel}
-                    flipLabel={t("gacha.tapToReveal")}
-                  />
-                </div>
-                <div className="deck-preview-layer deck-preview-layer-front">
-                  <PreviewCardBack
-                    theme={theme}
-                    zoneLabel={memory.dominantZone || "Deck"}
-                    modeLabel={modeLabel}
-                    flipLabel={t("gacha.tapToReveal")}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("draw.deckSeedCount")}
-                </p>
-                <p className="mt-3 text-3xl font-semibold text-slate-950">{memory.papers.length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("draw.deckCollectedCount")}
-                </p>
-                <p className="mt-3 text-3xl font-semibold text-slate-950">{excludedPaperIds.length}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("draw.deckMode")}
-                </p>
-                <p className="mt-3 text-xl font-semibold text-slate-950">{modeLabel}</p>
-              </div>
+            <div className="draw-ritual-stats">
+              <MetricStrip label={t("draw.deckSeedCount")} value={memory.papers.length} />
+              <MetricStrip label={t("draw.deckCollectedCount")} value={excludedPaperIds.length} />
+              <MetricStrip label={t("draw.deckMode")} value={modeLabel} />
             </div>
 
-            <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                    {t("draw.controlsEyebrow")}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">{t("draw.controlsTitle")}</h3>
-                  <p className="mt-2 text-sm leading-7 text-slate-600">{t("draw.controlsBody")}</p>
-                </div>
-              </div>
+            <div className="draw-ritual-panel">
+              <p className="draw-ritual-kicker">{t("draw.controlsEyebrow")}</p>
+              <h3 className="mt-3 text-2xl font-semibold text-slate-950">{t("draw.controlsTitle")}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{t("draw.controlsBody")}</p>
 
               <div className="mt-6 flex flex-wrap gap-2">
                 {[1, 3, 5].map((count) => (
                   <button
                     key={count}
                     onClick={() => setDrawCount(count)}
-                    className={`app-pill-button rounded-full px-4 py-2 text-sm font-semibold ${
-                      drawCount === count ? "is-active" : ""
-                    }`}
+                    className={`draw-count-chip ${drawCount === count ? "is-active" : ""}`}
                   >
                     {t("draw.countLabel", { count })}
                   </button>
@@ -219,32 +217,114 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
               {drawError && <p className="mt-3 text-sm text-rose-600">{drawError}</p>}
             </div>
+          </aside>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
-              <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("draw.memorySource")}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {memory.echoes.map((entry) => (
-                    <span
-                      key={entry}
-                      className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                    >
-                      {entry}
-                    </span>
-                  ))}
+          <div className="draw-stage-panel">
+            <div
+              className={`draw-stage ${appTheme === "dark" ? "is-dark" : "is-light"}`}
+              style={previewStyle}
+              onMouseMove={handlePreviewMove}
+              onMouseLeave={resetPreviewMotion}
+            >
+              <div className="draw-stage-mesh" />
+              <div className="draw-stage-spot draw-stage-spot-a" />
+              <div className="draw-stage-spot draw-stage-spot-b" />
+              <div className="draw-stage-spot draw-stage-spot-c" />
+
+              <div className="draw-stage-header">
+                <span className="draw-stage-mode">{modeLabel}</span>
+                <span className="draw-stage-zone">{memory.dominantZone || "Unrated"}</span>
+              </div>
+
+              <div className="draw-stage-chip-cloud">
+                {echoList.map((entry, index) => (
+                  <StageChip key={`${entry}-${index}`} index={index}>
+                    {entry}
+                  </StageChip>
+                ))}
+              </div>
+
+              <div className="draw-stage-stack-shell">
+                <div className="draw-stage-ring draw-stage-ring-a" />
+                <div className="draw-stage-ring draw-stage-ring-b" />
+                <div className="draw-stage-shadow" />
+
+                <div className="draw-stage-card-wrap draw-stage-card-back">
+                  <PreviewCardBack
+                    theme={theme}
+                    zoneLabel={memory.dominantZone || "Deck"}
+                    modeLabel={modeLabel}
+                    flipLabel={t("gacha.tapToReveal")}
+                  />
+                </div>
+
+                <div className="draw-stage-card-wrap draw-stage-card-mid">
+                  <PreviewCardBack
+                    theme={theme}
+                    zoneLabel={memory.dominantZone || "Deck"}
+                    modeLabel={modeLabel}
+                    flipLabel={t("gacha.tapToReveal")}
+                  />
+                </div>
+
+                <div className="draw-stage-card-wrap draw-stage-card-front">
+                  <PreviewCardBack
+                    theme={theme}
+                    zoneLabel={memory.dominantZone || "Deck"}
+                    modeLabel={modeLabel}
+                    flipLabel={t("gacha.tapToReveal")}
+                  />
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-slate-200/80 bg-white/90 p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("draw.filterEyebrow")}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{t("draw.filterBody", { count: excludedPaperIds.length })}</p>
+              <div className="draw-stage-footer">
+                <div>
+                  <p className="draw-ritual-kicker">{t("draw.previewEyebrow")}</p>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {t("draw.previewSubtitle")}
+                  </p>
+                </div>
+                <div className="draw-stage-footer-note">{t("draw.filterBody", { count: excludedPaperIds.length })}</div>
               </div>
             </div>
           </div>
+
+          <aside className="draw-ritual-sidebar">
+            <div className="draw-ritual-panel">
+              <p className="draw-ritual-kicker">{t("draw.memorySource")}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {echoList.map((entry) => (
+                  <span
+                    key={entry}
+                    className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+                  >
+                    {entry}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="draw-ritual-panel">
+              <p className="draw-ritual-kicker">{t("seeds.memoryVenues")}</p>
+              {memory.venues.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {memory.venues.map((venue) => (
+                    <div key={venue.name} className="draw-venue-row">
+                      <span className="text-sm font-medium text-slate-800">{venue.name}</span>
+                      <span className="text-xs font-semibold text-slate-400">{venue.count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-slate-600">{t("seeds.memoryVenueFallback")}</p>
+              )}
+            </div>
+
+            <div className="draw-ritual-panel">
+              <p className="draw-ritual-kicker">{t("draw.filterEyebrow")}</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{t("draw.filterBody", { count: excludedPaperIds.length })}</p>
+            </div>
+          </aside>
         </div>
       </section>
     </div>
