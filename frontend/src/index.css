@@ -1608,8 +1608,8 @@ body::before {
   .gacha-card-stage {
     position: relative;
     z-index: 1;
-    width: min(360px, 100%);
-    height: 520px;
+    width: min(380px, 100%);
+    height: 560px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1633,6 +1633,13 @@ body::before {
     transform: translateY(-10px) rotateY(180deg);
   }
 
+  /* Once flip settles, flatten 3D so inner content can scroll smoothly */
+  .gacha-card-rotator.is-settled {
+    transform-style: flat;
+    transform: translateY(-10px);
+    animation: none;
+  }
+
   .gacha-card-face {
     position: absolute;
     inset: 0;
@@ -1651,6 +1658,7 @@ body::before {
       radial-gradient(circle at var(--gacha-glow-x, 50%) var(--gacha-glow-y, 50%), rgba(255, 255, 255, 0.16), transparent 26%);
     opacity: 0.8;
     pointer-events: none;
+    z-index: 10;
   }
 
   .gacha-card-face-back,
@@ -1660,6 +1668,28 @@ body::before {
 
   .gacha-card-face-front {
     scrollbar-width: thin;
+  }
+
+  /* Scrollable front face — smooth scroll after flip settles */
+  .gacha-card-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99,102,241,0.28) transparent;
+  }
+
+  .gacha-card-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .gacha-card-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .gacha-card-scroll::-webkit-scrollbar-thumb {
+    background: rgba(99,102,241,0.28);
+    border-radius: 9999px;
   }
 
   .gacha-card-back {

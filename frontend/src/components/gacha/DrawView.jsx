@@ -63,6 +63,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [cardMotion, setCardMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+  const [settled, setSettled] = useState({});
 
   const isDark = appTheme === "dark";
   const seenIds = useRef(new Set());
@@ -138,9 +139,15 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     "--gacha-glow-y": `${cardMotion.glowY}%`,
   };
 
+  const isSettled = !!settled[currentIndex];
+
   function handleFlip() {
     if (!isFlipped && currentCard) {
       setFlipped((prev) => ({ ...prev, [currentIndex]: true }));
+      // After flip animation completes, flatten 3D so scroll is smooth
+      setTimeout(() => {
+        setSettled((prev) => ({ ...prev, [currentIndex]: true }));
+      }, 780);
     }
   }
 
@@ -251,16 +258,20 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             >
               {currentCard ? (
                 <div
-                  className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`}
+                  className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""} ${isSettled ? "is-settled" : ""}`}
                   style={cardStyle}
                 >
-                  <div className="backface-hidden absolute inset-0 cursor-pointer">
-                    <div className="gacha-card-face gacha-card-face-back">
-                      <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
+                  {/* back face — hidden once settled to free GPU layers */}
+                  {!isSettled && (
+                    <div className="backface-hidden absolute inset-0 cursor-pointer">
+                      <div className="gacha-card-face gacha-card-face-back">
+                        <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
+                      </div>
                     </div>
-                  </div>
-                  <div className="backface-hidden rotate-y-180 absolute inset-0">
-                    <div className="gacha-card-face gacha-card-face-front overflow-y-auto">
+                  )}
+                  {/* front face — becomes normal scrollable element once settled */}
+                  <div className={isSettled ? "absolute inset-0" : "backface-hidden rotate-y-180 absolute inset-0"}>
+                    <div className="gacha-card-face gacha-card-face-front gacha-card-scroll">
                       <PaperCard card={currentCard} mode={cardMode} />
                     </div>
                   </div>
