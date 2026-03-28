@@ -1,0 +1,399 @@
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+const STORAGE_KEY = "paper-deck-language";
+
+const messages = {
+  en: {
+    page: { title: "PaperDeck | Interest Memory" },
+    nav: {
+      seeds: "Discover",
+      draw: "Draw",
+      subscriptions: "Subscriptions",
+      library: "Library",
+    },
+    auth: {
+      checking: "Checking session...",
+      signIn: "Sign in",
+      synced: "Synced",
+    },
+    theme: {
+      switchLabel: "Theme",
+      light: "Light",
+      dark: "Dark",
+    },
+    seeds: {
+      title: "Discover Papers",
+      subtitle: "Pick a handful of papers first. Once the memory is generated, move to Draw for card flipping.",
+      searchPlaceholder: "Search by title, or paste DOI / paper URL...",
+      search: "Search",
+      searching: "Searching...",
+      noResults: "No matching papers found.",
+      add: "Add",
+      added: "Added",
+      manualAddFailed: "Unable to add this input.",
+      manualAddRateLimited: "Paper lookup is rate-limited right now. Please try again in a moment.",
+      manualAddApiError: "Search service unavailable. Please try again later.",
+      manualAddNotFound: "No paper found for this DOI, URL, or paper ID.",
+      duplicateSeed: "This paper is already in your list.",
+      limitReached: "Your paper list is full.",
+      importFromAtlas: "Import from Paper Atlas",
+      importTitle: "Import from Paper Atlas",
+      importEmpty: "No saved papers in Paper Atlas.",
+      importSelected: "Import selected",
+      selected: "selected",
+      maxSeeds: "Maximum 20 papers",
+      generateProfile: "Generate Interest Memory",
+      generating: "Generating...",
+      profileReady: "Interest memory ready",
+      seedsWithEmbedding: "papers with embeddings",
+      savedProfile: "Saved profile",
+      restoreSavedProfile: "Use saved profile",
+      syncingProfile: "Syncing profile to ScanSci...",
+      profileSynced: "Profile synced to ScanSci",
+      profileSyncFailed: "Profile sync failed",
+      savedSeeds: "saved papers",
+      syncedAt: "Last synced",
+      clear: "Clear all",
+      remove: "Remove",
+      manualHint: "Manual add supports DOI, DOI URL, Semantic Scholar URL, or paper ID.",
+      memoryEyebrow: "Interest Memory",
+      memoryTitle: "A lighter memory map of your current interests",
+      memorySummary: ({ venue, years }) => `Your memory is currently anchored around ${venue}, with signals spanning ${years}.`,
+      memorySummaryFallback: ({ years }) => `Your memory is being assembled from the selected papers across ${years}.`,
+      memorySeedCount: "Seed count",
+      memoryYears: "Year span",
+      memoryCitations: "Avg. citations",
+      memoryYearsFallback: "Recent",
+      openDraw: "Open Draw",
+      memoryCloudEyebrow: "Memory cloud",
+      memoryEchoes: "Recurring echoes",
+      memoryVenues: "Venue clusters",
+      memoryVenueFallback: "Venue clusters appear once your selected papers carry source metadata.",
+      memoryZones: "Zone spectrum",
+    },
+    recommend: {
+      title: "Paper Recommendations",
+      subtitle: "Related papers ranked from your current interest signals.",
+      refresh: "Refresh",
+      loading: "Loading recommendations...",
+      empty: "No recommendations yet.",
+      drawCards: "Draw cards",
+      drawCount: "Draw count",
+      yearFilter: "Start year",
+      viewCard: "View card",
+      matchScore: "match",
+    },
+    card: {
+      researchMode: "Research Card",
+      discoveryMode: "Quick Card",
+      coreContribution: "Core Contribution",
+      problemStatement: "Problem & Motivation",
+      techStack: "Tech Stack",
+      datasetScale: "Dataset & Scale",
+      keyResults: "Key Results",
+      novelty: "Novelty vs Prior Work",
+      headline: "TL;DR",
+      keyInsight: "Key Insight",
+      whyItMatters: "Why It Matters",
+      citations: "Citations",
+      collect: "Collect",
+      collected: "Collected",
+      skip: "Skip",
+      generating: "Generating card...",
+    },
+    draw: {
+      emptyTitle: "Nothing to draw yet",
+      emptyBody: "Generate your interest memory in Discover first. The draw deck is built directly from that memory.",
+      openDiscover: "Go to Discover",
+      eyebrow: "Draw",
+      title: "Flip from the current memory deck",
+      subtitle: "The preview stack lives here now. Collected papers are automatically removed from the draw pool.",
+      backToDiscover: "Back to Discover",
+      previewEyebrow: "Deck Preview",
+      previewSubtitle: "This is the live card back. Once a draw starts, each card flips into a paper summary.",
+      deckSeedCount: "Seed papers",
+      deckCollectedCount: "Collected",
+      deckMode: "Deck mode",
+      controlsEyebrow: "Draw Controls",
+      controlsTitle: "Choose how many cards to pull",
+      controlsBody: "The deck is assembled from your current memory, and already collected papers are skipped before the draw begins.",
+      countLabel: ({ count }) => `${count} card${count > 1 ? "s" : ""}`,
+      drawing: "Drawing...",
+      drawButton: "Start draw",
+      memorySource: "Memory signals",
+      filterEyebrow: "Auto filter",
+      filterBody: ({ count }) =>
+        count > 0
+          ? `${count} collected papers are excluded from recommendations and future draws.`
+          : "Collected papers will be excluded from recommendations and future draws once you save them.",
+      error: "Unable to draw cards right now. Please try again.",
+      emptyPool: "No new cards left in the current pool. Add more papers or clear some favorites.",
+    },
+    gacha: {
+      title: "Card Draw",
+      tapToReveal: "Tap to reveal",
+      nextCard: "Next",
+      done: "Done",
+      collectAll: "Collect All",
+    },
+    library: {
+      title: "Card Library",
+      empty: "No collected cards yet. Draw a few papers and they will land here.",
+      filterAll: "All",
+      sortDate: "Date",
+      sortCitations: "Citations",
+      sortYear: "Year",
+      localModePrefix: "Local collection mode.",
+      localModeSuffix: "to sync with ScanSci.",
+      signInHint: "Sign in to view your cloud card library",
+    },
+    sub: {
+      title: "Subscriptions",
+      subtitle: "Track journals you care about, then blend them with the latest papers that align with your current memory.",
+      searchPlaceholder: "Search journal or conference name...",
+      subscribe: "Subscribe",
+      subscribed: "Subscribed",
+      daysBack: "Window",
+      days: "days",
+      minMatch: "Min match",
+      matchAll: "All papers",
+      fetchFeed: "Refresh subscribed feed",
+      results: "papers found",
+      emptyFeed: "No new papers found. Try a wider date range.",
+      noProfileHint: "Generate your interest memory in Discover to enable similarity filtering.",
+      subscribedFeedTitle: "Subscribed journals",
+      subscribedFeedSubtitle: "Fresh papers only from the journals and conferences you follow.",
+      latestPicksTitle: "Latest likely matches",
+      latestPicksSubtitle: "Five newer papers that look relevant, even outside your subscriptions.",
+      latestPicksEmpty: "No likely matches yet. Generate your interest memory first.",
+      subscribedEmpty: "Add at least one journal or conference to unlock this feed.",
+      refreshPicks: "Refresh latest 5",
+    },
+    common: {
+      close: "Close",
+      loading: "Loading...",
+      error: "Something went wrong",
+    },
+  },
+  zh: {
+    page: { title: "PaperDeck | 兴趣记忆" },
+    nav: {
+      seeds: "发现",
+      draw: "抽卡",
+      subscriptions: "订阅",
+      library: "卡库",
+    },
+    auth: {
+      checking: "正在检查登录状态...",
+      signIn: "登录",
+      synced: "已同步",
+    },
+    theme: {
+      switchLabel: "主题",
+      light: "浅色",
+      dark: "深色",
+    },
+    seeds: {
+      title: "发现论文",
+      subtitle: "先选几篇论文，生成兴趣记忆后，再去抽卡页面翻牌。",
+      searchPlaceholder: "搜索标题，或粘贴 DOI / 论文链接...",
+      search: "搜索",
+      searching: "搜索中...",
+      noResults: "没有找到匹配论文。",
+      add: "添加",
+      added: "已添加",
+      manualAddFailed: "无法添加当前输入。",
+      manualAddRateLimited: "论文检索当前被限流，请稍后再试。",
+      manualAddApiError: "搜索服务暂时不可用，请稍后再试。",
+      manualAddNotFound: "没有找到对应的 DOI、链接或 paper id。",
+      duplicateSeed: "这篇论文已经在列表里了。",
+      limitReached: "论文列表已满。",
+      importFromAtlas: "从 Paper Atlas 导入",
+      importTitle: "从 Paper Atlas 导入",
+      importEmpty: "Paper Atlas 里还没有已保存论文。",
+      importSelected: "导入选中项",
+      selected: "已选",
+      maxSeeds: "最多 20 篇论文",
+      generateProfile: "生成兴趣记忆",
+      generating: "生成中...",
+      profileReady: "兴趣记忆已生成",
+      seedsWithEmbedding: "篇论文带有向量",
+      savedProfile: "已保存画像",
+      restoreSavedProfile: "恢复已保存画像",
+      syncingProfile: "正在同步画像到 ScanSci...",
+      profileSynced: "画像已同步到 ScanSci",
+      profileSyncFailed: "画像同步失败",
+      savedSeeds: "篇已保存论文",
+      syncedAt: "上次同步",
+      clear: "清空",
+      remove: "移除",
+      manualHint: "手动添加支持 DOI、DOI 链接、Semantic Scholar 链接和 paper id。",
+      memoryEyebrow: "兴趣记忆",
+      memoryTitle: "用更轻的方式记录你当前的研究偏好",
+      memorySummary: ({ venue, years }) => `当前记忆主要围绕 ${venue} 展开，时间跨度覆盖 ${years}。`,
+      memorySummaryFallback: ({ years }) => `当前记忆由你选中的论文生成，时间跨度覆盖 ${years}。`,
+      memorySeedCount: "论文数量",
+      memoryYears: "时间跨度",
+      memoryCitations: "平均引用",
+      memoryYearsFallback: "近期",
+      openDraw: "前往抽卡",
+      memoryCloudEyebrow: "词云记忆",
+      memoryEchoes: "反复出现的信号",
+      memoryVenues: "期刊聚类",
+      memoryVenueFallback: "当论文来源元数据更完整时，这里会显示更清晰的期刊聚类。",
+      memoryZones: "分区光谱",
+    },
+    recommend: {
+      title: "论文推荐",
+      subtitle: "基于当前兴趣信号排序的相关论文。",
+      refresh: "刷新",
+      loading: "正在加载推荐...",
+      empty: "暂时没有推荐论文。",
+      drawCards: "抽卡",
+      drawCount: "抽卡数量",
+      yearFilter: "起始年份",
+      viewCard: "查看卡片",
+      matchScore: "匹配",
+    },
+    card: {
+      researchMode: "研究卡",
+      discoveryMode: "速览卡",
+      coreContribution: "核心贡献",
+      problemStatement: "问题与动机",
+      techStack: "技术栈",
+      datasetScale: "数据集与规模",
+      keyResults: "关键结果",
+      novelty: "创新点",
+      headline: "一句话总结",
+      keyInsight: "关键洞见",
+      whyItMatters: "为什么重要",
+      citations: "引用",
+      collect: "收藏",
+      collected: "已收藏",
+      skip: "跳过",
+      generating: "正在生成卡片...",
+    },
+    draw: {
+      emptyTitle: "现在还没有可抽的牌组",
+      emptyBody: "先在发现页生成兴趣记忆，抽卡页会直接使用这份记忆来组织牌组。",
+      openDiscover: "去发现",
+      eyebrow: "抽卡",
+      title: "从当前记忆牌组里翻牌",
+      subtitle: "抽卡预览现在单独放在这里。已经收藏过的论文会自动从抽卡池里移除。",
+      backToDiscover: "返回发现",
+      previewEyebrow: "牌背预览",
+      previewSubtitle: "这里展示的是实时牌背。开始抽卡后，每一张卡都会翻成论文介绍。",
+      deckSeedCount: "种子论文",
+      deckCollectedCount: "已收藏",
+      deckMode: "牌组模式",
+      controlsEyebrow: "抽卡控制",
+      controlsTitle: "选择这次要翻几张",
+      controlsBody: "当前牌组直接由你的兴趣记忆生成，已收藏过的论文会在抽卡前被自动过滤。",
+      countLabel: ({ count }) => `抽 ${count} 张`,
+      drawing: "抽取中...",
+      drawButton: "开始抽卡",
+      memorySource: "记忆来源",
+      filterEyebrow: "自动过滤",
+      filterBody: ({ count }) =>
+        count > 0
+          ? `目前已有 ${count} 篇已收藏论文会从推荐和后续抽卡中自动跳过。`
+          : "一旦收藏，论文就会自动从推荐和后续抽卡中跳过。",
+      error: "暂时无法抽卡，请稍后再试。",
+      emptyPool: "当前卡池里已经没有新的论文卡了，可以增加种子论文或清理收藏。",
+    },
+    gacha: {
+      title: "抽卡",
+      tapToReveal: "点击翻牌",
+      nextCard: "下一张",
+      done: "完成",
+      collectAll: "全部收藏",
+    },
+    library: {
+      title: "卡库",
+      empty: "还没有收藏卡片。先去抽几张论文卡吧。",
+      filterAll: "全部",
+      sortDate: "日期",
+      sortCitations: "引用",
+      sortYear: "年份",
+      localModePrefix: "当前为本地收藏模式。",
+      localModeSuffix: "后同步到 ScanSci。",
+      signInHint: "登录后查看你的云端卡库",
+    },
+    sub: {
+      title: "订阅",
+      subtitle: "追踪你关心的期刊，同时叠加一组基于当前兴趣记忆计算出的最新候选论文。",
+      searchPlaceholder: "搜索期刊或会议名称...",
+      subscribe: "订阅",
+      subscribed: "已订阅",
+      daysBack: "时间窗",
+      days: "天",
+      minMatch: "最低匹配",
+      matchAll: "全部论文",
+      fetchFeed: "刷新订阅流",
+      results: "篇论文",
+      emptyFeed: "没有找到新论文，可以尝试扩大时间范围。",
+      noProfileHint: "先在发现页生成兴趣记忆，再开启相似度过滤。",
+      subscribedFeedTitle: "订阅期刊论文",
+      subscribedFeedSubtitle: "这里只显示你已订阅的期刊或会议里的新论文。",
+      latestPicksTitle: "最新可能感兴趣论文",
+      latestPicksSubtitle: "额外提供 5 篇更新的候选论文，不受订阅期刊限制。",
+      latestPicksEmpty: "还没有候选论文，先去发现页生成兴趣记忆。",
+      subscribedEmpty: "先订阅至少一个期刊或会议，这里才会出现订阅流。",
+      refreshPicks: "刷新最新 5 篇",
+    },
+    common: {
+      close: "关闭",
+      loading: "加载中...",
+      error: "出了点问题",
+    },
+  },
+};
+
+function getInitialLocale() {
+  if (typeof window === "undefined") return "en";
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (stored === "en" || stored === "zh") return stored;
+  return "zh";
+}
+
+function resolveMessage(locale, key) {
+  return key.split(".").reduce((value, segment) => value?.[segment], messages[locale]);
+}
+
+function translate(locale, key, params) {
+  const value = resolveMessage(locale, key);
+  if (typeof value === "function") return value(params || {});
+  if (typeof value === "string") return value;
+  return key;
+}
+
+const LanguageContext = createContext({
+  locale: "en",
+  setLocale: () => {},
+  t: (key, params) => translate("en", key, params),
+});
+
+export function LanguageProvider({ children }) {
+  const [locale, setLocale] = useState(getInitialLocale);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_KEY, locale);
+    }
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+      document.title = translate(locale, "page.title");
+    }
+  }, [locale]);
+
+  const value = useMemo(
+    () => ({ locale, setLocale, t: (key, params) => translate(locale, key, params) }),
+    [locale]
+  );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function useLanguage() {
+  return useContext(LanguageContext);
+}

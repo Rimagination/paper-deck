@@ -1,0 +1,42 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches: [main, clean-main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate required secret
+        env:
+          HF_SPACE_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+        run: |
+          if [ -z "$HF_SPACE_TOKEN" ]; then
+            echo "HF_SPACE_TOKEN is not configured."
+            exit 1
+          fi
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Push repository to Hugging Face Space
+        env:
+          HF_SPACE_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
+          HF_SPACE_URL: https://oauth2:${{ secrets.HF_SPACE_TOKEN }}@huggingface.co/spaces/Rimagination/paper-deck
+        run: |
+          git remote add hf "$HF_SPACE_URL"
+          git push hf HEAD:main
+
+      - name: Deployment summary
+        run: echo "Synced the current GitHub deploy branch to Hugging Face Space main."
