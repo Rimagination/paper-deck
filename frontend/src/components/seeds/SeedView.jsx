@@ -28,7 +28,14 @@ export default function SeedView({
   onOpenDraw,
 }) {
   const { t } = useLanguage();
-  const { status: authStatus, startLogin, loadFavoriteItems, saveInterestProfile } = useScanSciAuth();
+  const {
+    status: authStatus,
+    favoriteItemsStatus,
+    startLogin,
+    loadFavoriteItems,
+    saveInterestProfile,
+    getPaperDeckProfile,
+  } = useScanSciAuth();
 
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -55,9 +62,30 @@ export default function SeedView({
         return;
       }
 
+      const cachedProfileItem = getPaperDeckProfile();
+      if (cachedProfileItem) {
+        setSavedProfile({
+          ...cachedProfileItem.payload,
+          created_at: cachedProfileItem.created_at,
+        });
+        setIsLoadingSavedProfile(false);
+        return;
+      }
+
+      if (favoriteItemsStatus === "loading") {
+        setIsLoadingSavedProfile(true);
+        return;
+      }
+
+      if (favoriteItemsStatus === "ready") {
+        setSavedProfile(null);
+        setIsLoadingSavedProfile(false);
+        return;
+      }
+
       setIsLoadingSavedProfile(true);
       try {
-        const items = await loadFavoriteItems(true);
+        const items = await loadFavoriteItems(false);
         if (cancelled) return;
 
         const profileItem = items.find((item) => item.app_id === PAPERDECK_PROFILE_APP_ID);
@@ -81,7 +109,7 @@ export default function SeedView({
     return () => {
       cancelled = true;
     };
-  }, [authStatus, loadFavoriteItems]);
+  }, [authStatus, favoriteItemsStatus]);
 
   useEffect(() => {
     setSeeds(initialSeeds || []);

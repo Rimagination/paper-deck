@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   PAPERDECK_PROFILE_APP_ID,
   buildCardFavoriteId,
@@ -84,6 +84,7 @@ export function ScanSciAuthProvider({ children }) {
   const [favoriteItems, setFavoriteItems] = useState([]);
   const [localFavoriteItems, setLocalFavoriteItems] = useState(() => loadLocalCardItems());
   const [favoriteItemsStatus, setFavoriteItemsStatus] = useState("idle");
+  const favoriteItemsRequestRef = useRef(null);
 
   async function refresh() {
     try {
@@ -152,18 +153,26 @@ export function ScanSciAuthProvider({ children }) {
     }
 
     if (!force && favoriteItemsStatus === "ready") return favoriteItems;
+    if (favoriteItemsRequestRef.current) return favoriteItemsRequestRef.current;
 
     setFavoriteItemsStatus("loading");
-    try {
+    const request = (async () => {
+      try {
       const payload = await getScanSciActionItems();
       const nextItems = normalizeActionItems(payload?.items);
       setFavoriteItems(nextItems);
       setFavoriteItemsStatus("ready");
       return nextItems;
-    } catch (_) {
-      setFavoriteItemsStatus("error");
-      return [];
-    }
+      } catch (_) {
+        setFavoriteItemsStatus("error");
+        return [];
+      } finally {
+        favoriteItemsRequestRef.current = null;
+      }
+    })();
+
+    favoriteItemsRequestRef.current = request;
+    return request;
   }
 
   async function toggleFavorite(paper, tier, mode) {
