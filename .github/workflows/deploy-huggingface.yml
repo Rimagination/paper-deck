@@ -36,7 +36,7 @@ jobs:
           HF_SPACE_URL: https://oauth2:${{ secrets.HF_SPACE_TOKEN }}@huggingface.co/spaces/Rimagination/paper-deck
         run: |
           git remote add hf "$HF_SPACE_URL"
-          git push hf HEAD:main
+          git push hf HEAD:main --force
 
       - name: Deployment summary
         run: echo "Synced the current GitHub deploy branch to Hugging Face Space main."
