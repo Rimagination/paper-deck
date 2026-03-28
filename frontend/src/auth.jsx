@@ -11,6 +11,7 @@ import {
 } from "./api/scansci";
 
 const LOCAL_CARD_COLLECTION_KEY = "paperdeck:local-cards:v1";
+const LOCAL_PROFILE_CACHE_PREFIX = "paperdeck:remote-profile-cache:v1";
 
 const ScanSciAuthContext = createContext({
   status: "loading",
@@ -67,6 +68,52 @@ function persistLocalCardItems(items) {
   window.localStorage.setItem(LOCAL_CARD_COLLECTION_KEY, JSON.stringify(items));
 }
 
+function getProfileCacheKey(userId) {
+  const normalized = String(userId || "").trim();
+  if (!normalized) return null;
+  return `${LOCAL_PROFILE_CACHE_PREFIX}:${normalized}`;
+}
+
+function loadCachedProfileItem(userId) {
+  if (typeof window === "undefined") return null;
+  const cacheKey = getProfileCacheKey(userId);
+  if (!cacheKey) return null;
+
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.app_id !== PAPERDECK_PROFILE_APP_ID) return null;
+    return {
+      app_id: parsed.app_id,
+      created_at: parsed.created_at || "",
+      payload: parsed.payload || {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistCachedProfileItem(userId, item) {
+  if (typeof window === "undefined") return;
+  const cacheKey = getProfileCacheKey(userId);
+  if (!cacheKey) return;
+
+  if (!item) {
+    window.localStorage.removeItem(cacheKey);
+    return;
+  }
+
+  window.localStorage.setItem(
+    cacheKey,
+    JSON.stringify({
+      app_id: item.app_id,
+      created_at: item.created_at || "",
+      payload: item.payload || {},
+    })
+  );
+}
+
 function mergeActionItems(...collections) {
   const merged = normalizeActionItems(collections.flat());
   const seen = new Set();
@@ -83,6 +130,7 @@ export function ScanSciAuthProvider({ children }) {
   const [remoteFavorites, setRemoteFavorites] = useState(() => new Set());
   const [favoriteItems, setFavoriteItems] = useState([]);
   const [localFavoriteItems, setLocalFavoriteItems] = useState(() => loadLocalCardItems());
+  const [cachedProfileItem, setCachedProfileItem] = useState(null);
   const [favoriteItemsStatus, setFavoriteItemsStatus] = useState("idle");
   const favoriteItemsRequestRef = useRef(null);
 
@@ -98,10 +146,13 @@ export function ScanSciAuthProvider({ children }) {
         setUser(null);
         setRemoteFavorites(new Set());
         setFavoriteItems([]);
+        setCachedProfileItem(null);
         setFavoriteItemsStatus("idle");
         setStatus("guest");
         return null;
       }
+      setUser(null);
+      setCachedProfileItem(null);
       setStatus("guest");
       return null;
     }
@@ -114,6 +165,10 @@ export function ScanSciAuthProvider({ children }) {
   useEffect(() => {
     persistLocalCardItems(localFavoriteItems);
   }, [localFavoriteItems]);
+
+  useEffect(() => {
+    setCachedProfileItem(loadCachedProfileItem(user?.id));
+  }, [user?.id]);
 
   function startLogin() {
     if (typeof window === "undefined") return;
@@ -160,7 +215,10 @@ export function ScanSciAuthProvider({ children }) {
       try {
         const payload = await getScanSciActionItems();
         const nextItems = normalizeActionItems(payload?.items);
+        const nextProfileItem = nextItems.find((item) => item.app_id === PAPERDECK_PROFILE_APP_ID) || null;
         setFavoriteItems(nextItems);
+        setCachedProfileItem(nextProfileItem);
+        persistCachedProfileItem(user?.id, nextProfileItem);
         setFavoriteItemsStatus("ready");
         return nextItems;
       } catch (_) {
@@ -245,6 +303,8 @@ export function ScanSciAuthProvider({ children }) {
       setFavoriteItems((current) =>
         normalizeActionItems([nextItem, ...current.filter((item) => item.app_id !== PAPERDECK_PROFILE_APP_ID)])
       );
+      setCachedProfileItem(nextItem);
+      persistCachedProfileItem(user?.id, nextItem);
       setFavoriteItemsStatus("ready");
       return { ok: true, payload };
     } catch (error) {
@@ -264,7 +324,7 @@ export function ScanSciAuthProvider({ children }) {
   }
 
   function getPaperDeckProfile() {
-    return favoriteItems.find((item) => item.app_id === PAPERDECK_PROFILE_APP_ID) || null;
+    return favoriteItems.find((item) => item.app_id === PAPERDECK_PROFILE_APP_ID) || cachedProfileItem || null;
   }
 
   const value = useMemo(
@@ -285,7 +345,7 @@ export function ScanSciAuthProvider({ children }) {
       getCardCollection,
       getPaperDeckProfile,
     }),
-    [favoriteItems, favoriteItemsStatus, favorites, status, user]
+    [cachedProfileItem, favoriteItems, favoriteItemsStatus, favorites, status, user]
   );
 
   return <ScanSciAuthContext.Provider value={value}>{children}</ScanSciAuthContext.Provider>;

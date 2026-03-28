@@ -75,6 +75,9 @@ export default function SeedView({
         });
         setSavedProfileLoadError("");
         setIsLoadingSavedProfile(false);
+        if (favoriteItemsStatus === "idle") {
+          void loadFavoriteItems(false);
+        }
         return;
       }
 
