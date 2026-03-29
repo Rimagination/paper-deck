@@ -1091,6 +1091,33 @@ body::before {
     background: linear-gradient(180deg, #eef2ff 0%, #e0e7ff 50%, #dbeafe 100%);
   }
 
+  .gacha-stage-view.is-loading {
+    isolation: isolate;
+  }
+
+  .gacha-stage-view.is-loading::before {
+    content: "";
+    position: absolute;
+    inset: -14%;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 26%, rgba(191, 219, 254, 0.42), transparent 24%),
+      radial-gradient(circle at 74% 24%, rgba(165, 180, 252, 0.4), transparent 26%),
+      radial-gradient(circle at 50% 76%, rgba(125, 211, 252, 0.32), transparent 22%);
+    filter: blur(36px);
+    opacity: 0.82;
+    animation: draw-loading-wash 6.8s ease-in-out infinite;
+  }
+
+  .gacha-stage-view.is-dark.is-loading::before {
+    background:
+      radial-gradient(circle at 20% 26%, rgba(56, 189, 248, 0.22), transparent 24%),
+      radial-gradient(circle at 74% 24%, rgba(129, 140, 248, 0.28), transparent 26%),
+      radial-gradient(circle at 50% 76%, rgba(96, 165, 250, 0.2), transparent 22%);
+    opacity: 0.9;
+  }
+
   .draw-light-wheel,
   .draw-light-sweep {
     position: absolute;
@@ -1152,6 +1179,28 @@ body::before {
     filter: blur(76px);
     opacity: 0.46;
     animation: draw-light-drift 18s ease-in-out infinite;
+  }
+
+  .gacha-stage-view.is-loading .draw-light-wheel {
+    filter: blur(54px);
+    opacity: 0.92;
+    animation:
+      draw-light-rotate 17s linear infinite,
+      draw-loading-breathe 5.2s ease-in-out infinite;
+  }
+
+  .gacha-stage-view.is-loading .draw-light-wheel-b {
+    opacity: 0.68;
+    filter: blur(72px);
+    animation-duration: 24s, 4.6s;
+  }
+
+  .gacha-stage-view.is-loading .draw-light-sweep {
+    filter: blur(112px);
+    opacity: 0.62;
+    animation:
+      draw-light-drift 11s ease-in-out infinite,
+      draw-loading-sweep-pulse 4.2s ease-in-out infinite;
   }
 
   .draw-light-sweep-a {
@@ -1503,6 +1552,25 @@ body::before {
     border-radius: 999px;
     background: radial-gradient(circle, rgba(255,255,255,0.28), rgba(255,255,255,0.06) 52%, rgba(255,255,255,0) 72%);
     backdrop-filter: blur(10px);
+    overflow: hidden;
+    animation: draw-loading-center-breathe 4.8s ease-in-out infinite;
+  }
+  .gacha-stage-view.is-loading .draw-loading-center {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.14),
+      0 28px 68px rgba(99, 102, 241, 0.14);
+    backdrop-filter: blur(20px);
+  }
+  .draw-loading-bloom {
+    position: absolute;
+    inset: -28%;
+    border-radius: 999px;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5), rgba(255,255,255,0.12) 34%, rgba(255,255,255,0) 62%);
+    filter: blur(26px);
+    opacity: 0.8;
+    animation: draw-loading-bloom 3.2s ease-in-out infinite;
   }
   .draw-loading-label {
     font-size: 13px;
@@ -1520,6 +1588,8 @@ body::before {
     border: 3px solid rgba(255,255,255,0.08);
     border-top-color: #818cf8;
     animation: draw-spin 0.9s linear infinite;
+    position: relative;
+    z-index: 1;
   }
   .gacha-stage-view.is-light .draw-loading-spinner {
     border-color: rgba(99,102,241,0.12);
@@ -1548,6 +1618,13 @@ body::before {
     filter: blur(70px);
     pointer-events: none;
     animation: draw-orb-float 8s ease-in-out infinite;
+  }
+  .gacha-stage-view.is-loading .draw-glow-orb {
+    filter: blur(96px);
+    opacity: 0.98;
+    animation:
+      draw-orb-float 6.4s ease-in-out infinite,
+      draw-loading-orb-surge 5.1s ease-in-out infinite;
   }
   .draw-glow-orb-a {
     width: 380px;
@@ -1580,6 +1657,55 @@ body::before {
     0%, 100% { transform: translate(0, 0) scale(1);    opacity: 0.85; }
     33%       { transform: translate(18px, -22px) scale(1.06); opacity: 1; }
     66%       { transform: translate(-12px, 14px) scale(0.96); opacity: 0.75; }
+  }
+
+  .draw-loading-haze {
+    position: absolute;
+    z-index: 0;
+    border-radius: 9999px;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    filter: blur(110px);
+    opacity: 0.62;
+    animation: draw-loading-haze-drift 8.5s ease-in-out infinite;
+  }
+
+  .draw-loading-haze-a {
+    width: 30rem;
+    height: 30rem;
+    left: 12%;
+    top: 14%;
+    background: radial-gradient(circle, rgba(255,255,255,0.56), rgba(191,219,254,0.18) 58%, rgba(255,255,255,0) 72%);
+  }
+
+  .draw-loading-haze-b {
+    width: 28rem;
+    height: 28rem;
+    right: 8%;
+    bottom: 10%;
+    background: radial-gradient(circle, rgba(125,211,252,0.42), rgba(99,102,241,0.14) 58%, rgba(255,255,255,0) 72%);
+    animation-delay: -2.6s;
+  }
+
+  .draw-loading-haze-c {
+    width: 24rem;
+    height: 24rem;
+    left: 38%;
+    bottom: -4%;
+    background: radial-gradient(circle, rgba(196,181,253,0.34), rgba(125,211,252,0.12) 58%, rgba(255,255,255,0) 72%);
+    animation-delay: -5.1s;
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-haze-a {
+    background: radial-gradient(circle, rgba(129,140,248,0.28), rgba(56,189,248,0.12) 58%, rgba(255,255,255,0) 72%);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-haze-b {
+    background: radial-gradient(circle, rgba(56,189,248,0.24), rgba(99,102,241,0.12) 58%, rgba(255,255,255,0) 72%);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-haze-c {
+    background: radial-gradient(circle, rgba(165,180,252,0.2), rgba(56,189,248,0.08) 58%, rgba(255,255,255,0) 72%);
   }
 
   @keyframes gacha-foil-drift {
@@ -1621,6 +1747,42 @@ body::before {
   @keyframes draw-light-drift {
     0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--draw-sweep-rot, 0deg)) scale(1); }
     50% { transform: translate3d(18px, -12px, 0) rotate(calc(var(--draw-sweep-rot, 0deg) + 6deg)) scale(1.06); }
+  }
+
+  @keyframes draw-loading-breathe {
+    0%, 100% { opacity: 0.76; transform: translate(-50%, -50%) rotate(var(--draw-wheel-rot, 0deg)) scale(0.96); }
+    50% { opacity: 1; transform: translate(-50%, -50%) rotate(calc(var(--draw-wheel-rot, 0deg) + 8deg)) scale(1.08); }
+  }
+
+  @keyframes draw-loading-sweep-pulse {
+    0%, 100% { opacity: 0.42; }
+    50% { opacity: 0.82; }
+  }
+
+  @keyframes draw-loading-haze-drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(0.94); opacity: 0.48; }
+    35% { transform: translate3d(24px, -18px, 0) scale(1.08); opacity: 0.8; }
+    70% { transform: translate3d(-16px, 14px, 0) scale(1); opacity: 0.62; }
+  }
+
+  @keyframes draw-loading-bloom {
+    0%, 100% { transform: scale(0.9); opacity: 0.42; }
+    50% { transform: scale(1.12); opacity: 0.92; }
+  }
+
+  @keyframes draw-loading-center-breathe {
+    0%, 100% { transform: translateY(0) scale(0.98); }
+    50% { transform: translateY(-4px) scale(1.02); }
+  }
+
+  @keyframes draw-loading-orb-surge {
+    0%, 100% { opacity: 0.72; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes draw-loading-wash {
+    0%, 100% { transform: scale(0.98) rotate(0deg); opacity: 0.68; }
+    50% { transform: scale(1.06) rotate(8deg); opacity: 0.96; }
   }
 
   .draw-light-sweep-a { --draw-sweep-rot: -24deg; }

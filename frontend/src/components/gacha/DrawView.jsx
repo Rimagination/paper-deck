@@ -219,11 +219,14 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   // loading: no cards yet
   if (cards.length === 0) {
     return (
-      <div className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`} style={stageStyle}>
+      <div className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`} style={stageStyle}>
         <div className="draw-light-wheel draw-light-wheel-a" />
         <div className="draw-light-wheel draw-light-wheel-b" />
         <div className="draw-light-sweep draw-light-sweep-a" />
         <div className="draw-light-sweep draw-light-sweep-b" />
+        <div className="draw-loading-haze draw-loading-haze-a" />
+        <div className="draw-loading-haze draw-loading-haze-b" />
+        <div className="draw-loading-haze draw-loading-haze-c" />
         {!isDark && (
           <>
             <div className="draw-glow-orb draw-glow-orb-a" />
@@ -232,6 +235,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           </>
         )}
         <div className="draw-loading-center">
+          <div className="draw-loading-bloom" />
           <div className="draw-loading-spinner" />
           <p className="draw-loading-label">{t("draw.drawing")}</p>
         </div>
