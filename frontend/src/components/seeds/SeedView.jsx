@@ -4,12 +4,30 @@ import { useLanguage } from "../../i18n";
 import { generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
 import InterestWorkspace from "./InterestWorkspace";
 
+const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
+const DOI_HOST_PATTERN = /(^|\/\/)(dx\.)?doi\.org\//i;
+const S2_HOST_PATTERN = /(^|\/\/)(www\.)?semanticscholar\.org\//i;
+const PAPER_ID_PATTERN = /^(CorpusID:\d+|[A-F0-9]{16,}|[A-Za-z0-9_-]{20,})$/i;
+
 function getProfileSeedCount(profile) {
   if (!profile) return 0;
   if (Array.isArray(profile.seed_papers) && profile.seed_papers.length > 0) {
     return profile.seed_papers.length;
   }
   return profile.seed_count || 0;
+}
+
+function shouldResolveSeedInput(value) {
+  const candidate = String(value || "").trim();
+  if (!candidate) return false;
+
+  return (
+    DOI_PATTERN.test(candidate) ||
+    /^doi:/i.test(candidate) ||
+    DOI_HOST_PATTERN.test(candidate) ||
+    S2_HOST_PATTERN.test(candidate) ||
+    PAPER_ID_PATTERN.test(candidate)
+  );
 }
 
 function formatSyncedAt(value) {
@@ -180,38 +198,40 @@ export default function SeedView({
     setSearchResults([]);
     setSearchStatus("searching");
 
-    try {
-      const paper = await resolveSeedInput(trimmedQuery);
-      const result = addSeed(paper);
+    if (shouldResolveSeedInput(trimmedQuery)) {
+      try {
+        const paper = await resolveSeedInput(trimmedQuery);
+        const result = addSeed(paper);
 
-      if (!result.ok) {
-        setSearchError(
-          result.reason === "duplicate"
-            ? t("seeds.duplicateSeed")
-            : result.reason === "limit"
-            ? t("seeds.limitReached")
-            : t("seeds.manualAddFailed")
-        );
-        setSearchStatus("error");
-        return;
-      }
+        if (!result.ok) {
+          setSearchError(
+            result.reason === "duplicate"
+              ? t("seeds.duplicateSeed")
+              : result.reason === "limit"
+              ? t("seeds.limitReached")
+              : t("seeds.manualAddFailed")
+          );
+          setSearchStatus("error");
+          return;
+        }
 
-      setQuery("");
-      setSearchStatus("idle");
-      inputRef.current?.focus();
-      return;
-    } catch (resolveError) {
-      const code = resolveError?.response?.status;
-      if (code !== 400) {
-        setSearchError(
-          code === 429 || code === 503
-            ? t("seeds.manualAddRateLimited")
-            : code === 404
-            ? t("seeds.manualAddNotFound")
-            : t("seeds.manualAddApiError")
-        );
-        setSearchStatus("error");
+        setQuery("");
+        setSearchStatus("idle");
+        inputRef.current?.focus();
         return;
+      } catch (resolveError) {
+        const code = resolveError?.response?.status;
+        if (code !== 400) {
+          setSearchError(
+            code === 429 || code === 503
+              ? t("seeds.manualAddRateLimited")
+              : code === 404
+              ? t("seeds.manualAddNotFound")
+              : t("seeds.manualAddApiError")
+          );
+          setSearchStatus("error");
+          return;
+        }
       }
     }
 
