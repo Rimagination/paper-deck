@@ -617,6 +617,7 @@ body::before {
       linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px);
     background-size: 34px 34px;
     opacity: 0.34;
+    animation: memory-cloud-backdrop-breathe 9s ease-in-out infinite 0.6s;
   }
 
   .memory-cloud-ring {
@@ -624,8 +625,9 @@ body::before {
     left: 50%;
     top: 50%;
     border-radius: 9999px;
-    border: 1px solid rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.12);
     transform: translate(-50%, -50%);
+    animation: memory-cloud-ring-breathe 7s ease-in-out infinite;
   }
 
   .memory-cloud-ring-a {
@@ -636,6 +638,8 @@ body::before {
   .memory-cloud-ring-b {
     width: 470px;
     height: 470px;
+    animation-duration: 9s;
+    animation-delay: 2s;
   }
 
   .memory-cloud-core {
@@ -668,6 +672,77 @@ body::before {
     stroke-width: 3px;
     stroke-linejoin: round;
     filter: drop-shadow(0 8px 22px rgba(148, 163, 184, 0.18));
+  }
+
+  /* ── 呼吸灯动画 ── */
+  @keyframes memory-cloud-orb-breathe {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%       { opacity: 1;    transform: scale(1.18); }
+  }
+
+  @keyframes memory-cloud-orb-breathe-alt {
+    0%, 100% { opacity: 0.45; transform: scale(1); }
+    50%       { opacity: 0.9;  transform: scale(1.14); }
+  }
+
+  @keyframes memory-cloud-orb-breathe-amber {
+    0%, 100% { opacity: 0.4;  transform: scale(1); }
+    50%       { opacity: 0.78; transform: scale(1.2); }
+  }
+
+  @keyframes memory-cloud-ring-breathe {
+    0%, 100% { opacity: 0.07; transform: translate(-50%, -50%) scale(1); }
+    50%       { opacity: 0.28; transform: translate(-50%, -50%) scale(1.07); }
+  }
+
+  @keyframes memory-cloud-backdrop-breathe {
+    0%, 100% { opacity: 0.26; }
+    50%       { opacity: 0.44; }
+  }
+
+  /* 蓝色光晕 - 左上 */
+  .memory-cloud-surface::before {
+    content: '';
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(186, 230, 253, 0.75) 0%, transparent 62%);
+    top: -100px;
+    left: -60px;
+    pointer-events: none;
+    z-index: 0;
+    animation: memory-cloud-orb-breathe 5.2s ease-in-out infinite;
+  }
+
+  /* 紫色光晕 - 右上 */
+  .memory-cloud-surface::after {
+    content: '';
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(221, 214, 254, 0.7) 0%, transparent 62%);
+    top: -80px;
+    right: -40px;
+    pointer-events: none;
+    z-index: 0;
+    animation: memory-cloud-orb-breathe-alt 6.8s ease-in-out infinite 1.4s;
+  }
+
+  /* 琥珀色光晕 - 底部中心 (via backdrop pseudo) */
+  .memory-cloud-backdrop::after {
+    content: '';
+    position: absolute;
+    width: 340px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(253, 230, 138, 0.6) 0%, transparent 65%);
+    bottom: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    animation: memory-cloud-orb-breathe-amber 7.5s ease-in-out infinite 2.8s;
   }
 
   .interest-map-surface {
@@ -2616,6 +2691,22 @@ html[data-theme="dark"] .memory-cloud-surface {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 26px 60px rgba(2, 6, 23, 0.34);
+}
+
+html[data-theme="dark"] .memory-cloud-surface::before {
+  background: radial-gradient(circle, rgba(14, 116, 144, 0.55) 0%, transparent 62%);
+}
+
+html[data-theme="dark"] .memory-cloud-surface::after {
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.45) 0%, transparent 62%);
+}
+
+html[data-theme="dark"] .memory-cloud-backdrop::after {
+  background: radial-gradient(circle, rgba(180, 83, 9, 0.45) 0%, transparent 65%);
+}
+
+html[data-theme="dark"] .memory-cloud-ring {
+  border-color: rgba(99, 102, 241, 0.18);
 }
 
 html[data-theme="dark"] .memory-cloud-summary-panel {
