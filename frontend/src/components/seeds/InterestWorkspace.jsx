@@ -217,99 +217,91 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
         </button>
       </div>
 
-      <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_320px]">
-        <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                {t("seeds.memorySeedCount")}
-              </p>
-              <p className="mt-3 text-[18px] font-normal text-slate-950">{memory.papers.length}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                {t("seeds.memoryYears")}
-              </p>
-              <p className="mt-3 text-[18px] font-normal text-slate-950">{timeSpan}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                {t("seeds.memoryCitations")}
-              </p>
-              <p className="mt-3 text-[18px] font-normal text-slate-950">{memory.avgCitations}</p>
-            </div>
-          </div>
-
-          <div className="memory-cloud-layout">
-            <div className="memory-cloud-surface">
-              <div className="memory-cloud-backdrop" />
-              <div className="memory-cloud-ring memory-cloud-ring-a" />
-              <div className="memory-cloud-ring memory-cloud-ring-b" />
-              <svg
-                viewBox={`0 0 ${CLOUD_WIDTH} ${CLOUD_HEIGHT}`}
-                className="memory-cloud-canvas"
-                aria-hidden="true"
-              >
-                {cloudPlacements.map((placement) => (
-                  <MemoryWord key={placement.key} placement={placement} />
-                ))}
-              </svg>
-              <div className="memory-cloud-core">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700/70">
-                  {t("seeds.memoryCloudEyebrow")}
-                </p>
-              </div>
-            </div>
-
-            <aside className="memory-cloud-side">
-              <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("seeds.memoryEchoes")}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {memory.echoes.map((entry) => (
-                    <span
-                      key={entry}
-                      className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-normal text-sky-700"
-                    >
-                      {entry}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("seeds.memoryVenues")}
-                </p>
-                <div className="mt-4 space-y-3">
-                  {memory.venues.map((venue) => (
-                    <div key={venue.name} className="flex items-center justify-between gap-3">
-                      <p className="line-clamp-1 text-sm font-normal text-slate-700">{venue.name}</p>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-normal text-slate-500">
-                        {venue.count}
-                      </span>
-                    </div>
-                  ))}
-                  {memory.venues.length === 0 && (
-                    <p className="text-sm text-slate-400">{t("seeds.memoryVenueFallback")}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                  {t("seeds.memoryZones")}
-                </p>
-                <div className="mt-4 space-y-3">
-                  {memory.zoneCounts.map((entry) => (
-                    <ZoneBar key={entry.zone} zone={entry.zone} count={entry.count} maxCount={maxZoneCount} />
-                  ))}
-                </div>
-              </div>
-            </aside>
+      <div className="mt-7 memory-cloud-layout">
+        <div className="memory-cloud-surface">
+          <div className="memory-cloud-backdrop" />
+          <div className="memory-cloud-ring memory-cloud-ring-a" />
+          <div className="memory-cloud-ring memory-cloud-ring-b" />
+          <svg
+            viewBox={`0 0 ${CLOUD_WIDTH} ${CLOUD_HEIGHT}`}
+            className="memory-cloud-canvas"
+            aria-hidden="true"
+          >
+            {cloudPlacements.map((placement) => (
+              <MemoryWord key={placement.key} placement={placement} />
+            ))}
+          </svg>
+          <div className="memory-cloud-core">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700/70">
+              {t("seeds.memoryCloudEyebrow")}
+            </p>
           </div>
         </div>
+
+        <aside className="memory-cloud-side">
+          <div className="memory-cloud-summary-panel">
+            <div className="memory-cloud-stat-list">
+              <div className="memory-cloud-stat-row">
+                <span>{t("seeds.memorySeedCount")}</span>
+                <strong>{memory.papers.length}</strong>
+              </div>
+              <div className="memory-cloud-stat-row">
+                <span>{t("seeds.memoryYears")}</span>
+                <strong>{timeSpan}</strong>
+              </div>
+              <div className="memory-cloud-stat-row">
+                <span>{t("seeds.memoryCitations")}</span>
+                <strong>{memory.avgCitations}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+              {t("seeds.memoryEchoes")}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {memory.echoes.map((entry) => (
+                <span
+                  key={entry}
+                  className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-normal text-sky-700"
+                >
+                  {entry}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+              {t("seeds.memoryVenues")}
+            </p>
+            <div className="mt-4 space-y-3">
+              {memory.venues.map((venue) => (
+                <div key={venue.name} className="flex items-center justify-between gap-3">
+                  <p className="line-clamp-1 text-sm font-normal text-slate-700">{venue.name}</p>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-normal text-slate-500">
+                    {venue.count}
+                  </span>
+                </div>
+              ))}
+              {memory.venues.length === 0 && (
+                <p className="text-sm text-slate-400">{t("seeds.memoryVenueFallback")}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+              {t("seeds.memoryZones")}
+            </p>
+            <div className="mt-4 space-y-3">
+              {memory.zoneCounts.map((entry) => (
+                <ZoneBar key={entry.zone} zone={entry.zone} count={entry.count} maxCount={maxZoneCount} />
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   );

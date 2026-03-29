@@ -505,7 +505,7 @@ body::before {
 
   .memory-cloud-surface {
     position: relative;
-    min-height: 520px;
+    min-height: 640px;
     overflow: hidden;
     border-radius: 30px;
     border: 1px solid rgba(226, 232, 240, 0.9);
@@ -527,8 +527,50 @@ body::before {
 
   .memory-cloud-side {
     display: grid;
-    gap: 18px;
+    gap: 16px;
     align-content: start;
+  }
+
+  .memory-cloud-summary-panel {
+    border-radius: 26px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 14px 18px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      0 16px 34px rgba(148, 163, 184, 0.1);
+  }
+
+  .memory-cloud-stat-list {
+    display: grid;
+    gap: 2px;
+  }
+
+  .memory-cloud-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgb(71, 85, 105);
+  }
+
+  .memory-cloud-stat-row:last-child {
+    border-bottom: none;
+  }
+
+  .memory-cloud-stat-row span,
+  .memory-cloud-stat-row strong {
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .memory-cloud-stat-row strong {
+    color: rgb(15, 23, 42);
+    text-align: right;
   }
 
   .memory-cloud-backdrop {
@@ -1088,11 +1130,15 @@ body::before {
     align-items: flex-start;
     justify-content: center;
     min-height: calc(100vh - 140px);
-    padding: 8px 0 32px;
+    padding: 6px 0 24px;
     border-radius: 28px;
     overflow: hidden;
     --draw-parallax-x: 0px;
     --draw-parallax-y: 0px;
+    --draw-stage-card-height: clamp(300px, calc(100svh - 430px), 608px);
+    --draw-stage-card-width: clamp(170px, calc(var(--draw-stage-card-height) * 0.5625), 342px);
+    --draw-stage-ring-a-size: clamp(280px, calc(var(--draw-stage-card-width) + 96px), 380px);
+    --draw-stage-ring-b-size: clamp(380px, calc(var(--draw-stage-card-width) + 210px), 520px);
   }
 
   .gacha-stage-view.is-dark {
@@ -1110,24 +1156,42 @@ body::before {
   .gacha-stage-view.is-loading::before {
     content: "";
     position: absolute;
-    inset: -14%;
+    inset: -18%;
     z-index: 0;
     pointer-events: none;
     background:
-      radial-gradient(circle at 20% 26%, rgba(191, 219, 254, 0.42), transparent 24%),
-      radial-gradient(circle at 74% 24%, rgba(165, 180, 252, 0.4), transparent 26%),
-      radial-gradient(circle at 50% 76%, rgba(125, 211, 252, 0.32), transparent 22%);
-    filter: blur(36px);
-    opacity: 0.82;
-    animation: draw-loading-wash 6.8s ease-in-out infinite;
+      radial-gradient(circle at 18% 24%, rgba(191, 219, 254, 0.5), transparent 22%),
+      radial-gradient(circle at 76% 20%, rgba(165, 180, 252, 0.48), transparent 24%),
+      radial-gradient(circle at 50% 74%, rgba(125, 211, 252, 0.34), transparent 20%),
+      radial-gradient(circle at 52% 50%, rgba(255, 255, 255, 0.16), transparent 28%);
+    filter: blur(70px);
+    opacity: 0.96;
+    animation: draw-loading-wash 9.8s ease-in-out infinite;
   }
 
   .gacha-stage-view.is-dark.is-loading::before {
     background:
-      radial-gradient(circle at 20% 26%, rgba(56, 189, 248, 0.22), transparent 24%),
-      radial-gradient(circle at 74% 24%, rgba(129, 140, 248, 0.28), transparent 26%),
-      radial-gradient(circle at 50% 76%, rgba(96, 165, 250, 0.2), transparent 22%);
+      radial-gradient(circle at 18% 24%, rgba(56, 189, 248, 0.24), transparent 22%),
+      radial-gradient(circle at 76% 20%, rgba(129, 140, 248, 0.3), transparent 24%),
+      radial-gradient(circle at 50% 74%, rgba(96, 165, 250, 0.22), transparent 20%),
+      radial-gradient(circle at 52% 50%, rgba(167, 139, 250, 0.08), transparent 28%);
     opacity: 0.9;
+  }
+
+  .gacha-stage-view.is-loading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.34) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 72% 24%, rgba(255,255,255,0.22) 0 1px, transparent 1.5px),
+      radial-gradient(circle at 50% 66%, rgba(255,255,255,0.18) 0 1px, transparent 1.5px);
+    background-size: 180px 180px, 220px 220px, 260px 260px;
+    opacity: 0.22;
+    mix-blend-mode: screen;
+    animation: draw-loading-stars 18s linear infinite;
   }
 
   .draw-light-wheel,
@@ -1289,7 +1353,7 @@ body::before {
     box-shadow:
       0 38px 120px rgba(2, 6, 23, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    padding: 28px;
+    padding: clamp(18px, 2vw, 28px);
     color: white;
     overflow: hidden;
   }
@@ -1404,9 +1468,9 @@ body::before {
     z-index: 1;
     display: flex;
     justify-content: space-between;
-    gap: 18px;
+    gap: 14px;
     align-items: end;
-    padding-bottom: 18px;
+    padding-bottom: clamp(12px, 1.4vw, 18px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -1419,8 +1483,8 @@ body::before {
   }
 
   .gacha-shell-progress {
-    min-width: 180px;
-    max-width: 240px;
+    min-width: 150px;
+    max-width: 220px;
     font-size: 12px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.76);
@@ -1455,10 +1519,10 @@ body::before {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: 1fr 260px;
-    gap: 22px;
-    align-items: stretch;
-    margin-top: 24px;
+    grid-template-columns: minmax(0, 1fr) clamp(230px, 19vw, 260px);
+    gap: clamp(16px, 1.8vw, 22px);
+    align-items: start;
+    margin-top: clamp(16px, 1.8vw, 24px);
   }
 
   /* counter badge */
@@ -1551,47 +1615,186 @@ body::before {
   }
 
   /* full-area loading state */
-  .draw-loading-center {
+  .draw-loading-ritual {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 200px);
+    width: min(760px, 100%);
+    margin: 0 auto;
+    padding: 44px 26px 56px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    min-height: calc(100vh - 200px);
+    gap: 30px;
+    text-align: center;
+  }
+
+  .draw-loading-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     position: relative;
     z-index: 1;
-    padding: 36px 44px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(255,255,255,0.28), rgba(255,255,255,0.06) 52%, rgba(255,255,255,0) 72%);
-    backdrop-filter: blur(10px);
-    overflow: hidden;
-    animation: draw-loading-center-breathe 4.8s ease-in-out infinite;
   }
-  .gacha-stage-view.is-loading .draw-loading-center {
-    box-shadow:
-      0 0 0 1px rgba(255,255,255,0.14),
-      0 28px 68px rgba(99, 102, 241, 0.14);
-    backdrop-filter: blur(20px);
-  }
-  .draw-loading-bloom {
-    position: absolute;
-    inset: -28%;
-    border-radius: 999px;
-    pointer-events: none;
-    background:
-      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5), rgba(255,255,255,0.12) 34%, rgba(255,255,255,0) 62%);
-    filter: blur(26px);
-    opacity: 0.8;
-    animation: draw-loading-bloom 3.2s ease-in-out infinite;
-  }
-  .draw-loading-label {
-    font-size: 13px;
+
+  .draw-loading-kicker {
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.42em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.46);
+    color: rgba(161, 118, 46, 0.82);
   }
-  .gacha-stage-view.is-light .draw-loading-label { color: rgba(79,70,229,0.7); }
+
+  .draw-loading-title {
+    margin: 0;
+    font-size: clamp(2.6rem, 5vw, 4.8rem);
+    line-height: 1.04;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    color: rgba(15, 23, 42, 0.92);
+    text-shadow: 0 16px 48px rgba(161, 118, 46, 0.12);
+  }
+
+  .draw-loading-title.is-cn {
+    letter-spacing: 0.2em;
+  }
+
+  .draw-loading-subtitle {
+    max-width: 34rem;
+    font-size: 14px;
+    line-height: 1.9;
+    color: rgba(90, 72, 45, 0.82);
+  }
+
+  .draw-loading-runeline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .draw-loading-runeline span {
+    display: block;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(186,148,70,0.76), rgba(255,255,255,0));
+    box-shadow: 0 0 18px rgba(186, 148, 70, 0.2);
+    animation: draw-loading-rune-pulse 2.6s ease-in-out infinite;
+  }
+
+  .draw-loading-runeline span:nth-child(1) {
+    width: 24px;
+    animation-delay: -0.4s;
+  }
+
+  .draw-loading-runeline span:nth-child(2) {
+    width: 48px;
+    animation-delay: -1.2s;
+  }
+
+  .draw-loading-runeline span:nth-child(3) {
+    width: 68px;
+    animation-delay: -0.7s;
+  }
+
+  .draw-loading-runeline span:nth-child(4) {
+    width: 30px;
+    animation-delay: -1.6s;
+  }
+
+  .draw-loading-sigil {
+    position: relative;
+    width: min(230px, 44vw);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    filter: drop-shadow(0 28px 68px rgba(161, 118, 46, 0.14));
+    animation: draw-loading-sigil-float 7.2s ease-in-out infinite;
+  }
+
+  .draw-loading-sigil::before,
+  .draw-loading-sigil::after {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    border-radius: 24px;
+    border: 1px solid rgba(186, 148, 70, 0.24);
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+
+  .draw-loading-sigil::after {
+    inset: 24%;
+    border-radius: 9999px;
+    border-color: rgba(186, 148, 70, 0.18);
+    transform: rotate(0deg);
+  }
+
+  .draw-loading-sigil-ring {
+    position: absolute;
+    border-radius: 9999px;
+  }
+
+  .draw-loading-sigil-ring-a {
+    inset: 0;
+    border: 1px solid rgba(186, 148, 70, 0.48);
+    box-shadow:
+      0 0 0 1px rgba(255, 248, 220, 0.18) inset,
+      0 0 60px rgba(255, 231, 181, 0.14);
+    animation: draw-loading-ring-spin 18s linear infinite;
+  }
+
+  .draw-loading-sigil-ring-b {
+    inset: 12%;
+    border: 1px dotted rgba(186, 148, 70, 0.42);
+    animation: draw-loading-ring-spin-reverse 26s linear infinite;
+  }
+
+  .draw-loading-sigil-ring-c {
+    inset: 23%;
+    border: 1px solid rgba(165, 180, 252, 0.34);
+    opacity: 0.76;
+    animation: draw-loading-ring-spin 12s linear infinite;
+  }
+
+  .draw-loading-sigil-core {
+    position: relative;
+    width: 34%;
+    aspect-ratio: 1;
+    border-radius: 9999px;
+    background:
+      radial-gradient(circle, rgba(255,250,237,0.96) 0%, rgba(253, 230, 138, 0.56) 34%, rgba(129,140,248,0.12) 72%, rgba(255,255,255,0) 100%);
+    box-shadow:
+      0 0 0 1px rgba(255,248,220,0.42) inset,
+      0 0 48px rgba(186, 148, 70, 0.2);
+    animation: draw-loading-core-pulse 3.8s ease-in-out infinite;
+  }
+
+  .draw-loading-sigil-core::before,
+  .draw-loading-sigil-core::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    border-radius: 14px;
+  }
+
+  .draw-loading-sigil-core::before {
+    width: 84%;
+    height: 84%;
+    border: 1px solid rgba(129, 140, 248, 0.34);
+  }
+
+  .draw-loading-sigil-core::after {
+    width: 28%;
+    height: 28%;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 26px rgba(255, 255, 255, 0.54);
+  }
 
   .draw-loading-spinner {
     width: 44px;
@@ -1608,6 +1811,111 @@ body::before {
     border-top-color: #6366f1;
   }
   @keyframes draw-spin { to { transform: rotate(360deg); } }
+
+  .draw-loading-veil,
+  .draw-loading-starfield {
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .draw-loading-veil {
+    border-radius: 9999px;
+    mix-blend-mode: screen;
+    filter: blur(120px);
+    opacity: 0.52;
+    animation: draw-loading-veil-drift 16s ease-in-out infinite;
+  }
+
+  .draw-loading-veil-a {
+    width: 58rem;
+    height: 15rem;
+    left: -8%;
+    top: 16%;
+    --draw-veil-transform: rotate(-18deg);
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.52), rgba(191,219,254,0.26), rgba(255,255,255,0));
+  }
+
+  .draw-loading-veil-b {
+    width: 54rem;
+    height: 13rem;
+    right: -10%;
+    bottom: 16%;
+    --draw-veil-transform: rotate(22deg);
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(165,180,252,0.38), rgba(125,211,252,0.22), rgba(255,255,255,0));
+    animation-delay: -6.5s;
+  }
+
+  .draw-loading-veil-c {
+    width: 34rem;
+    height: 34rem;
+    left: 50%;
+    top: 50%;
+    --draw-veil-transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,255,255,0.36), rgba(191,219,254,0.18) 36%, rgba(255,255,255,0) 72%);
+    filter: blur(90px);
+    opacity: 0.44;
+    animation-duration: 10.5s;
+    animation-delay: -2.2s;
+  }
+
+  .draw-loading-starfield {
+    inset: 0;
+    background:
+      radial-gradient(circle at 28% 38%, rgba(255,255,255,0.72) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 62% 28%, rgba(255,255,255,0.52) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 70% 64%, rgba(255,255,255,0.42) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 40% 72%, rgba(255,255,255,0.46) 0 1px, transparent 1.8px);
+    background-size: 240px 240px, 300px 300px, 360px 360px, 420px 420px;
+    opacity: 0.22;
+    mix-blend-mode: screen;
+    animation: draw-loading-stars 20s linear infinite;
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-kicker {
+    color: rgba(245, 208, 126, 0.76);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-title {
+    color: rgba(248, 250, 252, 0.96);
+    text-shadow: 0 16px 48px rgba(245, 208, 126, 0.12);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-subtitle {
+    color: rgba(226, 232, 240, 0.74);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-runeline span {
+    background: linear-gradient(90deg, rgba(255,255,255,0), rgba(245,208,126,0.72), rgba(255,255,255,0));
+    box-shadow: 0 0 22px rgba(245, 208, 126, 0.14);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-sigil-ring-a {
+    border-color: rgba(245, 208, 126, 0.24);
+    box-shadow:
+      0 0 0 1px rgba(245, 208, 126, 0.12) inset,
+      0 0 64px rgba(245, 208, 126, 0.1);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-sigil-ring-b {
+    border-color: rgba(245, 208, 126, 0.28);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-sigil-ring-c {
+    border-color: rgba(167, 139, 250, 0.22);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-sigil-core {
+    background:
+      radial-gradient(circle, rgba(255,250,237,0.96) 0%, rgba(245,208,126,0.44) 34%, rgba(56,189,248,0.08) 72%, rgba(255,255,255,0) 100%);
+    box-shadow:
+      0 0 0 1px rgba(245,208,126,0.16) inset,
+      0 0 56px rgba(245, 208, 126, 0.12);
+  }
+
+  .gacha-stage-view.is-dark .draw-loading-veil {
+    opacity: 0.62;
+  }
 
   @keyframes draw-flip-flash-burst {
     0% {
@@ -1787,6 +2095,47 @@ body::before {
     50% { transform: translateY(-4px) scale(1.02); }
   }
 
+  @keyframes draw-loading-veil-drift {
+    0%, 100% {
+      transform: var(--draw-veil-transform, translate3d(0, 0, 0)) scale(1);
+      opacity: 0.44;
+    }
+    50% {
+      transform: var(--draw-veil-transform, translate3d(0, 0, 0)) translate3d(0, -10px, 0) scale(1.05);
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes draw-loading-stars {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-18px, 12px, 0); }
+  }
+
+  @keyframes draw-loading-sigil-float {
+    0%, 100% { transform: translateY(0) scale(0.98); }
+    50% { transform: translateY(-8px) scale(1.02); }
+  }
+
+  @keyframes draw-loading-ring-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes draw-loading-ring-spin-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  @keyframes draw-loading-core-pulse {
+    0%, 100% { transform: scale(0.96); opacity: 0.8; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+
+  @keyframes draw-loading-rune-pulse {
+    0%, 100% { opacity: 0.28; transform: scaleX(0.92); }
+    50% { opacity: 0.9; transform: scaleX(1.04); }
+  }
+
   @keyframes draw-loading-orb-surge {
     0%, 100% { opacity: 0.72; }
     50% { opacity: 1; }
@@ -1799,6 +2148,7 @@ body::before {
 
   .draw-light-sweep-a { --draw-sweep-rot: -24deg; }
   .draw-light-sweep-b { --draw-sweep-rot: 28deg; }
+
 
   .gacha-side-stack,
   .gacha-inspector {
@@ -1872,7 +2222,7 @@ body::before {
 
   .gacha-stage {
     position: relative;
-    min-height: 640px;
+    min-height: calc(var(--draw-stage-card-height) + 108px);
     border-radius: 32px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background:
@@ -1882,8 +2232,9 @@ body::before {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 22px 24px 26px;
+    justify-content: flex-start;
+    gap: clamp(10px, 1.4vh, 16px);
+    padding: 18px clamp(16px, 1.6vw, 24px) 18px;
   }
 
   .gacha-stage-ring {
@@ -1896,14 +2247,14 @@ body::before {
   }
 
   .gacha-stage-ring-a {
-    width: 380px;
-    height: 380px;
+    width: var(--draw-stage-ring-a-size);
+    height: var(--draw-stage-ring-a-size);
     animation: stage-ring-spin 26s linear infinite;
   }
 
   .gacha-stage-ring-b {
-    width: 520px;
-    height: 520px;
+    width: var(--draw-stage-ring-b-size);
+    height: var(--draw-stage-ring-b-size);
     border-style: dashed;
     animation: stage-ring-spin 40s linear infinite reverse;
   }
@@ -1911,9 +2262,9 @@ body::before {
   .gacha-stage-pedestal {
     position: absolute;
     left: 50%;
-    bottom: 88px;
-    width: 260px;
-    height: 54px;
+    top: calc(18px + var(--draw-stage-card-height) - 8px);
+    width: clamp(180px, calc(var(--draw-stage-card-width) * 0.78), 260px);
+    height: clamp(28px, calc(var(--draw-stage-card-height) * 0.09), 54px);
     border-radius: 9999px;
     background: radial-gradient(circle, rgba(15, 23, 42, 0.78), transparent 72%);
     transform: translateX(-50%);
@@ -1923,37 +2274,13 @@ body::before {
   .gacha-card-stage {
     position: relative;
     z-index: 1;
-    width: min(342px, 100%);
-    height: 608px;
+    width: min(var(--draw-stage-card-width), 100%);
+    height: var(--draw-stage-card-height);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-  }
-
-  .gacha-card-corner-badge-wrap {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 3;
-    pointer-events: none;
-  }
-
-  .gacha-card-corner-badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.14);
-    padding: 7px 10px;
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-    backdrop-filter: blur(14px);
-    box-shadow:
-      0 10px 28px rgba(15, 23, 42, 0.16),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    opacity: 0.92;
+    flex: 0 0 auto;
   }
 
   .draw-flip-flash {
@@ -2141,25 +2468,26 @@ body::before {
   .gacha-stage-caption {
     position: relative;
     z-index: 1;
-    max-width: 420px;
+    max-width: min(420px, 100%);
     text-align: center;
+    margin-top: clamp(6px, 1vh, 12px);
   }
 
   .gacha-inspector-panel {
     border-radius: 28px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.04);
-    padding: 18px 18px 20px;
+    padding: 16px 16px 18px;
   }
 
   .gacha-inspector-row {
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    padding: 10px 0;
+    padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.68);
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .gacha-inspector-row:last-child {
@@ -2169,7 +2497,7 @@ body::before {
 
   .gacha-inspector-row strong {
     color: white;
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .gacha-actions {
@@ -2179,8 +2507,8 @@ body::before {
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    margin-top: 22px;
-    padding-top: 20px;
+    margin-top: clamp(16px, 1.8vh, 22px);
+    padding-top: clamp(14px, 1.6vh, 20px);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -2252,6 +2580,23 @@ html[data-theme="dark"] .memory-cloud-surface {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 26px 60px rgba(2, 6, 23, 0.34);
+}
+
+html[data-theme="dark"] .memory-cloud-summary-panel {
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 40px rgba(2, 6, 23, 0.28);
+}
+
+html[data-theme="dark"] .memory-cloud-stat-row {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
+  color: rgba(203, 213, 225, 0.88);
+}
+
+html[data-theme="dark"] .memory-cloud-stat-row strong {
+  color: rgba(248, 250, 252, 0.94);
 }
 
   /* ── Draw Arena (stage-style full-page draw UI) ───────────────────── */
@@ -2644,7 +2989,7 @@ html[data-theme="dark"] .memory-cloud-word {
 
 @media (min-width: 1100px) {
   .memory-cloud-layout {
-    grid-template-columns: minmax(0, 1.42fr) 300px;
+    grid-template-columns: minmax(0, 1.72fr) 330px;
   }
 }
 
@@ -2862,6 +3207,11 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 }
 
 @media (max-width: 1099px) {
+  .gacha-stage-view {
+    --draw-stage-card-height: clamp(320px, calc(100svh - 390px), 540px);
+    --draw-stage-card-width: clamp(180px, calc(var(--draw-stage-card-height) * 0.5625), 304px);
+  }
+
   .draw-ritual-stats {
     grid-template-columns: 1fr;
   }
@@ -2893,11 +3243,17 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   }
 
   .gacha-stage {
-    min-height: 560px;
+    min-height: calc(var(--draw-stage-card-height) + 96px);
   }
 }
 
 @media (max-width: 767px) {
+  .gacha-stage-view {
+    --draw-stage-card-height: clamp(300px, calc(100svh - 420px), 496px);
+    --draw-stage-card-width: clamp(170px, calc(var(--draw-stage-card-height) * 0.5625), 279px);
+    padding: 4px 0 16px;
+  }
+
   .draw-stage {
     min-height: 560px;
     padding: 22px;
@@ -2918,7 +3274,7 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   }
 
   .gacha-shell {
-    padding: 18px;
+    padding: 16px;
   }
 
   .gacha-shell-header,
@@ -2928,7 +3284,35 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   }
 
   .gacha-card-stage {
-    width: min(100%, 279px);
-    height: 496px;
+    width: min(100%, var(--draw-stage-card-width));
+    height: var(--draw-stage-card-height);
+  }
+}
+
+@media (max-height: 920px) and (min-width: 768px) {
+  .gacha-stage-view {
+    --draw-stage-card-height: clamp(280px, calc(100svh - 450px), 520px);
+    padding-bottom: 18px;
+  }
+
+  .gacha-shell {
+    padding: 18px;
+  }
+
+  .gacha-stage {
+    min-height: calc(var(--draw-stage-card-height) + 90px);
+  }
+
+  .gacha-shell-header {
+    padding-bottom: 12px;
+  }
+
+  .draw-stage-grid {
+    margin-top: 16px;
+  }
+
+  .gacha-actions {
+    margin-top: 14px;
+    padding-top: 12px;
   }
 }

@@ -139,7 +139,10 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const isFlipped = !!flipped[currentIndex];
   const isCollected = collected.has(currentIndex);
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
-  const currentTheme = currentCard ? getTierConfig(currentCard.zone || currentCard.tier) : null;
+  const loadingTitle = locale === "zh" ? "星盘召牌中" : "Invoking the Deck";
+  const loadingSubtitle = locale === "zh"
+    ? "研究记忆正沿着词与引文缓缓聚成下一张牌"
+    : "Research signals are condensing into the next card.";
   const authorLine = currentCard ? (currentCard.authors || []).slice(0, 2).join(", ") : "";
   const metaLine = currentCard ? [authorLine, currentCard.venue, currentCard.year].filter(Boolean).join(" / ") : "";
 
@@ -218,7 +221,12 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   // loading: no cards yet
   if (cards.length === 0) {
     return (
-      <div className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`} style={stageStyle}>
+      <div
+        className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`}
+        style={stageStyle}
+        onMouseMove={handleStageMove}
+        onMouseLeave={resetStageMotion}
+      >
         <div className="draw-light-wheel draw-light-wheel-a" />
         <div className="draw-light-wheel draw-light-wheel-b" />
         <div className="draw-light-sweep draw-light-sweep-a" />
@@ -226,6 +234,10 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
         <div className="draw-loading-haze draw-loading-haze-a" />
         <div className="draw-loading-haze draw-loading-haze-b" />
         <div className="draw-loading-haze draw-loading-haze-c" />
+        <div className="draw-loading-veil draw-loading-veil-a" />
+        <div className="draw-loading-veil draw-loading-veil-b" />
+        <div className="draw-loading-veil draw-loading-veil-c" />
+        <div className="draw-loading-starfield" aria-hidden="true" />
         {!isDark && (
           <>
             <div className="draw-glow-orb draw-glow-orb-a" />
@@ -233,10 +245,26 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             <div className="draw-glow-orb draw-glow-orb-c" />
           </>
         )}
-        <div className="draw-loading-center">
-          <div className="draw-loading-bloom" />
-          <div className="draw-loading-spinner" />
-          <p className="draw-loading-label">{t("draw.drawing")}</p>
+        <div className="draw-loading-ritual" aria-live="polite">
+          <div className="draw-loading-sigil" aria-hidden="true">
+            <div className="draw-loading-sigil-ring draw-loading-sigil-ring-a" />
+            <div className="draw-loading-sigil-ring draw-loading-sigil-ring-b" />
+            <div className="draw-loading-sigil-ring draw-loading-sigil-ring-c" />
+            <div className="draw-loading-sigil-core" />
+          </div>
+          <div className="draw-loading-copy">
+            <p className="draw-loading-kicker">{`${t("draw.eyebrow")} / ${modeLabel}`}</p>
+            <h3 className={`draw-loading-title ${locale === "zh" ? "font-heading-cn is-cn" : "font-heading"}`}>
+              {loadingTitle}
+            </h3>
+            <p className="draw-loading-subtitle">{loadingSubtitle}</p>
+            <div className="draw-loading-runeline" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -297,13 +325,6 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
               onKeyDown={(e) => e.key === "Enter" && handleFlip()}
               aria-label={t("gacha.tapToReveal")}
             >
-              {currentCard?.similarity_score > 0 && currentTheme ? (
-                <div className="gacha-card-corner-badge-wrap">
-                  <span className={`gacha-card-corner-badge ${currentTheme.matchClass}`}>
-                    {Math.round(currentCard.similarity_score * 100)}% {t("recommend.matchScore")}
-                  </span>
-                </div>
-              ) : null}
               {currentCard && !showScrollCard ? (
                 <div
                   className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`}
