@@ -15,8 +15,7 @@ function CardBack({ zone, tier, modeLabel }) {
       <div className="gacha-card-back-foil" />
       <div className="gacha-card-back-sheen" />
       <div className="relative z-[1] flex h-full w-full flex-col justify-between p-6">
-        <div className="flex items-start justify-between gap-3">
-          <TierBadge zone={zone} tier={tier} />
+        <div className="flex items-start justify-end gap-3">
           <span className={`text-[10px] font-semibold uppercase tracking-[0.26em] ${theme.authorColor}`}>
             {modeLabel}
           </span>
@@ -288,15 +287,6 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             <div className="gacha-stage-ring gacha-stage-ring-b" />
             <div className="gacha-stage-pedestal" />
 
-            <div className="gacha-stage-topline">
-              {currentCard && <TierBadge zone={currentCard.zone} tier={currentCard.tier} />}
-              {currentCard?.similarity_score > 0 && currentTheme && (
-                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${currentTheme.matchClass}`}>
-                  {Math.round(currentCard.similarity_score * 100)}% {t("recommend.matchScore")}
-                </span>
-              )}
-            </div>
-
             <div
               className="gacha-card-stage perspective-1000"
               onClick={handleFlip}
@@ -307,6 +297,13 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
               onKeyDown={(e) => e.key === "Enter" && handleFlip()}
               aria-label={t("gacha.tapToReveal")}
             >
+              {currentCard?.similarity_score > 0 && currentTheme ? (
+                <div className="gacha-card-corner-badge-wrap">
+                  <span className={`gacha-card-corner-badge ${currentTheme.matchClass}`}>
+                    {Math.round(currentCard.similarity_score * 100)}% {t("recommend.matchScore")}
+                  </span>
+                </div>
+              ) : null}
               {currentCard && !showScrollCard ? (
                 <div
                   className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`}
@@ -327,7 +324,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                 </div>
               ) : null}
               {showScrollCard ? (
-                <div className={`gacha-card-scroll-shell ${isCollected ? "is-collected" : "is-expanded"}`}>
+                <div className={`gacha-card-scroll-shell ${isCollected ? "is-collected" : ""}`}>
                   <div className="gacha-card-scroll-shell-inner">
                     <PaperCard card={currentCard} mode={cardMode} />
                   </div>
@@ -343,10 +340,10 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
             <div className="gacha-stage-caption">
               <p className="gacha-shell-kicker">
-                {isFlipped && currentCard ? currentCard.title : t("gacha.tapToReveal")}
+                {isFlipped && currentCard ? "" : t("gacha.tapToReveal")}
               </p>
               <p className="draw-stage-meta">
-                {isFlipped && currentCard ? metaLine || modeLabel : modeLabel}
+                {isFlipped && currentCard ? "" : modeLabel}
               </p>
             </div>
           </div>
