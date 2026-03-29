@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import TierBadge from "../cards/TierBadge";
 import { buildInterestMemory } from "./interestMemory";
 
@@ -176,8 +176,17 @@ function ZoneBar({ zone, count, maxCount }) {
   );
 }
 
+const TABS = ["stats", "echoes", "venues", "zones"];
+const TAB_LABEL_KEYS = {
+  stats: "seeds.memoryTabStats",
+  echoes: "seeds.memoryTabEchoes",
+  venues: "seeds.memoryTabVenues",
+  zones: "seeds.memoryTabZones",
+};
+
 export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
   const memory = useMemo(() => buildInterestMemory(profileInfo), [profileInfo]);
+  const [activeTab, setActiveTab] = useState("stats");
 
   const maxKeywordCount = Math.max(...memory.keywordEntries.map((entry) => entry.count), 1);
   const cloudPlacements = useMemo(
@@ -239,67 +248,89 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
         </div>
 
         <aside className="memory-cloud-side">
-          <div className="memory-cloud-summary-panel">
-            <div className="memory-cloud-stat-list">
-              <div className="memory-cloud-stat-row">
-                <span>{t("seeds.memorySeedCount")}</span>
-                <strong>{memory.papers.length}</strong>
-              </div>
-              <div className="memory-cloud-stat-row">
-                <span>{t("seeds.memoryYears")}</span>
-                <strong>{timeSpan}</strong>
-              </div>
-              <div className="memory-cloud-stat-row">
-                <span>{t("seeds.memoryCitations")}</span>
-                <strong>{memory.avgCitations}</strong>
-              </div>
-            </div>
+          <div className="memory-cloud-tabs">
+            {TABS.map((id) => (
+              <button
+                key={id}
+                className={`memory-cloud-tab${activeTab === id ? " memory-cloud-tab--active" : ""}`}
+                onClick={() => setActiveTab(id)}
+              >
+                {t(TAB_LABEL_KEYS[id])}
+              </button>
+            ))}
           </div>
 
-          <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-              {t("seeds.memoryEchoes")}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {memory.echoes.map((entry) => (
-                <span
-                  key={entry}
-                  className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-normal text-sky-700"
-                >
-                  {entry}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-              {t("seeds.memoryVenues")}
-            </p>
-            <div className="mt-4 space-y-3">
-              {memory.venues.map((venue) => (
-                <div key={venue.name} className="flex items-center justify-between gap-3">
-                  <p className="line-clamp-1 text-sm font-normal text-slate-700">{venue.name}</p>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-normal text-slate-500">
-                    {venue.count}
-                  </span>
+          <div className="memory-cloud-tab-content">
+            {activeTab === "stats" && (
+              <div className="memory-cloud-summary-panel">
+                <div className="memory-cloud-stat-list">
+                  <div className="memory-cloud-stat-row">
+                    <span>{t("seeds.memorySeedCount")}</span>
+                    <strong>{memory.papers.length}</strong>
+                  </div>
+                  <div className="memory-cloud-stat-row">
+                    <span>{t("seeds.memoryYears")}</span>
+                    <strong>{timeSpan}</strong>
+                  </div>
+                  <div className="memory-cloud-stat-row">
+                    <span>{t("seeds.memoryCitations")}</span>
+                    <strong>{memory.avgCitations}</strong>
+                  </div>
                 </div>
-              ))}
-              {memory.venues.length === 0 && (
-                <p className="text-sm text-slate-400">{t("seeds.memoryVenueFallback")}</p>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
 
-          <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-              {t("seeds.memoryZones")}
-            </p>
-            <div className="mt-4 space-y-3">
-              {memory.zoneCounts.map((entry) => (
-                <ZoneBar key={entry.zone} zone={entry.zone} count={entry.count} maxCount={maxZoneCount} />
-              ))}
-            </div>
+            {activeTab === "echoes" && (
+              <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  {t("seeds.memoryEchoes")}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {memory.echoes.map((entry) => (
+                    <span
+                      key={entry}
+                      className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-normal text-sky-700"
+                    >
+                      {entry}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "venues" && (
+              <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  {t("seeds.memoryVenues")}
+                </p>
+                <div className="mt-4 space-y-3">
+                  {memory.venues.map((venue) => (
+                    <div key={venue.name} className="flex items-center justify-between gap-3">
+                      <p className="line-clamp-1 text-sm font-normal text-slate-700">{venue.name}</p>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-normal text-slate-500">
+                        {venue.count}
+                      </span>
+                    </div>
+                  ))}
+                  {memory.venues.length === 0 && (
+                    <p className="text-sm text-slate-400">{t("seeds.memoryVenueFallback")}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "zones" && (
+              <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  {t("seeds.memoryZones")}
+                </p>
+                <div className="mt-4 space-y-3">
+                  {memory.zoneCounts.map((entry) => (
+                    <ZoneBar key={entry.zone} zone={entry.zone} count={entry.count} maxCount={maxZoneCount} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </aside>
       </div>

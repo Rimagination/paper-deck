@@ -531,6 +531,42 @@ body::before {
     align-content: start;
   }
 
+  .memory-cloud-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    padding-bottom: 0;
+  }
+
+  .memory-cloud-tab {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgb(148, 163, 184);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+
+  .memory-cloud-tab:hover {
+    color: rgb(71, 85, 105);
+    background: rgba(148, 163, 184, 0.07);
+  }
+
+  .memory-cloud-tab--active {
+    color: rgb(15, 23, 42);
+    border-bottom-color: rgb(99, 102, 241);
+  }
+
+  .memory-cloud-tab-content {
+    padding-top: 14px;
+  }
+
   .memory-cloud-summary-panel {
     border-radius: 26px;
     border: 1px solid rgba(226, 232, 240, 0.8);
@@ -2989,7 +3025,7 @@ html[data-theme="dark"] .memory-cloud-word {
 
 @media (min-width: 1100px) {
   .memory-cloud-layout {
-    grid-template-columns: minmax(0, 1.72fr) 330px;
+    grid-template-columns: minmax(0, 2.4fr) 272px;
   }
 }
 
