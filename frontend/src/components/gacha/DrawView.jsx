@@ -8,6 +8,17 @@ import TierBadge, { getTierConfig } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
 import ReadingPanel from "../cards/ReadingPanel";
 
+const ORBITAL_BODIES = [
+  { size: "var(--draw-stage-orbit-1-size)", duration: "18s", delay: "-2s", direction: "normal", dotClass: "is-mercury" },
+  { size: "var(--draw-stage-orbit-2-size)", duration: "24s", delay: "-7s", direction: "reverse", dotClass: "is-venus" },
+  { size: "var(--draw-stage-orbit-2-size)", duration: "29s", delay: "-14s", direction: "normal", dotClass: "is-earth" },
+  { size: "var(--draw-stage-orbit-3-size)", duration: "35s", delay: "-9s", direction: "normal", dotClass: "is-mars" },
+  { size: "var(--draw-stage-orbit-4-size)", duration: "43s", delay: "-20s", direction: "reverse", dotClass: "is-jupiter" },
+  { size: "var(--draw-stage-orbit-4-size)", duration: "51s", delay: "-31s", direction: "normal", dotClass: "is-saturn" },
+  { size: "var(--draw-stage-orbit-5-size)", duration: "62s", delay: "-18s", direction: "reverse", dotClass: "is-uranus" },
+  { size: "var(--draw-stage-orbit-5-size)", duration: "74s", delay: "-46s", direction: "normal", dotClass: "is-neptune" },
+];
+
 function CardBack({ zone, tier, modeLabel }) {
   const { t } = useLanguage();
   const theme = getTierConfig(zone || tier);
@@ -332,6 +343,25 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
         <div className="draw-stage-grid">
           {/* center card stage */}
           <div className="gacha-stage">
+            <div className="gacha-stage-cosmos" aria-hidden="true">
+              <div className="gacha-stage-aura gacha-stage-aura-a" />
+              <div className="gacha-stage-aura gacha-stage-aura-b" />
+              <div className="gacha-stage-core" />
+              {ORBITAL_BODIES.map((body) => (
+                <div
+                  key={`${body.dotClass}-${body.size}`}
+                  className="gacha-stage-orbit"
+                  style={{
+                    "--orbit-size": body.size,
+                    animationDuration: body.duration,
+                    animationDelay: body.delay,
+                    animationDirection: body.direction,
+                  }}
+                >
+                  <span className={`gacha-stage-orbit-dot ${body.dotClass}`} />
+                </div>
+              ))}
+            </div>
             <div className="gacha-stage-ring gacha-stage-ring-a" />
             <div className="gacha-stage-ring gacha-stage-ring-b" />
             <div className="gacha-stage-pedestal" />

@@ -49,15 +49,15 @@ async def search_seeds(request: Request, body: SeedSearchRequest) -> list[PaperS
         return []
 
     cache = request.app.state.cache
-    cache_key = f"pd:search:v2:{query.lower()}"
+    cache_key = f"pd:search:v3:{query.lower()}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         return [PaperSummary(**p) for p in cached]
 
     oa = request.app.state.oa_client
     journal_zone = request.app.state.journal_zone
-    raw_papers = await oa.search_papers(query, limit=10)
-    resolved_papers = await _resolve_search_candidates(request, raw_papers)
+    raw_papers = await oa.search_papers(query, limit=6)
+    resolved_papers = (await _resolve_search_candidates(request, raw_papers))[:3]
     results = [build_paper_summary(paper, journal_zone=journal_zone) for paper in resolved_papers]
 
     await cache.set_json(cache_key, [p.model_dump() for p in results], request.app.state.settings.cache_ttl_search)

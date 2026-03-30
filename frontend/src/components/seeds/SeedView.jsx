@@ -4,7 +4,6 @@ import { getRecommendations, getSubscriptionFeed, generateProfile, resolveSeedIn
 import { useLanguage } from "../../i18n";
 import PaperDigestCard from "../cards/PaperDigestCard";
 import { buildInterestMemory } from "./interestMemory";
-import TierBadge from "../cards/TierBadge";
 
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 const DOI_HOST_PATTERN = /(^|\/\/)(dx\.)?doi\.org\//i;
@@ -37,6 +36,20 @@ function formatSyncedAt(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+}
+
+function buildSearchRowMeta(paper, locale) {
+  const parts = [];
+  if (paper.venue) {
+    parts.push(paper.venue);
+  }
+  if (paper.year) {
+    parts.push(String(paper.year));
+  }
+  if (paper.citation_count) {
+    parts.push(locale === "en" ? `${paper.citation_count} cites` : `${paper.citation_count} 引用`);
+  }
+  return parts.join(" / ");
 }
 
 function SectionFrame({ title, subtitle, action, children }) {
@@ -551,46 +564,40 @@ export default function SeedView({
             {searchError && <p className="text-xs text-rose-600">{searchError}</p>}
 
             {searchResults.length > 0 && (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="seed-search-results">
                 {searchResults.map((paper) => {
                   const alreadyAdded = seeds.some((item) => item.paper_id === paper.paper_id);
+                  const meta = buildSearchRowMeta(paper, locale);
                   return (
-                    <div key={paper.paper_id} className="digest-card">
-                      <div className="digest-card-top">
-                        <div>
-                          <p className="digest-card-eyebrow">{ui.searchResultEyebrow}</p>
-                          <h3 className="digest-card-title">{paper.title}</h3>
-                        </div>
-                        <TierBadge zone={paper.zone} size="sm" />
-                      </div>
-                      <div className="digest-card-body">
-                        <p className="digest-card-meta">
-                          {paper.authors?.slice(0, 3).join(", ")}
-                          {paper.year ? ` / ${paper.year}` : ""}
-                          {paper.citation_count ? ` / ${paper.citation_count} cites` : ""}
+                    <div key={paper.paper_id} className="seed-search-row">
+                      <div className="seed-search-main">
+                        <p className="seed-search-title" title={paper.title}>
+                          {paper.title}
                         </p>
-                        {paper.abstract && <p className="digest-card-summary">{paper.abstract}</p>}
+                        {meta && (
+                          <span className="seed-search-meta" title={meta}>
+                            {meta}
+                          </span>
+                        )}
                       </div>
-                      <div className="digest-card-actions">
-                        <button
-                          onClick={() => {
-                            const result = addSeed(paper);
-                            if (!result.ok) {
-                              setSearchError(
-                                result.reason === "duplicate"
-                                  ? t("seeds.duplicateSeed")
-                                  : result.reason === "limit"
-                                  ? t("seeds.limitReached")
-                                  : t("seeds.manualAddFailed")
-                              );
-                            }
-                          }}
-                          disabled={alreadyAdded || seeds.length >= 20}
-                          className="app-accent-button rounded-xl px-4 py-2.5 text-sm font-medium disabled:opacity-40"
-                        >
-                          {alreadyAdded ? t("seeds.added") : t("seeds.add")}
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => {
+                          const result = addSeed(paper);
+                          if (!result.ok) {
+                            setSearchError(
+                              result.reason === "duplicate"
+                                ? t("seeds.duplicateSeed")
+                                : result.reason === "limit"
+                                ? t("seeds.limitReached")
+                                : t("seeds.manualAddFailed")
+                            );
+                          }
+                        }}
+                        disabled={alreadyAdded || seeds.length >= 20}
+                        className="app-accent-button seed-search-add rounded-xl px-3.5 py-2 text-sm font-medium disabled:opacity-40"
+                      >
+                        {alreadyAdded ? t("seeds.added") : t("seeds.add")}
+                      </button>
                     </div>
                   );
                 })}
