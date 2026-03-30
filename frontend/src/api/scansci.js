@@ -31,6 +31,8 @@ export function buildCardFavoritePayload(paper, tier, mode) {
   return {
     paper_id: paper?.paper_id || paper?.paperId || null,
     title: paper?.title || "",
+    title_zh: paper?.title_zh || "",
+    abstract: paper?.abstract || null,
     authors: Array.isArray(paper?.authors) ? paper.authors : [],
     year: paper?.year ?? null,
     venue: paper?.venue || null,
@@ -43,6 +45,7 @@ export function buildCardFavoritePayload(paper, tier, mode) {
     issn: paper?.issn || null,
     eissn: paper?.eissn || null,
     mode: mode || "research",
+    language: paper?.language || "zh",
     card_content: paper?.card_content || null,
     source: "paper_deck",
   };

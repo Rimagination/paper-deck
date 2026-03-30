@@ -170,6 +170,35 @@ def _extract_problem_statement(sentences: list[str]) -> str:
     return "The paper frames its motivation through the task setup and venue context."
 
 
+def _extract_research_gap(sentences: list[str], problem_statement: str) -> str:
+    hints = (
+        "however", "limited", "limitations", "lack", "lacks", "gap",
+        "unclear", "challenge", "challenging", "difficult", "yet",
+        "still", "fails", "missing",
+    )
+    matches = _select_sentences(sentences, hints, limit=2)
+    if matches:
+        return _join_sentences(matches, limit=2, max_chars=220)
+    return _truncate(problem_statement, 180) if problem_statement else "N/A"
+
+
+def _extract_method_snapshot(sentences: list[str], tech_stack: list[str], title: str) -> str:
+    hints = (
+        "we propose", "we present", "approach", "method", "framework",
+        "model", "pipeline", "architecture", "train", "training",
+        "evaluate", "evaluation", "benchmark",
+    )
+    matches = _select_sentences(sentences, hints, limit=2)
+    if matches:
+        return _join_sentences(matches, limit=2, max_chars=240)
+    if tech_stack:
+        return _truncate(
+            f"The paper centers its approach on {', '.join(tech_stack[:3])} to address {title}.",
+            210,
+        )
+    return "N/A"
+
+
 def _extract_key_results(sentences: list[str]) -> str:
     hints = (
         "result", "results", "achieve", "achieves", "achieved",
@@ -184,6 +213,22 @@ def _extract_key_results(sentences: list[str]) -> str:
     if fallback:
         return _join_sentences(fallback, limit=2, max_chars=220)
     return "See the original paper for detailed results."
+
+
+def _extract_data_and_evaluation(sentences: list[str], dataset_scale: str, key_results: str) -> str:
+    hints = (
+        "dataset", "benchmark", "benchmarks", "cohort", "evaluation",
+        "evaluated", "experiment", "experiments", "samples", "subjects",
+        "participants", "records", "images", "videos",
+    )
+    matches = _select_sentences(sentences, hints, limit=2)
+    if matches:
+        return _join_sentences(matches, limit=2, max_chars=220)
+    if dataset_scale and dataset_scale != "N/A":
+        return _truncate(dataset_scale, 180)
+    if key_results:
+        return _truncate(key_results, 180)
+    return "N/A"
 
 
 def _extract_novelty(title: str, sentences: list[str], tech_stack: list[str]) -> str:
@@ -211,6 +256,42 @@ def _extract_core_contribution(title: str, sentences: list[str], key_results: st
     if key_results:
         return _truncate(key_results, 220)
     return _truncate(f"This paper studies {title}.", 160)
+
+
+def _extract_next_step(sentences: list[str], limitations: str) -> str:
+    hints = (
+        "future work", "future", "next", "further", "could", "can be extended",
+        "extend", "extension", "remain", "open question", "open questions",
+    )
+    matches = _select_sentences(sentences, hints, limit=2)
+    if matches:
+        return _join_sentences(matches, limit=2, max_chars=180)
+    if limitations and limitations != "N/A":
+        return _truncate(f"A natural next step is to address: {limitations}", 180)
+    return "N/A"
+
+
+def _extract_evidence_signals(
+    venue: str,
+    year: Any,
+    citation_count: Any,
+    tech_stack: list[str],
+    dataset_scale: str,
+) -> list[str]:
+    signals: list[str] = []
+    if venue and year:
+        signals.append(f"{venue} {year}")
+    elif venue:
+        signals.append(venue)
+    elif year:
+        signals.append(str(year))
+    if isinstance(citation_count, int) and citation_count > 0:
+        signals.append(f"{citation_count} citations")
+    if dataset_scale and dataset_scale != "N/A":
+        signals.append(_truncate(dataset_scale, 72))
+    if tech_stack:
+        signals.append(", ".join(tech_stack[:2]))
+    return _dedupe(signals)[:4]
 
 
 def _derive_discovery_tags(tech_stack: list[str], title: str, abstract: str) -> list[str]:
@@ -254,6 +335,76 @@ def _build_why_it_matters(venue: str, year: Any, citation_count: Any, tech_stack
     )
 
 
+def _coerce_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if str(item).strip()]
+
+
+def _build_research_content(
+    *,
+    research_question: str,
+    research_gap: str,
+    method_snapshot: str,
+    data_and_evaluation: str,
+    key_findings: str,
+    innovation: str,
+    limitations: str,
+    next_step: str,
+    tech_stack: list[str],
+    evidence_signals: list[str],
+    core_contribution: str | None = None,
+) -> dict[str, Any]:
+    normalized_core = core_contribution or key_findings or method_snapshot or research_question
+    normalized_methods = method_snapshot or "N/A"
+    normalized_dataset = data_and_evaluation or "N/A"
+    normalized_results = key_findings or normalized_core
+    normalized_innovation = innovation or normalized_core
+    normalized_limitations = limitations or "N/A"
+    return {
+        "research_question": research_question or normalized_core,
+        "research_gap": research_gap or normalized_core,
+        "method_snapshot": normalized_methods,
+        "data_and_evaluation": normalized_dataset,
+        "key_findings": normalized_results,
+        "innovation": normalized_innovation,
+        "limitations": normalized_limitations,
+        "next_step": next_step or normalized_limitations,
+        "tech_stack": _dedupe(tech_stack),
+        "evidence_signals": _dedupe(evidence_signals),
+        "core_contribution": normalized_core,
+        "problem_statement": research_question or research_gap,
+        "methods": normalized_methods,
+        "dataset_scale": normalized_dataset,
+        "key_results": normalized_results,
+        "novelty": normalized_innovation,
+    }
+
+
+def _build_discovery_content(
+    *,
+    headline: str,
+    plain_summary: str,
+    key_insight: str,
+    why_it_matters: str,
+    who_should_read: str,
+    simplified_tags: list[str],
+    read_if: str = "",
+    quick_takeaways: list[str] | None = None,
+) -> dict[str, Any]:
+    normalized_takeaways = _dedupe(quick_takeaways or [key_insight, why_it_matters])[:3]
+    return {
+        "headline": headline,
+        "plain_summary": plain_summary,
+        "key_insight": key_insight,
+        "why_it_matters": why_it_matters,
+        "who_should_read": who_should_read,
+        "read_if": read_if or who_should_read,
+        "quick_takeaways": normalized_takeaways,
+        "simplified_tags": _dedupe(simplified_tags),
+    }
+
+
 # ─── AI helpers ──────────────────────────────────────────────────────────────────
 
 def _build_ai_prompt(title: str, abstract: str, mode: str, language: str) -> str:
@@ -267,27 +418,33 @@ def _build_ai_prompt(title: str, abstract: str, mode: str, language: str) -> str
                 f"你是学术论文分析助手。根据以下论文，生成研究卡内容，仅输出 JSON，不要有其他内容。\n\n"
                 f"标题：{title}\n摘要：{text_abstract}\n\n"
                 '输出格式：\n{\n'
-                '  "core_contribution": "核心贡献，2-3句",\n'
-                '  "problem_statement": "研究问题与动机，2-3句",\n'
-                '  "methods": "方法与技术路线，2-3句",\n'
+                '  "research_question": "研究问题，1-2句",\n'
+                '  "research_gap": "研究空白或现有方法不足，1-2句",\n'
+                '  "method_snapshot": "方法路线与核心机制，2-3句",\n'
+                '  "data_and_evaluation": "数据、实验设置与评估方式，1-2句，无则 N/A",\n'
+                '  "key_findings": "关键结果与指标，2-3句",\n'
+                '  "innovation": "创新点，2句左右",\n'
+                '  "limitations": "局限性，1-2句，无则 N/A",\n'
+                '  "next_step": "下一步研究方向，1句，无则 N/A",\n'
                 '  "tech_stack": ["标签1", "标签2"],\n'
-                '  "dataset_scale": "数据集与规模，1-2句，无则 N/A",\n'
-                '  "key_results": "关键结果与指标，2-3句",\n'
-                '  "novelty": "创新点，2-3句",\n'
-                '  "limitations": "局限性或未来工作，1-2句，无则 N/A"\n}'
+                '  "evidence_signals": ["证据1", "证据2"],\n'
+                '  "core_contribution": "核心贡献，2-3句"\n}'
             )
         return (
             f"You are an academic paper analysis assistant. Generate research card content. Output JSON only.\n\n"
             f"Title: {title}\nAbstract: {text_abstract}\n\n"
             'Output format:\n{\n'
-            '  "core_contribution": "Core contribution, 2-3 sentences",\n'
-            '  "problem_statement": "Research problem and motivation, 2-3 sentences",\n'
-            '  "methods": "Methods and technical approach, 2-3 sentences",\n'
+            '  "research_question": "Research question, 1-2 sentences",\n'
+            '  "research_gap": "Research gap or weakness in prior work, 1-2 sentences",\n'
+            '  "method_snapshot": "Methods and technical approach, 2-3 sentences",\n'
+            '  "data_and_evaluation": "Data, experiments, and evaluation setup, 1-2 sentences, or N/A",\n'
+            '  "key_findings": "Key findings and metrics, 2-3 sentences",\n'
+            '  "innovation": "Innovation vs prior work, about 2 sentences",\n'
+            '  "limitations": "Limitations, 1-2 sentences, or N/A",\n'
+            '  "next_step": "Next research step, 1 sentence, or N/A",\n'
             '  "tech_stack": ["tag1", "tag2"],\n'
-            '  "dataset_scale": "Dataset and scale, 1-2 sentences, or N/A",\n'
-            '  "key_results": "Key results and metrics, 2-3 sentences",\n'
-            '  "novelty": "Novelty vs prior work, 2-3 sentences",\n'
-            '  "limitations": "Limitations or future work, 1-2 sentences, or N/A"\n}'
+            '  "evidence_signals": ["signal1", "signal2"],\n'
+            '  "core_contribution": "Core contribution, 2-3 sentences"\n}'
         )
 
     # discovery mode
@@ -301,6 +458,8 @@ def _build_ai_prompt(title: str, abstract: str, mode: str, language: str) -> str
             '  "key_insight": "最重要的一个发现或洞见，1-2句",\n'
             '  "why_it_matters": "为什么值得关注，1-2句",\n'
             '  "who_should_read": "适合哪类读者，1句",\n'
+            '  "read_if": "什么情况下应该读这篇，1句，可留空",\n'
+            '  "quick_takeaways": ["亮点1", "亮点2"],\n'
             '  "simplified_tags": ["标签1", "标签2"]\n}'
         )
     return (
@@ -312,6 +471,8 @@ def _build_ai_prompt(title: str, abstract: str, mode: str, language: str) -> str
         '  "key_insight": "The most important finding or insight, 1-2 sentences",\n'
         '  "why_it_matters": "Why it deserves attention, 1-2 sentences",\n'
         '  "who_should_read": "Who would benefit most from reading this, 1 sentence",\n'
+        '  "read_if": "When someone should read this, 1 sentence, optional",\n'
+        '  "quick_takeaways": ["takeaway1", "takeaway2"],\n'
         '  "simplified_tags": ["tag1", "tag2"]\n}'
     )
 
@@ -322,24 +483,40 @@ def _parse_ai_response(text: str, mode: str) -> dict[str, Any]:
     data = json.loads(raw)
 
     if mode == "research":
-        return {
-            "core_contribution": str(data.get("core_contribution", "")),
-            "problem_statement": str(data.get("problem_statement", "")),
-            "methods": str(data.get("methods", "")),
-            "tech_stack": [str(t) for t in data.get("tech_stack", []) if t],
-            "dataset_scale": str(data.get("dataset_scale", "N/A")),
-            "key_results": str(data.get("key_results", "")),
-            "novelty": str(data.get("novelty", "")),
-            "limitations": str(data.get("limitations", "N/A")),
-        }
-    return {
-        "headline": str(data.get("headline", "")),
-        "plain_summary": str(data.get("plain_summary", "")),
-        "key_insight": str(data.get("key_insight", "")),
-        "why_it_matters": str(data.get("why_it_matters", "")),
-        "who_should_read": str(data.get("who_should_read", "")),
-        "simplified_tags": [str(t) for t in data.get("simplified_tags", []) if t],
-    }
+        research_question = str(data.get("research_question", data.get("problem_statement", "")))
+        research_gap = str(data.get("research_gap", data.get("problem_statement", "")))
+        method_snapshot = str(data.get("method_snapshot", data.get("methods", "")))
+        data_and_evaluation = str(data.get("data_and_evaluation", data.get("dataset_scale", "N/A")))
+        key_findings = str(data.get("key_findings", data.get("key_results", "")))
+        innovation = str(data.get("innovation", data.get("novelty", "")))
+        limitations = str(data.get("limitations", "N/A"))
+        next_step = str(data.get("next_step", limitations))
+        tech_stack = _coerce_string_list(data.get("tech_stack", []))
+        evidence_signals = _coerce_string_list(data.get("evidence_signals", []))
+        core_contribution = str(data.get("core_contribution", key_findings or method_snapshot or research_question))
+        return _build_research_content(
+            research_question=research_question,
+            research_gap=research_gap,
+            method_snapshot=method_snapshot,
+            data_and_evaluation=data_and_evaluation,
+            key_findings=key_findings,
+            innovation=innovation,
+            limitations=limitations,
+            next_step=next_step,
+            tech_stack=tech_stack,
+            evidence_signals=evidence_signals,
+            core_contribution=core_contribution,
+        )
+    return _build_discovery_content(
+        headline=str(data.get("headline", "")),
+        plain_summary=str(data.get("plain_summary", "")),
+        key_insight=str(data.get("key_insight", "")),
+        why_it_matters=str(data.get("why_it_matters", "")),
+        who_should_read=str(data.get("who_should_read", "")),
+        simplified_tags=_coerce_string_list(data.get("simplified_tags", [])),
+        read_if=str(data.get("read_if", "")),
+        quick_takeaways=_coerce_string_list(data.get("quick_takeaways", [])),
+    )
 
 
 # ─── AI client ───────────────────────────────────────────────────────────────────
@@ -507,30 +684,40 @@ class CardGenerator:
 
         sentences = _split_sentences(abstract)
         tech_stack = _extract_tech_stack(title, abstract)
+        problem_statement = _extract_problem_statement(sentences)
+        research_gap = _extract_research_gap(sentences, problem_statement)
+        method_snapshot = _extract_method_snapshot(sentences, tech_stack, title)
         dataset_scale = _extract_dataset_scale(sentences)
         key_results = _extract_key_results(sentences)
+        data_and_evaluation = _extract_data_and_evaluation(sentences, dataset_scale, key_results)
         novelty = _extract_novelty(title, sentences, tech_stack)
+        next_step = _extract_next_step(sentences, "N/A")
+        evidence_signals = _extract_evidence_signals(venue, year, citation_count, tech_stack, dataset_scale)
 
         if mode == "research":
-            content: dict[str, Any] = {
-                "core_contribution": _extract_core_contribution(title, sentences, key_results),
-                "problem_statement": _extract_problem_statement(sentences),
-                "methods": "",
-                "tech_stack": tech_stack,
-                "dataset_scale": dataset_scale,
-                "key_results": key_results,
-                "novelty": novelty,
-                "limitations": "N/A",
-            }
+            content = _build_research_content(
+                research_question=problem_statement,
+                research_gap=research_gap,
+                method_snapshot=method_snapshot,
+                data_and_evaluation=data_and_evaluation,
+                key_findings=key_results,
+                innovation=novelty,
+                limitations="N/A",
+                next_step=next_step,
+                tech_stack=tech_stack,
+                evidence_signals=evidence_signals,
+                core_contribution=_extract_core_contribution(title, sentences, key_results),
+            )
         else:
-            content = {
-                "headline": _build_headline(title),
-                "plain_summary": _build_plain_summary(title, sentences),
-                "key_insight": _build_key_insight(title, sentences, key_results, novelty),
-                "why_it_matters": _build_why_it_matters(venue, year, citation_count, tech_stack),
-                "who_should_read": "",
-                "simplified_tags": _derive_discovery_tags(tech_stack, title, abstract),
-            }
+            content = _build_discovery_content(
+                headline=_build_headline(title),
+                plain_summary=_build_plain_summary(title, sentences),
+                key_insight=_build_key_insight(title, sentences, key_results, novelty),
+                why_it_matters=_build_why_it_matters(venue, year, citation_count, tech_stack),
+                who_should_read="",
+                simplified_tags=_derive_discovery_tags(tech_stack, title, abstract),
+                quick_takeaways=[key_results, novelty],
+            )
 
         return await self._localize_card(content, mode, language)
 
@@ -541,26 +728,31 @@ class CardGenerator:
         if mode == "research":
             translated = await self.translator.translate_many(
                 [
-                    content.get("core_contribution", ""),
-                    content.get("problem_statement", ""),
-                    content.get("methods", ""),
-                    content.get("dataset_scale", ""),
-                    content.get("key_results", ""),
-                    content.get("novelty", ""),
+                    content.get("research_question", ""),
+                    content.get("research_gap", ""),
+                    content.get("method_snapshot", ""),
+                    content.get("data_and_evaluation", ""),
+                    content.get("key_findings", ""),
+                    content.get("innovation", ""),
                     content.get("limitations", ""),
+                    content.get("next_step", ""),
+                    content.get("core_contribution", ""),
                 ],
                 language,
             )
-            return {
-                "core_contribution": translated[0],
-                "problem_statement": translated[1],
-                "methods": translated[2],
-                "tech_stack": [TECH_TRANSLATIONS.get(item, item) for item in content.get("tech_stack", [])],
-                "dataset_scale": translated[3],
-                "key_results": translated[4],
-                "novelty": translated[5],
-                "limitations": translated[6],
-            }
+            return _build_research_content(
+                research_question=translated[0],
+                research_gap=translated[1],
+                method_snapshot=translated[2],
+                data_and_evaluation=translated[3],
+                key_findings=translated[4],
+                innovation=translated[5],
+                limitations=translated[6],
+                next_step=translated[7],
+                tech_stack=[TECH_TRANSLATIONS.get(item, item) for item in content.get("tech_stack", [])],
+                evidence_signals=await self.translator.translate_many(content.get("evidence_signals", []), language),
+                core_contribution=translated[8],
+            )
 
         translated = await self.translator.translate_many(
             [
@@ -569,14 +761,17 @@ class CardGenerator:
                 content.get("key_insight", ""),
                 content.get("why_it_matters", ""),
                 content.get("who_should_read", ""),
+                content.get("read_if", ""),
             ],
             language,
         )
-        return {
-            "headline": translated[0],
-            "plain_summary": translated[1],
-            "key_insight": translated[2],
-            "why_it_matters": translated[3],
-            "who_should_read": translated[4],
-            "simplified_tags": [TAG_TRANSLATIONS.get(item, item) for item in content.get("simplified_tags", [])],
-        }
+        return _build_discovery_content(
+            headline=translated[0],
+            plain_summary=translated[1],
+            key_insight=translated[2],
+            why_it_matters=translated[3],
+            who_should_read=translated[4],
+            read_if=translated[5],
+            quick_takeaways=await self.translator.translate_many(content.get("quick_takeaways", []), language),
+            simplified_tags=[TAG_TRANSLATIONS.get(item, item) for item in content.get("simplified_tags", [])],
+        )

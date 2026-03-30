@@ -21,21 +21,16 @@ router = APIRouter(prefix="/recommend", tags=["recommend"])
 
 
 async def resolve_to_s2_ids(request: Request, paper_ids: list[str]) -> list[str]:
-    """Resolve DOI:/OA:-prefixed IDs to real S2 hex IDs via a batch lookup.
-
-    If IDs already look like S2 hex IDs (no ':'), they are returned unchanged.
-    Falls back to the original list on any error.
-    """
+    """Resolve DOI:/OA:-prefixed IDs to canonical S2 IDs when possible."""
     if not any(":" in pid for pid in paper_ids):
         return paper_ids
 
     s2 = request.app.state.s2_client
     try:
-        papers = await s2.get_papers_batch(paper_ids, fields="paperId")
-        resolved = [p["paperId"] for p in papers if p and p.get("paperId")]
-        return resolved if resolved else paper_ids
+        resolved = await s2.resolve_paper_ids(paper_ids)
+        return resolved
     except SemanticScholarError:
-        return paper_ids
+        return [paper_id for paper_id in paper_ids if paper_id and ":" not in paper_id]
 
 
 async def get_interest_embedding(request: Request, seed_paper_ids: list[str]) -> list[float]:
@@ -48,7 +43,8 @@ async def get_interest_embedding(request: Request, seed_paper_ids: list[str]) ->
     if cached is not None:
         return cached
 
-    seed_papers = await s2.get_papers_batch_with_embeddings(seed_paper_ids)
+    resolved_seed_ids = await resolve_to_s2_ids(request, seed_paper_ids)
+    seed_papers = await s2.get_papers_with_embeddings(resolved_seed_ids)
     embeddings = []
     for paper in seed_papers:
         embedding_data = paper.get("embedding") or {}
@@ -76,7 +72,7 @@ async def rank_recommendations(
         return [{**paper, "similarity_score": 0.0} for paper in raw_papers]
 
     recommendation_ids = [paper.get("paperId") for paper in raw_papers if paper.get("paperId")]
-    papers_with_embeddings = await s2.get_papers_batch_with_embeddings(recommendation_ids)
+    papers_with_embeddings = await s2.get_papers_with_embeddings(recommendation_ids)
     embedding_by_id = {
         paper.get("paperId"): paper
         for paper in papers_with_embeddings
@@ -111,6 +107,8 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
         return RecommendResponse(papers=papers)
 
     s2_ids = await resolve_to_s2_ids(request, body.seed_paper_ids)
+    if not s2_ids:
+        raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
     try:
         raw_papers = await s2.get_recommendations(s2_ids, limit=min(body.limit, settings.max_recommendations))
     except SemanticScholarError as exc:
@@ -146,6 +144,8 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
     excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
 
     s2_ids = await resolve_to_s2_ids(request, body.seed_paper_ids)
+    if not s2_ids:
+        raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
     try:
         raw_papers = await s2.get_recommendations(
             s2_ids,
@@ -185,6 +185,7 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
             paper_id=paper.get("paperId", ""),
             title=paper.get("title") or "Untitled",
             title_zh=title_zh,
+            abstract=paper.get("abstract"),
             authors=normalize_authors(paper),
             year=paper.get("year"),
             venue=paper.get("venue"),

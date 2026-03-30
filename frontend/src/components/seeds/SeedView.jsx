@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useScanSciAuth } from "../../auth";
+import { getRecommendations, getSubscriptionFeed, generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
 import { useLanguage } from "../../i18n";
-import { generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
-import InterestWorkspace from "./InterestWorkspace";
+import PaperDigestCard from "../cards/PaperDigestCard";
+import { buildInterestMemory } from "./interestMemory";
+import TierBadge from "../cards/TierBadge";
 
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 const DOI_HOST_PATTERN = /(^|\/\/)(dx\.)?doi\.org\//i;
@@ -37,12 +39,31 @@ function formatSyncedAt(value) {
   return date.toLocaleString();
 }
 
+function SectionFrame({ title, subtitle, action, children }) {
+  return (
+    <section className="paper-surface rounded-[28px] p-6 sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+          {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
 export default function SeedView({
   initialSeeds,
   initialProfile,
+  subscribedVenues,
+  cardMode,
   onProfileGenerated,
   onSeedsUpdated,
   onOpenDraw,
+  onOpenSubscriptions,
+  onViewCard,
 }) {
   const { locale, t } = useLanguage();
   const {
@@ -53,6 +74,7 @@ export default function SeedView({
     loadPaperDeckProfile,
     saveInterestProfile,
     getPaperDeckProfile,
+    getCollectedPaperIds,
   } = useScanSciAuth();
 
   const [query, setQuery] = useState("");
@@ -61,6 +83,7 @@ export default function SeedView({
   const [searchError, setSearchError] = useState("");
   const [seeds, setSeeds] = useState(() => initialSeeds || []);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState("");
   const [profileInfo, setProfileInfo] = useState(() => initialProfile || null);
   const [showImport, setShowImport] = useState(false);
   const [importItems, setImportItems] = useState([]);
@@ -69,10 +92,18 @@ export default function SeedView({
   const [isLoadingSavedProfile, setIsLoadingSavedProfile] = useState(false);
   const [savedProfileLoadError, setSavedProfileLoadError] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle");
+  const [digestPapers, setDigestPapers] = useState([]);
+  const [subscribedDigest, setSubscribedDigest] = useState([]);
+  const [isLoadingDigest, setIsLoadingDigest] = useState(false);
+  const [isLoadingSubscribedDigest, setIsLoadingSubscribedDigest] = useState(false);
   const inputRef = useRef(null);
   const loadingGuardRef = useRef(null);
   const savedProfileLoadFailedText = locale === "en" ? "Saved profile could not be loaded right now." : "暂时无法加载已保存画像。";
   const retryText = locale === "en" ? "Retry" : "重试";
+  const generateProfileFailedText = locale === "en" ? "Interest memory could not be generated right now." : "暂时无法生成兴趣记忆。";
+
+  const memory = useMemo(() => buildInterestMemory(profileInfo), [profileInfo]);
+  const excludedPaperIds = useMemo(() => [...getCollectedPaperIds()], [getCollectedPaperIds]);
 
   useEffect(() => {
     async function loadSavedProfile() {
@@ -154,9 +185,28 @@ export default function SeedView({
     setProfileInfo(initialProfile || null);
   }, [initialProfile]);
 
+  useEffect(() => {
+    if (!profileInfo || seeds.length === 0) {
+      setDigestPapers([]);
+      return;
+    }
+    loadDigest();
+  }, [profileInfo?.embedding?.length, seeds.map((paper) => paper.paper_id).join("|"), excludedPaperIds.join("|"), cardMode]);
+
+  useEffect(() => {
+    if (!profileInfo || subscribedVenues.length === 0) {
+      setSubscribedDigest([]);
+      return;
+    }
+    loadSubscribedDigest();
+  }, [profileInfo?.embedding?.length, subscribedVenues.map((venue) => venue.id).join("|"), excludedPaperIds.join("|")]);
+
   function invalidateProfile() {
     setProfileInfo(null);
     setSyncStatus("idle");
+    setDigestPapers([]);
+    setSubscribedDigest([]);
+    setGenerationError("");
   }
 
   function updateSeeds(nextSeeds) {
@@ -202,7 +252,6 @@ export default function SeedView({
       try {
         const paper = await resolveSeedInput(trimmedQuery);
         const result = addSeed(paper);
-
         if (!result.ok) {
           setSearchError(
             result.reason === "duplicate"
@@ -277,9 +326,9 @@ export default function SeedView({
 
   async function handleGenerate() {
     if (seeds.length === 0 || isGenerating) return;
-
     setIsGenerating(true);
     setSearchError("");
+    setGenerationError("");
 
     try {
       const paperIds = seeds.map((item) => item.paper_id);
@@ -305,9 +354,49 @@ export default function SeedView({
     } catch (error) {
       console.error("Profile generation failed:", error);
       setSyncStatus("error");
+      const detail = error?.response?.data?.detail;
+      setGenerationError(typeof detail === "string" && detail.trim() ? detail.trim() : generateProfileFailedText);
     }
 
     setIsGenerating(false);
+  }
+
+  async function loadDigest() {
+    if (isLoadingDigest || seeds.length === 0) return;
+    setIsLoadingDigest(true);
+    try {
+      const result = await getRecommendations(
+        seeds.map((paper) => paper.paper_id),
+        10,
+        null,
+        excludedPaperIds
+      );
+      setDigestPapers(result.papers || []);
+    } catch (error) {
+      console.error("Digest fetch failed:", error);
+      setDigestPapers([]);
+    }
+    setIsLoadingDigest(false);
+  }
+
+  async function loadSubscribedDigest() {
+    if (isLoadingSubscribedDigest || subscribedVenues.length === 0) return;
+    setIsLoadingSubscribedDigest(true);
+    try {
+      const papers = await getSubscriptionFeed({
+        venueIds: subscribedVenues.map((venue) => venue.id),
+        interestEmbedding: profileInfo?.embedding || null,
+        daysBack: 14,
+        minSimilarity: 0,
+        limit: 6,
+        excludePaperIds: excludedPaperIds,
+      });
+      setSubscribedDigest(papers);
+    } catch (error) {
+      console.error("Subscribed digest fetch failed:", error);
+      setSubscribedDigest([]);
+    }
+    setIsLoadingSubscribedDigest(false);
   }
 
   async function handleOpenImport() {
@@ -357,221 +446,401 @@ export default function SeedView({
 
   const savedProfileCount = getProfileSeedCount(savedProfile);
   const savedProfileTime = formatSyncedAt(savedProfile?.updated_at || savedProfile?.created_at);
+  const hasDigest = Boolean(profileInfo && seeds.length > 0);
+  const ui =
+    locale === "en"
+      ? {
+          heroEyebrow: "Inbox",
+          digestHeroTitle: "Your reading inbox",
+          digestHeroBody:
+            "This page is for deciding what deserves attention now. Draw stays as the surprise layer, while Sources controls where papers come from.",
+          searchResultEyebrow: "Seed candidate",
+          calibration: "Memory setup",
+          calibrationSeedsTitle: "Calibration seeds",
+          calibrationSeedsSubtitle: "These papers still define the current memory and can be swapped any time.",
+          digestTitle: "Inbox",
+          digestSubtitle: "One unified stream for what deserves attention now.",
+          recommendedEyebrow: (index) => `Recommended / ${index}`,
+          subscribedTitle: "Source signals",
+          subscribedSubtitle:
+            subscribedVenues.length > 0
+              ? "A compact preview of what your followed journals and conferences are adding."
+              : "Follow journals or conferences in Sources, then let Inbox decide what matters first.",
+          sourceCountLabel: "Followed sources",
+          sourceFreshLabel: "Fresh source papers",
+          sourceEmpty: "You are not following any journals or conferences yet.",
+          sourceTeaserLabel: "Recent source arrivals",
+        }
+      : {
+          heroEyebrow: "Inbox",
+          digestHeroTitle: "你的今日文献收件箱",
+          digestHeroBody:
+            "这里负责决定现在先读什么。抽卡保留惊喜发现，信源页负责管理文献从哪里来。",
+          searchResultEyebrow: "种子候选",
+          calibration: "记忆设置",
+          calibrationSeedsTitle: "校准种子",
+          calibrationSeedsSubtitle: "这些论文仍在定义当前兴趣记忆，你可以随时替换它们。",
+          digestTitle: "今日收件箱",
+          digestSubtitle: "这里是一条统一阅读流，只回答现在该先看什么。",
+          recommendedEyebrow: (index) => `推荐 / ${index}`,
+          subscribedTitle: "信源概览",
+          subscribedSubtitle:
+            subscribedVenues.length > 0
+              ? "这里只保留一个简洁预览，完整的信源管理和信源流留在信源页。"
+              : "先在信源页关注期刊或会议，再让收件箱判断今天先读什么。",
+          sourceCountLabel: "已关注信源",
+          sourceFreshLabel: "新到信源论文",
+          sourceEmpty: "你还没有关注任何期刊或会议。",
+          sourceTeaserLabel: "最近进入的信源论文",
+        };
+  const subscribedPreview = subscribedDigest.slice(0, 3);
 
   return (
     <div className="space-y-6">
-      <section className="paper-surface rounded-[28px] p-6 sm:p-7">
-        <div className="max-w-3xl">
-          <h2 className="font-heading-cn text-2xl font-semibold text-slate-950">{t("seeds.title")}</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-600">{t("seeds.subtitle")}</p>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-3 xl:flex-row">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setSearchResults([]);
-              setSearchStatus("idle");
-              setSearchError("");
-            }}
-            onKeyDown={(event) => event.key === "Enter" && handleSearch()}
-            placeholder={t("seeds.searchPlaceholder")}
-            className="app-input min-w-0 flex-1 rounded-2xl px-4 py-3.5 text-sm outline-none"
-          />
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={handleSearch}
-              disabled={!query.trim() || searchStatus === "searching" || seeds.length >= 20}
-              className="app-primary-button rounded-2xl px-5 py-3.5 text-sm font-medium disabled:opacity-40"
-            >
-              {searchStatus === "searching" ? t("seeds.searching") : t("seeds.search")}
-            </button>
-            <button
-              onClick={handleOpenImport}
-              disabled={authStatus !== "authenticated"}
-              className="app-outline-button rounded-2xl px-4 py-3.5 text-sm font-medium disabled:opacity-40"
-            >
-              {t("seeds.importFromAtlas")}
-            </button>
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs text-slate-400">{t("seeds.manualHint")}</p>
-        {searchError && <p className="mt-2 text-xs text-rose-600">{searchError}</p>}
-        {searchStatus === "done" && searchResults.length === 0 && (
-          <p className="mt-2 text-xs text-slate-400">{t("seeds.noResults")}</p>
-        )}
-
-        {searchResults.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {searchResults.map((paper) => {
-              const alreadyAdded = seeds.some((item) => item.paper_id === paper.paper_id);
-              return (
-                <div
-                  key={paper.paper_id}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm font-medium text-slate-900">{paper.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {paper.authors?.slice(0, 3).join(", ")}
-                      {paper.year ? ` / ${paper.year}` : ""}
-                      {paper.citation_count ? ` / ${paper.citation_count} cites` : ""}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const result = addSeed(paper);
-                      if (!result.ok) {
-                        setSearchError(
-                          result.reason === "duplicate"
-                            ? t("seeds.duplicateSeed")
-                            : result.reason === "limit"
-                            ? t("seeds.limitReached")
-                            : t("seeds.manualAddFailed")
-                        );
-                      }
-                    }}
-                    disabled={alreadyAdded || seeds.length >= 20}
-                    className={`rounded-xl px-3 py-2 text-xs font-medium transition-colors disabled:opacity-40 ${
-                      alreadyAdded
-                        ? "cursor-default bg-emerald-50 text-emerald-600"
-                        : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                    }`}
-                  >
-                    {alreadyAdded ? t("seeds.added") : t("seeds.add")}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <p className="mt-4 text-xs text-slate-400">
-          {seeds.length}/20 {t("seeds.maxSeeds")}
-        </p>
-      </section>
-
-      {authStatus === "authenticated" && (isLoadingSavedProfile || savedProfile || savedProfileLoadError) && (
-        <section className="paper-surface rounded-[28px] p-6 sm:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <section className="paper-surface rounded-[32px] p-6 sm:p-7">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_320px]">
+          <div className="space-y-5">
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">{t("seeds.savedProfile")}</h3>
-              {isLoadingSavedProfile ? (
-                <p className="mt-1 text-sm text-slate-500">{t("common.loading")}</p>
-              ) : savedProfile ? (
-                <div className="mt-1 space-y-1 text-sm text-slate-500">
-                  <p>
-                    {savedProfileCount} {t("seeds.savedSeeds")}
-                  </p>
-                  {savedProfileTime && (
-                    <p>
-                      {t("seeds.syncedAt")}: {savedProfileTime}
-                    </p>
-                  )}
-                </div>
-              ) : savedProfileLoadError ? (
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                  <p className="text-rose-600">{savedProfileLoadError}</p>
-                  <button
-                    onClick={retryLoadSavedProfile}
-                    className="app-inline-link font-medium hover:underline"
-                  >
-                    {retryText}
-                  </button>
-                </div>
-              ) : null}
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
+                {hasDigest ? ui.heroEyebrow : t("seeds.memoryEyebrow")}
+              </p>
+              <h2 className="mt-3 font-heading-cn text-3xl font-semibold text-slate-950">
+                {hasDigest ? ui.digestHeroTitle : t("seeds.title")}
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                {hasDigest ? ui.digestHeroBody : t("seeds.subtitle")}
+              </p>
             </div>
 
-            {savedProfile && (
-              <button
-                onClick={restoreSavedProfile}
-                className="app-outline-button rounded-2xl px-4 py-2.5 text-sm font-medium"
-              >
-                {t("seeds.restoreSavedProfile")}
-              </button>
+            <div className="flex flex-col gap-3 xl:flex-row">
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setSearchResults([]);
+                  setSearchStatus("idle");
+                  setSearchError("");
+                }}
+                onKeyDown={(event) => event.key === "Enter" && handleSearch()}
+                placeholder={t("seeds.searchPlaceholder")}
+                className="app-input min-w-0 flex-1 rounded-2xl px-4 py-3.5 text-sm outline-none"
+              />
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleSearch}
+                  disabled={!query.trim() || searchStatus === "searching" || seeds.length >= 20}
+                  className="app-primary-button rounded-2xl px-5 py-3.5 text-sm font-medium disabled:opacity-40"
+                >
+                  {searchStatus === "searching" ? t("seeds.searching") : t("seeds.search")}
+                </button>
+                <button
+                  onClick={handleOpenImport}
+                  disabled={authStatus !== "authenticated"}
+                  className="app-outline-button rounded-2xl px-4 py-3.5 text-sm font-medium disabled:opacity-40"
+                >
+                  {t("seeds.importFromAtlas")}
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400">{t("seeds.manualHint")}</p>
+            {searchError && <p className="text-xs text-rose-600">{searchError}</p>}
+
+            {searchResults.length > 0 && (
+              <div className="grid gap-3 md:grid-cols-2">
+                {searchResults.map((paper) => {
+                  const alreadyAdded = seeds.some((item) => item.paper_id === paper.paper_id);
+                  return (
+                    <div key={paper.paper_id} className="digest-card">
+                      <div className="digest-card-top">
+                        <div>
+                          <p className="digest-card-eyebrow">{ui.searchResultEyebrow}</p>
+                          <h3 className="digest-card-title">{paper.title}</h3>
+                        </div>
+                        <TierBadge zone={paper.zone} size="sm" />
+                      </div>
+                      <div className="digest-card-body">
+                        <p className="digest-card-meta">
+                          {paper.authors?.slice(0, 3).join(", ")}
+                          {paper.year ? ` / ${paper.year}` : ""}
+                          {paper.citation_count ? ` / ${paper.citation_count} cites` : ""}
+                        </p>
+                        {paper.abstract && <p className="digest-card-summary">{paper.abstract}</p>}
+                      </div>
+                      <div className="digest-card-actions">
+                        <button
+                          onClick={() => {
+                            const result = addSeed(paper);
+                            if (!result.ok) {
+                              setSearchError(
+                                result.reason === "duplicate"
+                                  ? t("seeds.duplicateSeed")
+                                  : result.reason === "limit"
+                                  ? t("seeds.limitReached")
+                                  : t("seeds.manualAddFailed")
+                              );
+                            }
+                          }}
+                          disabled={alreadyAdded || seeds.length >= 20}
+                          className="app-accent-button rounded-xl px-4 py-2.5 text-sm font-medium disabled:opacity-40"
+                        >
+                          {alreadyAdded ? t("seeds.added") : t("seeds.add")}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-        </section>
-      )}
+
+          <aside className="space-y-4">
+            <div className="discover-rail-card">
+              <p className="discover-rail-kicker">{ui.calibration}</p>
+              <div className="discover-rail-stats">
+                <div>
+                  <span>{t("seeds.selected")}</span>
+                  <strong>{seeds.length}</strong>
+                </div>
+                <div>
+                  <span>{t("seeds.maxSeeds")}</span>
+                  <strong>20</strong>
+                </div>
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || seeds.length === 0}
+                className="app-accent-button mt-4 w-full rounded-2xl px-6 py-3 text-sm font-semibold disabled:opacity-50"
+              >
+                {isGenerating ? t("seeds.generating") : t("seeds.generateProfile")}
+              </button>
+              {generationError && <p className="mt-3 text-xs text-rose-600">{generationError}</p>}
+              <button
+                onClick={onOpenDraw}
+                disabled={!hasDigest}
+                className="app-outline-button mt-3 w-full rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+              >
+                {t("seeds.openDraw")}
+              </button>
+              <button
+                onClick={onOpenSubscriptions}
+                className="app-outline-button mt-3 w-full rounded-2xl px-4 py-3 text-sm font-medium"
+              >
+                {t("nav.subscriptions")}
+              </button>
+              {syncStatus === "saved" && authStatus === "authenticated" && (
+                <p className="mt-3 text-xs text-emerald-700">{t("seeds.profileSynced")}</p>
+              )}
+            </div>
+
+            {(isLoadingSavedProfile || savedProfile || savedProfileLoadError) && (
+              <div className="discover-rail-card">
+                <p className="discover-rail-kicker">{t("seeds.savedProfile")}</p>
+                {isLoadingSavedProfile ? (
+                  <p className="mt-2 text-sm text-slate-500">{t("common.loading")}</p>
+                ) : savedProfile ? (
+                  <div className="space-y-2">
+                    <p className="mt-2 text-sm text-slate-500">
+                      {savedProfileCount} {t("seeds.savedSeeds")}
+                    </p>
+                    {savedProfileTime && <p className="text-xs text-slate-400">{savedProfileTime}</p>}
+                    <button onClick={restoreSavedProfile} className="app-inline-link mt-2 font-medium hover:underline">
+                      {t("seeds.restoreSavedProfile")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="mt-2 text-sm text-rose-600">{savedProfileLoadError}</p>
+                    <button onClick={retryLoadSavedProfile} className="app-inline-link font-medium hover:underline">
+                      {retryText}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </aside>
+        </div>
+      </section>
 
       {seeds.length > 0 && (
-        <section className="paper-surface rounded-[28px] p-6 sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-slate-700">
-              {seeds.length} {t("seeds.selected")}
-            </h3>
-            <button
-              onClick={() => updateSeeds([])}
-              className="text-xs text-slate-400 transition-colors hover:text-rose-500"
-            >
+        <SectionFrame
+          title={hasDigest ? ui.calibrationSeedsTitle : `${seeds.length} ${t("seeds.selected")}`}
+          subtitle={hasDigest ? ui.calibrationSeedsSubtitle : null}
+          action={
+            <button onClick={() => updateSeeds([])} className="text-xs text-slate-400 transition-colors hover:text-rose-500">
               {t("seeds.clear")}
             </button>
-          </div>
-
-          <div className="mt-4 space-y-2">
+          }
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {seeds.map((paper) => (
-              <div
-                key={paper.paper_id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50/65 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-1 text-sm font-medium text-slate-800">{paper.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {paper.authors?.slice(0, 2).join(", ")}
-                    {paper.year ? ` / ${paper.year}` : ""}
-                  </p>
-                </div>
+              <div key={paper.paper_id} className="rounded-2xl border border-slate-100 bg-slate-50/65 px-4 py-3">
+                <p className="line-clamp-2 text-sm font-medium text-slate-800">{paper.title}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {paper.authors?.slice(0, 2).join(", ")}
+                  {paper.year ? ` / ${paper.year}` : ""}
+                </p>
                 <button
                   onClick={() => removeSeed(paper.paper_id)}
-                  className="text-xs text-slate-400 transition-colors hover:text-rose-500"
+                  className="mt-3 text-xs text-slate-400 transition-colors hover:text-rose-500"
                 >
                   {t("seeds.remove")}
                 </button>
               </div>
             ))}
           </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || seeds.length === 0}
-              className="app-accent-button rounded-2xl px-6 py-3 text-sm font-semibold disabled:opacity-50"
-            >
-              {isGenerating ? t("seeds.generating") : t("seeds.generateProfile")}
-            </button>
-
-            {profileInfo && (
-              <div className="flex flex-wrap items-center gap-2 text-sm text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span>
-                  {t("seeds.profileReady")} / {profileInfo.seed_count} {t("seeds.seedsWithEmbedding")}
-                </span>
-              </div>
-            )}
-
-            {syncStatus === "saving" && (
-              <span className="text-sm text-slate-500">{t("seeds.syncingProfile")}</span>
-            )}
-            {syncStatus === "saved" && authStatus === "authenticated" && (
-              <span className="text-sm text-emerald-700">{t("seeds.profileSynced")}</span>
-            )}
-            {syncStatus === "error" && (
-              <span className="text-sm text-rose-600">{t("seeds.profileSyncFailed")}</span>
-            )}
-          </div>
-        </section>
+        </SectionFrame>
       )}
 
-      {profileInfo && (
-        <InterestWorkspace
-          profileInfo={profileInfo}
-          onOpenDraw={onOpenDraw}
-          t={t}
-        />
+      {hasDigest && (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_340px]">
+          <div className="space-y-6">
+            <SectionFrame
+              title={ui.digestTitle}
+              subtitle={ui.digestSubtitle}
+              action={
+                <button onClick={loadDigest} className="app-outline-button rounded-2xl px-4 py-2.5 text-sm font-medium">
+                  {isLoadingDigest ? t("common.loading") : t("recommend.refresh")}
+                </button>
+              }
+            >
+              {digestPapers.length === 0 ? (
+                <p className="text-sm text-slate-500">{isLoadingDigest ? t("recommend.loading") : t("recommend.empty")}</p>
+              ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {digestPapers.map((paper, index) => (
+                    <PaperDigestCard
+                      key={paper.paper_id}
+                      paper={paper}
+                      eyebrow={ui.recommendedEyebrow(index + 1)}
+                      actionLabel={t("recommend.viewCard")}
+                      onAction={() => onViewCard?.(paper)}
+                      secondaryAction={
+                        <button onClick={onOpenDraw} className="app-outline-button rounded-xl px-4 py-2.5 text-sm font-medium">
+                          {t("nav.draw")}
+                        </button>
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </SectionFrame>
+          </div>
+
+          <aside className="space-y-6">
+            <SectionFrame
+              title={memory.headline || t("seeds.memoryTitle")}
+              subtitle={memory.venues.length > 0
+                ? t("seeds.memorySummary", {
+                    venue: memory.venues[0].name,
+                    years: memory.yearMin && memory.yearMax ? `${memory.yearMin} - ${memory.yearMax}` : t("seeds.memoryYearsFallback"),
+                  })
+                : t("seeds.memorySummaryFallback", {
+                    years: memory.yearMin && memory.yearMax ? `${memory.yearMin} - ${memory.yearMax}` : t("seeds.memoryYearsFallback"),
+                  })}
+            >
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                <div className="discover-metric-card">
+                  <span>{t("seeds.memorySeedCount")}</span>
+                  <strong>{memory.papers.length}</strong>
+                </div>
+                <div className="discover-metric-card">
+                  <span>{t("seeds.memoryYears")}</span>
+                  <strong>{memory.yearMin && memory.yearMax ? `${memory.yearMin} - ${memory.yearMax}` : t("seeds.memoryYearsFallback")}</strong>
+                </div>
+                <div className="discover-metric-card">
+                  <span>{t("seeds.memoryCitations")}</span>
+                  <strong>{memory.avgCitations}</strong>
+                </div>
+              </div>
+              {memory.echoes.length > 0 && (
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {memory.echoes.map((entry) => (
+                    <span key={entry} className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
+                      {entry}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {memory.venues.length > 0 && (
+                <div className="mt-5 space-y-2">
+                  {memory.venues.map((venue) => (
+                    <div key={venue.name} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
+                      <span className="text-sm text-slate-700">{venue.name}</span>
+                      <span className="text-xs font-medium text-slate-500">{venue.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionFrame>
+
+            <SectionFrame
+              title={ui.subscribedTitle}
+              subtitle={ui.subscribedSubtitle}
+              action={
+                <button onClick={onOpenSubscriptions} className="app-outline-button rounded-2xl px-4 py-2.5 text-sm font-medium">
+                  {t("nav.subscriptions")}
+                </button>
+              }
+            >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="discover-metric-card">
+                  <span>{ui.sourceCountLabel}</span>
+                  <strong>{subscribedVenues.length}</strong>
+                </div>
+                <div className="discover-metric-card">
+                  <span>{ui.sourceFreshLabel}</span>
+                  <strong>{subscribedDigest.length}</strong>
+                </div>
+              </div>
+
+              {subscribedVenues.length === 0 ? (
+                <p className="mt-5 text-sm text-slate-500">{ui.sourceEmpty}</p>
+              ) : (
+                <>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {subscribedVenues.map((venue) => (
+                      <span
+                        key={venue.id}
+                        className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
+                      >
+                        {venue.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                      {ui.sourceTeaserLabel}
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {subscribedPreview.length > 0 ? (
+                        subscribedPreview.map((paper) => (
+                          <button
+                            key={paper.paper_id}
+                            onClick={() => onViewCard?.(paper)}
+                            className="w-full rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3 text-left transition-colors hover:bg-slate-100/80"
+                          >
+                            <p className="line-clamp-2 text-sm font-medium text-slate-800">{paper.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {[paper.venue, paper.year].filter(Boolean).join(" / ")}
+                            </p>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="text-sm text-slate-500">
+                          {isLoadingSubscribedDigest ? t("common.loading") : t("sub.emptyFeed")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </SectionFrame>
+          </aside>
+        </div>
       )}
 
       {showImport && (
@@ -632,4 +901,3 @@ export default function SeedView({
     </div>
   );
 }
-

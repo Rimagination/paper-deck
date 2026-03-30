@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from backend.models.schemas import ProfileGenerateRequest, ProfileResponse
 from backend.services.interest import average_embeddings
 from backend.services.paper_metadata import build_paper_summary
+from backend.services.semantic_scholar import SemanticScholarError
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,12 @@ async def generate_profile(request: Request, body: ProfileGenerateRequest) -> Pr
 
     paper_ids = body.paper_ids[: settings.max_seeds]
 
-    # Fetch papers with embeddings
-    papers = await s2.get_papers_batch_with_embeddings(paper_ids)
+    try:
+        papers = await s2.get_papers_with_embeddings(paper_ids)
+    except SemanticScholarError as exc:
+        raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
+    if paper_ids and not papers:
+        raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
 
     embeddings = []
     seed_papers = []

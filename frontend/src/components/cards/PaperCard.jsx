@@ -1,4 +1,9 @@
 import { useLanguage } from "../../i18n";
+import {
+  getCardSynopsis,
+  normalizeDiscoveryContent,
+  normalizeResearchContent,
+} from "./cardContent";
 import TierBadge, { getTierConfig } from "./TierBadge";
 
 function DoiLink({ doi, url, theme }) {
@@ -12,6 +17,7 @@ function DoiLink({ doi, url, theme }) {
       rel="noopener noreferrer"
       className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${theme.doiClass}`}
       title="Open paper"
+      onClick={(event) => event.stopPropagation()}
     >
       <svg viewBox="0 0 16 16" className="h-3 w-3" fill="currentColor">
         <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z" />
@@ -22,131 +28,106 @@ function DoiLink({ doi, url, theme }) {
   );
 }
 
-function IdentifierText({ doi, paperId, theme }) {
-  const label = doi ? "DOI" : "ID";
-  const value = doi || paperId;
+function FieldCaption({ children, theme }) {
+  return <p className={`text-[9px] font-bold uppercase tracking-[0.28em] ${theme.labelColor}`}>{children}</p>;
+}
+
+function SignalChips({ values, theme, prefix = "" }) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {values.map((value) => (
+        <span key={value} className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${theme.tagClass}`}>
+          {prefix}
+          {value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function MetricBox({ label, value, theme }) {
   if (!value) return null;
-
   return (
-    <p className={`mt-2 text-[10px] leading-relaxed ${theme.authorColor}`}>
-      <span className="font-semibold uppercase tracking-[0.18em]">{label}</span>
-      <span className="ml-2 break-all">{value}</span>
-    </p>
+    <div className="paper-card-module">
+      <FieldCaption theme={theme}>{label}</FieldCaption>
+      <p className={`mt-2 line-clamp-4 text-[11px] leading-5 ${theme.bodyColor}`}>{value}</p>
+    </div>
   );
 }
 
-function FieldLabel({ children, theme }) {
-  return <p className={`text-[9px] font-bold uppercase tracking-widest ${theme.labelColor}`}>{children}</p>;
-}
+function ResearchSurface({ card, compact, theme, t, signalsLabel }) {
+  const content = normalizeResearchContent(card.card_content);
 
-function ResearchContent({ content, t, theme }) {
-  if (!content) return null;
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        <p className={`line-clamp-4 text-[11px] leading-5 ${theme.bodyColor}`}>
+          {getCardSynopsis(card, "research")}
+        </p>
+        <SignalChips values={content.techStack.slice(0, 2)} theme={theme} />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3.5">
-      {content.core_contribution && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.coreContribution")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.core_contribution}</p>
+    <div className="space-y-4">
+      <div className="paper-card-lead">
+        <FieldCaption theme={theme}>{t("card.coreContribution")}</FieldCaption>
+        <p className={`mt-2 line-clamp-4 text-[12px] leading-6 ${theme.bodyColor}`}>
+          {content.coreContribution || content.keyFindings || content.researchQuestion}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5">
+        <MetricBox label={t("card.problemStatement")} value={content.researchQuestion || content.researchGap} theme={theme} />
+        <MetricBox label={t("card.methods")} value={content.methodSnapshot} theme={theme} />
+        <MetricBox label={t("card.keyResults")} value={content.keyFindings} theme={theme} />
+        <MetricBox label={t("card.novelty")} value={content.innovation} theme={theme} />
+      </div>
+      {content.techStack.length > 0 && (
+        <div className="space-y-2">
+          <FieldCaption theme={theme}>{t("card.techStack")}</FieldCaption>
+          <SignalChips values={content.techStack.slice(0, 4)} theme={theme} />
         </div>
       )}
-      {content.problem_statement && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.problemStatement")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.problem_statement}</p>
-        </div>
-      )}
-      {content.tech_stack?.length > 0 && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.techStack")}</FieldLabel>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {content.tech_stack.map((tag, index) => (
-              <span key={index} className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${theme.tagClass}`}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-      {content.dataset_scale && content.dataset_scale !== "N/A" && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.datasetScale")}</FieldLabel>
-          <p className={`mt-1 text-xs ${theme.bodyColor}`}>{content.dataset_scale}</p>
-        </div>
-      )}
-      {content.key_results && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.keyResults")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.key_results}</p>
-        </div>
-      )}
-      {content.novelty && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.novelty")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.novelty}</p>
-        </div>
-      )}
-      {content.methods && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.methods")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.methods}</p>
-        </div>
-      )}
-      {content.limitations && content.limitations !== "N/A" && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.limitations")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.limitations}</p>
+      {content.evidenceSignals.length > 0 && (
+        <div className="space-y-2">
+          <FieldCaption theme={theme}>{signalsLabel}</FieldCaption>
+          <SignalChips values={content.evidenceSignals.slice(0, 3)} theme={theme} prefix="" />
         </div>
       )}
     </div>
   );
 }
 
-function DiscoveryContent({ content, t, theme }) {
-  if (!content) return null;
+function DiscoverySurface({ card, compact, theme, t }) {
+  const content = normalizeDiscoveryContent(card.card_content);
+
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        {content.headline && <p className={`line-clamp-2 text-sm font-bold leading-5 ${theme.titleColor}`}>{content.headline}</p>}
+        <p className={`line-clamp-4 text-[11px] leading-5 ${theme.bodyColor}`}>
+          {getCardSynopsis(card, "discovery")}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-3.5">
-      {content.headline && <p className={`text-base font-bold leading-snug ${theme.titleColor}`}>"{content.headline}"</p>}
-      {content.plain_summary && <p className={`text-sm leading-relaxed ${theme.bodyColor}`}>{content.plain_summary}</p>}
-      {content.key_insight && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.keyInsight")}</FieldLabel>
-          <p className={`mt-1 rounded-lg px-3 py-2 text-xs leading-relaxed ${theme.insightClass}`}>
-            {content.key_insight}
-          </p>
-        </div>
-      )}
-      {content.simplified_tags?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {content.simplified_tags.map((tag, index) => (
-            <span key={index} className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${theme.tagClass}`}>
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-      {content.why_it_matters && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.whyItMatters")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.why_it_matters}</p>
-        </div>
-      )}
-      {content.who_should_read && (
-        <div>
-          <FieldLabel theme={theme}>{t("card.whoShouldRead")}</FieldLabel>
-          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.who_should_read}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CitationGem({ count, theme }) {
-  const display = count >= 1000 ? `${(count / 1000).toFixed(1)}K` : String(count);
-  return (
-    <div className={`flex h-10 w-10 flex-none items-center justify-center rounded-full border-2 text-[11px] font-black ${theme.tagClass}`}>
-      {display}
+    <div className="space-y-4">
+      {content.headline && <p className={`text-base font-bold leading-6 ${theme.titleColor}`}>{content.headline}</p>}
+      <div className="paper-card-lead">
+        <FieldCaption theme={theme}>{t("card.headline")}</FieldCaption>
+        <p className={`mt-2 line-clamp-4 text-[12px] leading-6 ${theme.bodyColor}`}>
+          {content.plainSummary || content.keyInsight}
+        </p>
+      </div>
+      {content.quickTakeaways.length > 0 && <SignalChips values={content.quickTakeaways.slice(0, 3)} theme={theme} prefix="" />}
+      <MetricBox label={t("card.keyInsight")} value={content.keyInsight} theme={theme} />
+      <MetricBox label={t("card.whyItMatters")} value={content.whyItMatters} theme={theme} />
+      <MetricBox label={t("card.whoShouldRead")} value={content.readIf || content.whoShouldRead} theme={theme} />
+      {content.simplifiedTags.length > 0 && <SignalChips values={content.simplifiedTags.slice(0, 4)} theme={theme} />}
     </div>
   );
 }
@@ -156,8 +137,8 @@ function CardGeneratingState({ title, theme, t }) {
     <div className="flex flex-col items-center gap-4 px-5 py-8 text-center">
       <div className="relative h-16 w-16">
         <div className={`absolute inset-0 rounded-full border opacity-35 ${theme.loaderRingClass}`} />
-        <div className={`absolute inset-2 rounded-full border-2 border-t-transparent ${theme.loaderRingClass} animate-spin`} />
-        <div className={`absolute inset-[22px] rounded-full ${theme.loaderCoreClass} animate-pulse`} />
+        <div className={`absolute inset-2 animate-spin rounded-full border-2 border-t-transparent ${theme.loaderRingClass}`} />
+        <div className={`absolute inset-[22px] animate-pulse rounded-full ${theme.loaderCoreClass}`} />
       </div>
       <div>
         <p className={`text-sm font-semibold ${theme.titleColor}`}>{t("card.generating")}</p>
@@ -180,21 +161,23 @@ function getBilingualTitle(card) {
 }
 
 export default function PaperCard({ card, mode = "research", compact = false, onClick }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const theme = getTierConfig(card.zone || card.tier);
-  const content = card.card_content;
   const { title, titleZh } = getBilingualTitle(card);
+  const isInteractive = Boolean(onClick);
+  const signalsLabel = locale === "en" ? "Signals" : "证据信号";
 
   return (
     <div
       onClick={onClick}
-      className={`${theme.cardClass} relative aspect-[9/16] w-full overflow-hidden rounded-[28px] transition-all ${
-        onClick ? "cursor-pointer hover:scale-[1.015] hover:brightness-110" : ""
-      }`}
+      className={`${theme.cardClass} paper-card-shell relative w-full overflow-hidden rounded-[30px] ${
+        compact ? "aspect-[4/5]" : "aspect-[9/16]"
+      } ${isInteractive ? "cursor-pointer hover:-translate-y-1 hover:brightness-110" : ""}`}
     >
+      <div className="paper-card-overlay" />
       <div className="relative z-[1] flex h-full flex-col">
         <div className="shrink-0 px-5 pb-4 pt-5">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-3">
             <TierBadge zone={card.zone} tier={card.tier} />
             <div className="flex items-center gap-1">
               {card.similarity_score > 0 && (
@@ -211,48 +194,49 @@ export default function PaperCard({ card, mode = "research", compact = false, on
               {title}
             </h3>
             {titleZh && (
-              <p className={`font-heading-cn leading-snug ${theme.authorColor} ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-3 text-[12px]"}`}>
+              <p className={`font-heading-cn leading-snug ${theme.authorColor} ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-[12px]"}`}>
                 {titleZh}
               </p>
             )}
           </div>
-          <p className={`mt-1.5 text-[11px] leading-relaxed ${theme.authorColor}`}>
+
+          <p className={`mt-2 text-[11px] leading-relaxed ${theme.authorColor}`}>
             {card.authors?.slice(0, 2).join(", ")}
             {card.authors?.length > 2 ? ` +${card.authors.length - 2}` : ""}
             {card.venue ? ` / ${card.venue}` : ""}
             {card.year ? ` / ${card.year}` : ""}
           </p>
-          <IdentifierText doi={card.doi} paperId={card.paper_id} theme={theme} />
         </div>
 
         <div className={`mx-5 border-t ${theme.dividerClass}`} />
 
-        {compact && content && (
-          <div className="min-h-0 flex-1 overflow-hidden px-5 pb-4 pt-3">
-            <p className={`line-clamp-5 text-[11px] leading-relaxed ${theme.bodyColor}`}>
-            {mode === "research" ? content.core_contribution : content.plain_summary || content.headline}
-            </p>
+        {!card.card_content ? (
+          <div className="min-h-0 flex-1">
+            <CardGeneratingState title={card.title} theme={theme} t={t} />
           </div>
-        )}
-
-        {!compact && content && (
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        ) : (
+          <div className="min-h-0 flex-1 overflow-hidden px-5 py-4">
             {mode === "research" ? (
-              <ResearchContent content={content} t={t} theme={theme} />
+              <ResearchSurface card={card} compact={compact} theme={theme} t={t} signalsLabel={signalsLabel} />
             ) : (
-              <DiscoveryContent content={content} t={t} theme={theme} />
+              <DiscoverySurface card={card} compact={compact} theme={theme} t={t} />
             )}
           </div>
         )}
 
-        {!compact && !content && <CardGeneratingState title={card.title} theme={theme} t={t} />}
-
         <div className={`mx-5 mt-auto border-t ${theme.dividerClass}`} />
-        <div className="flex shrink-0 items-center justify-between px-5 py-3">
-          <span className={`text-[11px] ${theme.citationClass}`}>
-            {t("card.citations")}: {card.citation_count?.toLocaleString?.() ?? card.citation_count ?? 0}
-          </span>
-          {!compact && <CitationGem count={card.citation_count || 0} theme={theme} />}
+        <div className="flex shrink-0 items-center justify-between gap-3 px-5 py-3">
+          <div className="space-y-1">
+            <p className={`text-[10px] uppercase tracking-[0.24em] ${theme.labelColor}`}>{mode === "research" ? t("card.researchMode") : t("card.discoveryMode")}</p>
+            <span className={`text-[11px] ${theme.citationClass}`}>
+              {t("card.citations")}: {card.citation_count?.toLocaleString?.() ?? card.citation_count ?? 0}
+            </span>
+          </div>
+          {isInteractive && (
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${theme.tagClass}`}>
+              {t("recommend.viewCard")}
+            </span>
+          )}
         </div>
       </div>
     </div>

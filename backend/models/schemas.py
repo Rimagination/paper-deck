@@ -67,16 +67,32 @@ class CardGenerateRequest(BaseModel):
 
 
 class ResearchCardContent(BaseModel):
+    research_question: str = ""
+    research_gap: str = ""
+    method_snapshot: str = ""
+    data_and_evaluation: str = "N/A"
+    key_findings: str = ""
+    innovation: str = ""
+    next_step: str = "N/A"
+    evidence_signals: list[str] = Field(default_factory=list)
     core_contribution: str = ""
+    problem_statement: str = ""
+    methods: str = ""
     tech_stack: list[str] = Field(default_factory=list)
     dataset_scale: str = "N/A"
     key_results: str = ""
+    novelty: str = ""
+    limitations: str = "N/A"
 
 
 class DiscoveryCardContent(BaseModel):
     headline: str = ""
     plain_summary: str = ""
+    key_insight: str = ""
     why_it_matters: str = ""
+    who_should_read: str = ""
+    read_if: str = ""
+    quick_takeaways: list[str] = Field(default_factory=list)
     simplified_tags: list[str] = Field(default_factory=list)
 
 
@@ -84,6 +100,7 @@ class CardResponse(BaseModel):
     paper_id: str
     title: str
     title_zh: Optional[str] = None
+    abstract: Optional[str] = None
     authors: list[str]
     year: Optional[int] = None
     venue: Optional[str] = None

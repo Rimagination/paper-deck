@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useScanSciAuth } from "../../auth";
 import { gachaDraw } from "../../api/backend";
 import { useLanguage } from "../../i18n";
+import { markCardRead } from "../../readingState";
 import { useTheme } from "../../theme";
 import TierBadge, { getTierConfig } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
+import ReadingPanel from "../cards/ReadingPanel";
 
 function CardBack({ zone, tier, modeLabel }) {
   const { t } = useLanguage();
@@ -51,10 +53,24 @@ function EmptyState({ title, body, actionLabel, onAction }) {
   );
 }
 
-export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onOpenDiscover }) {
+export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onOpenDiscover, onViewCard }) {
   const { t, locale } = useLanguage();
   const { theme: appTheme } = useTheme();
   const { getCollectedPaperIds, toggleFavorite } = useScanSciAuth();
+  const ui =
+    locale === "en"
+      ? {
+          readingLayer: "Reading Layer",
+          quickRead: "Quick Read",
+          readingBody: "Flip decides what to inspect next. The panel now holds the structured interpretation.",
+          quickBody: "Use the quick brief to decide whether this paper deserves a deeper read.",
+        }
+      : {
+          readingLayer: "阅读层",
+          quickRead: "快速速览",
+          readingBody: "翻牌决定下一步看什么，这里承接结构化研究解读。",
+          quickBody: "先用速览判断这篇论文值不值得进一步细读。",
+        };
 
   const [cards, setCards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -163,6 +179,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   function handleFlip() {
     if (!isFlipped && currentCard) {
       setFlipped((prev) => ({ ...prev, [currentIndex]: true }));
+      markCardRead(currentCard.paper_id);
       setFlipFlashActive(false);
       if (flipFlashTimeoutRef.current) {
         clearTimeout(flipFlashTimeoutRef.current);
@@ -229,6 +246,8 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
       >
         <div className="draw-light-wheel draw-light-wheel-a" />
         <div className="draw-light-wheel draw-light-wheel-b" />
+        <div className="draw-rotating-glow draw-rotating-glow-a" />
+        <div className="draw-rotating-glow draw-rotating-glow-b" />
         <div className="draw-light-sweep draw-light-sweep-a" />
         <div className="draw-light-sweep draw-light-sweep-b" />
         <div className="draw-loading-haze draw-loading-haze-a" />
@@ -279,6 +298,8 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     >
       <div className="draw-light-wheel draw-light-wheel-a" />
       <div className="draw-light-wheel draw-light-wheel-b" />
+      <div className="draw-rotating-glow draw-rotating-glow-a" />
+      <div className="draw-rotating-glow draw-rotating-glow-b" />
       <div className="draw-light-sweep draw-light-sweep-a" />
       <div className="draw-light-sweep draw-light-sweep-b" />
       {/* light-theme floating glow orbs */}
@@ -382,12 +403,38 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                 ))}
               </div>
             </div>
-            <div className="gacha-inspector-panel">
-              <p className="gacha-shell-kicker">{t("draw.filterEyebrow")}</p>
-              <p className="draw-inspector-body">
-                {isCollected ? t("card.collected") : t("draw.filterBody", { count: collected.size })}
-              </p>
-            </div>
+            {isFlipped && currentCard ? (
+              <div className="gacha-inspector-panel gacha-inspector-reading">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="gacha-shell-kicker">{cardMode === "research" ? ui.readingLayer : ui.quickRead}</p>
+                    <p className="draw-inspector-body">
+                      {cardMode === "research"
+                        ? ui.readingBody
+                        : ui.quickBody}
+                    </p>
+                  </div>
+                  {onViewCard && (
+                    <button
+                      onClick={() => onViewCard(currentCard)}
+                      className="app-outline-button rounded-xl px-3 py-2 text-xs font-medium"
+                    >
+                      {t("recommend.viewCard")}
+                    </button>
+                  )}
+                </div>
+                <div className="mt-4">
+                  <ReadingPanel card={currentCard} mode={cardMode} />
+                </div>
+              </div>
+            ) : (
+              <div className="gacha-inspector-panel">
+                <p className="gacha-shell-kicker">{t("draw.filterEyebrow")}</p>
+                <p className="draw-inspector-body">
+                  {isCollected ? t("card.collected") : t("draw.filterBody", { count: collected.size })}
+                </p>
+              </div>
+            )}
             {isFetching && (
               <div className="draw-fetch-row">
                 <div className="draw-fetch-dot" />
@@ -415,6 +462,14 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             >
               {t("gacha.nextCard")}
             </button>
+            {isFlipped && currentCard && onViewCard && (
+              <button
+                onClick={() => onViewCard(currentCard)}
+                className="gacha-action-button"
+              >
+                {t("recommend.viewCard")}
+              </button>
+            )}
           </div>
           <div className="gacha-secondary-actions">
             <button onClick={onOpenDiscover} className="gacha-text-button">

@@ -128,8 +128,13 @@ export default function App() {
   }, [subscribedVenues]);
 
   function handleProfileGenerated(paperIds, profile) {
-    setSeedPapers(profile?.seed_papers || seedPapers);
-    setSeedPaperIds(paperIds);
+    const nextSeedPapers = profile?.seed_papers || seedPapers;
+    const nextSeedIds = Array.isArray(nextSeedPapers)
+      ? nextSeedPapers.map((paper) => paper?.paper_id).filter(Boolean)
+      : paperIds;
+
+    setSeedPapers(nextSeedPapers);
+    setSeedPaperIds(nextSeedIds.length > 0 ? nextSeedIds : paperIds);
     setProfileReady(true);
     if (profile) setInterestProfile(profile);
   }
@@ -144,7 +149,7 @@ export default function App() {
   return (
     <div className="app-shell min-h-screen overflow-x-hidden">
       <ScanSciGlobalNav />
-      <div className="mx-auto flex min-h-screen max-w-[1200px] flex-col px-4 pt-10">
+      <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col px-4 pt-10">
         <header className="flex flex-wrap items-center justify-between gap-4 py-4">
           <div className="flex min-w-0 items-center gap-4">
             <h1 className="app-wordmark font-heading text-xl font-bold">PaperDeck</h1>
@@ -198,9 +203,13 @@ export default function App() {
             <SeedView
               initialSeeds={seedPapers}
               initialProfile={interestProfile}
+              subscribedVenues={subscribedVenues}
+              cardMode={cardMode}
               onProfileGenerated={handleProfileGenerated}
               onSeedsUpdated={handleSeedsUpdated}
               onOpenDraw={() => setView("draw")}
+              onOpenSubscriptions={() => setView("subscriptions")}
+              onViewCard={setDetailCard}
             />
           )}
           {view === "draw" && (
@@ -210,6 +219,7 @@ export default function App() {
               seedPaperIds={seedPaperIds}
               cardMode={cardMode}
               onOpenDiscover={() => setView("seeds")}
+              onViewCard={setDetailCard}
             />
           )}
           {view === "library" && <LibraryView cardMode={cardMode} onViewCard={setDetailCard} />}

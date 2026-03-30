@@ -85,10 +85,10 @@ async def get_subscription_feed(request: Request, body: dict) -> dict:
 
     # If we have an interest embedding, try to enrich with S2 embeddings and rank
     if interest_embedding:
-        doi_ids = [p["paperId"] for p in all_papers if p.get("paperId", "").startswith("DOI:")]
-        if doi_ids:
+        enrichable_ids = [p["paperId"] for p in all_papers if p.get("paperId")]
+        if enrichable_ids:
             try:
-                enriched = await s2.get_papers_batch_with_embeddings(doi_ids)
+                enriched = await s2.get_papers_with_embeddings(enrichable_ids)
                 enriched_by_id = {p.get("paperId"): p for p in enriched if p and p.get("paperId")}
                 # Merge: prefer S2 data when available (includes embedding)
                 for i, paper in enumerate(all_papers):

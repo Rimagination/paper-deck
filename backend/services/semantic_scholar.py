@@ -82,6 +82,69 @@ class SemanticScholarClient:
     async def get_papers_batch_with_embeddings(self, ids: list[str]) -> list[dict[str, Any]]:
         return await self.get_papers_batch(ids, fields=EMBEDDING_FIELDS)
 
+    async def resolve_paper_ids(self, ids: list[str]) -> list[str]:
+        if not ids:
+            return []
+
+        resolved: list[str] = []
+        pending_external_ids = [paper_id for paper_id in ids if paper_id and ":" in paper_id]
+
+        if pending_external_ids:
+            lookups = await asyncio.gather(
+                *(self.get_paper(paper_id, fields="paperId") for paper_id in pending_external_ids),
+                return_exceptions=True,
+            )
+            resolved_external_ids: dict[str, str] = {}
+            for requested_id, lookup in zip(pending_external_ids, lookups):
+                if isinstance(lookup, Exception):
+                    continue
+                canonical_id = str(lookup.get("paperId") or "").strip()
+                if canonical_id:
+                    resolved_external_ids[requested_id] = canonical_id
+        else:
+            resolved_external_ids = {}
+
+        seen: set[str] = set()
+        for paper_id in ids:
+            candidate = resolved_external_ids.get(paper_id, paper_id)
+            normalized = str(candidate or "").strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            resolved.append(normalized)
+
+        return resolved
+
+    async def get_papers_with_embeddings(self, ids: list[str]) -> list[dict[str, Any]]:
+        if not ids:
+            return []
+
+        canonical_ids = [paper_id for paper_id in ids if paper_id and ":" not in paper_id]
+        external_ids = [paper_id for paper_id in ids if paper_id and ":" in paper_id]
+        papers_by_id: dict[str, dict[str, Any]] = {}
+
+        if canonical_ids:
+            fetched = await self.get_papers_batch_with_embeddings(canonical_ids)
+            for paper in fetched:
+                paper_id = str(paper.get("paperId") or "").strip()
+                if paper_id:
+                    papers_by_id[paper_id] = paper
+
+        if external_ids:
+            fetched = await asyncio.gather(
+                *(self.get_paper_with_embedding(paper_id) for paper_id in external_ids),
+                return_exceptions=True,
+            )
+            for paper in fetched:
+                if isinstance(paper, Exception):
+                    continue
+                paper_id = str(paper.get("paperId") or "").strip()
+                if paper_id:
+                    papers_by_id[paper_id] = paper
+
+        ordered_ids = await self.resolve_paper_ids(ids)
+        return [papers_by_id[paper_id] for paper_id in ordered_ids if paper_id in papers_by_id]
+
     async def get_recommendations(self, positive_paper_ids: list[str], limit: int = 20) -> list[dict[str, Any]]:
         """Use the S2 Recommendations API."""
         payload = await self._request(

@@ -19,7 +19,7 @@ async def generate_card(request: Request, body: CardGenerateRequest) -> CardResp
     settings = request.app.state.settings
     journal_zone = request.app.state.journal_zone
 
-    cache_key = f"pd:card:v3:{body.paper_id}:{body.mode}:{body.language}"
+    cache_key = f"pd:card:v4:{body.paper_id}:{body.mode}:{body.language}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         return CardResponse(**cached)
@@ -49,6 +49,7 @@ async def generate_card(request: Request, body: CardGenerateRequest) -> CardResp
         paper_id=paper.get("paperId", ""),
         title=paper.get("title") or "Untitled",
         title_zh=title_zh,
+        abstract=paper.get("abstract"),
         authors=normalize_authors(paper),
         year=paper.get("year"),
         venue=paper.get("venue"),
