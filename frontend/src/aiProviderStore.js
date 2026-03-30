@@ -40,7 +40,7 @@ export const PRESET_PROVIDERS = [
   },
   {
     presetId: "qiniu",
-    name: "Qiniu StepFun",
+    name: "Qiniu",
     baseUrl: "https://api.qnaigc.com/v1",
     suggestedModels: ["stepfun/step-3.5-flash", "stepfun/step-2-16k"],
   },
