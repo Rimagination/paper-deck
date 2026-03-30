@@ -38,12 +38,27 @@ function ScanSciGlobalNav() {
   );
 }
 
-function ViewTabs({ view, onViewChange, t }) {
+function ViewTabs({ view, onViewChange, t, locale }) {
+  const labels =
+    locale === "zh"
+      ? {
+          seeds: "发现",
+          draw: "抽卡",
+          subscriptions: "订阅",
+          library: "卡库",
+        }
+      : {
+          seeds: "Discover",
+          draw: "Draw",
+          subscriptions: "Subscriptions",
+          library: "Library",
+        };
+
   const tabs = [
-    { key: "seeds", label: t("nav.seeds") },
-    { key: "draw", label: t("nav.draw") },
-    { key: "subscriptions", label: t("nav.subscriptions") },
-    { key: "library", label: t("nav.library") },
+    { key: "seeds", label: labels.seeds || t("nav.seeds") },
+    { key: "draw", label: labels.draw || t("nav.draw") },
+    { key: "subscriptions", label: labels.subscriptions || t("nav.subscriptions") },
+    { key: "library", label: labels.library || t("nav.library") },
   ];
 
   return (
@@ -153,7 +168,7 @@ export default function App() {
         <header className="flex flex-wrap items-center justify-between gap-4 py-4">
           <div className="flex min-w-0 items-center gap-4">
             <h1 className="app-wordmark font-heading text-xl font-bold">PaperDeck</h1>
-            <ViewTabs view={view} onViewChange={setView} t={t} />
+            <ViewTabs view={view} onViewChange={setView} t={t} locale={locale} />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="app-segmented flex items-center gap-1 rounded-lg p-0.5">

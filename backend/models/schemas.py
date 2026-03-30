@@ -37,6 +37,7 @@ class SeedSearchRequest(BaseModel):
 
 class ProfileGenerateRequest(BaseModel):
     paper_ids: list[str]
+    seed_papers: list[PaperSummary] = Field(default_factory=list)
 
 
 class ProfileResponse(BaseModel):

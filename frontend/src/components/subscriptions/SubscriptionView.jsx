@@ -145,7 +145,9 @@ export default function SubscriptionView({
     <div className="space-y-6">
       <section className="paper-surface rounded-[28px] p-6 sm:p-7">
         <div className="max-w-3xl">
-          <h2 className="font-heading-cn text-2xl font-semibold text-slate-950">{t("sub.title")}</h2>
+          <h2 className="font-heading-cn text-2xl font-semibold text-slate-950">
+            {locale === "zh" ? "订阅" : "Subscriptions"}
+          </h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">{t("sub.subtitle")}</p>
         </div>
 

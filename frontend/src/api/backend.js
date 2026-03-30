@@ -57,8 +57,11 @@ export async function resolveSeedInput(input) {
   return resolveSeed(null, null, input);
 }
 
-export async function generateProfile(paperIds) {
-  const response = await api.post("/profile/generate", { paper_ids: paperIds });
+export async function generateProfile(paperIds, seedPapers = []) {
+  const response = await api.post("/profile/generate", {
+    paper_ids: paperIds,
+    seed_papers: Array.isArray(seedPapers) ? seedPapers : [],
+  });
   return response.data;
 }
 

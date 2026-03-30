@@ -6,9 +6,9 @@ const messages = {
   en: {
     page: { title: "PaperDeck | Research Inbox" },
     nav: {
-      seeds: "Inbox",
+      seeds: "Discover",
       draw: "Draw",
-      subscriptions: "Sources",
+      subscriptions: "Subscriptions",
       library: "Library",
     },
     auth: {

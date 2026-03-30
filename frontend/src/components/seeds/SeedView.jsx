@@ -345,7 +345,7 @@ export default function SeedView({
 
     try {
       const paperIds = seeds.map((item) => item.paper_id);
-      const result = await generateProfile(paperIds);
+      const result = await generateProfile(paperIds, seeds);
       setProfileInfo(result);
       onProfileGenerated?.(paperIds, result);
 
@@ -465,6 +465,8 @@ export default function SeedView({
   const ui =
     locale === "en"
       ? {
+          drawLabel: "Draw",
+          subscriptionsLabel: "Subscriptions",
           heroEyebrow: "Inbox",
           digestHeroTitle: "Your reading inbox",
           digestHeroBody:
@@ -487,6 +489,8 @@ export default function SeedView({
           sourceTeaserLabel: "Recent source arrivals",
         }
       : {
+          drawLabel: "抽卡",
+          subscriptionsLabel: "订阅",
           heroEyebrow: "Inbox",
           digestHeroTitle: "你的今日文献收件箱",
           digestHeroBody:
@@ -637,7 +641,7 @@ export default function SeedView({
                 onClick={onOpenSubscriptions}
                 className="app-outline-button mt-3 w-full rounded-2xl px-4 py-3 text-sm font-medium"
               >
-                {t("nav.subscriptions")}
+                {ui.subscriptionsLabel}
               </button>
               {syncStatus === "saved" && authStatus === "authenticated" && (
                 <p className="mt-3 text-xs text-emerald-700">{t("seeds.profileSynced")}</p>
@@ -728,7 +732,7 @@ export default function SeedView({
                       onAction={() => onViewCard?.(paper)}
                       secondaryAction={
                         <button onClick={onOpenDraw} className="app-outline-button rounded-xl px-4 py-2.5 text-sm font-medium">
-                          {t("nav.draw")}
+                          {ui.drawLabel}
                         </button>
                       }
                     />
@@ -790,7 +794,7 @@ export default function SeedView({
               subtitle={ui.subscribedSubtitle}
               action={
                 <button onClick={onOpenSubscriptions} className="app-outline-button rounded-2xl px-4 py-2.5 text-sm font-medium">
-                  {t("nav.subscriptions")}
+                  {ui.subscriptionsLabel}
                 </button>
               }
             >
