@@ -62,12 +62,13 @@ export async function generateProfile(paperIds) {
   return response.data;
 }
 
-export async function getRecommendations(seedPaperIds, limit = 20, yearMin = null, excludePaperIds = []) {
+export async function getRecommendations(seedPaperIds, limit = 20, yearMin = null, excludePaperIds = [], language = "zh") {
   const response = await api.post("/recommend", {
     seed_paper_ids: seedPaperIds,
     limit,
     year_min: yearMin,
     exclude_paper_ids: excludePaperIds,
+    language,
   });
   return response.data;
 }
@@ -106,6 +107,7 @@ export async function getSubscriptionFeed({
   minSimilarity = 0,
   limit = 20,
   excludePaperIds = [],
+  language = "zh",
 }) {
   const response = await api.post("/subscriptions/feed", {
     venue_ids: venueIds,
@@ -114,6 +116,7 @@ export async function getSubscriptionFeed({
     min_similarity: minSimilarity,
     limit,
     exclude_paper_ids: excludePaperIds,
+    language,
   });
   return validatePaperSummaryList(response.data?.papers || []);
 }

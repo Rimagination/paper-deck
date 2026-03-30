@@ -1,10 +1,28 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from backend.models.schemas import PaperSummary
 from backend.services.journal_zone import JournalZoneService
 from backend.services.semantic_scholar import normalize_authors, resolve_doi, resolve_url
+
+MIN_DIGEST_ABSTRACT_CHARS = 80
+CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+
+
+def _clean_text(value: Any) -> str:
+    return " ".join(str(value or "").replace("\n", " ").replace("\r", " ").split()).strip()
+
+
+def paper_has_digest_quality(paper: dict[str, Any]) -> bool:
+    title = _clean_text(paper.get("title"))
+    abstract = _clean_text(paper.get("abstract"))
+    return bool(title) and len(abstract) >= MIN_DIGEST_ABSTRACT_CHARS
+
+
+def _contains_cjk(value: Any) -> bool:
+    return bool(CJK_RE.search(_clean_text(value)))
 
 
 def extract_issn_fields(paper: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -74,4 +92,47 @@ def build_paper_summary(
         issn=metadata["issn"],
         eissn=metadata["eissn"],
         zone=metadata["zone"],
+    )
+
+
+async def build_digest_summary(
+    paper: dict[str, Any],
+    *,
+    card_generator: Any,
+    journal_zone: JournalZoneService | None = None,
+    similarity: float = 0.0,
+    language: str = "zh",
+) -> PaperSummary | None:
+    if not paper_has_digest_quality(paper):
+        return None
+
+    title = paper.get("title") or "Untitled"
+    title_zh = await card_generator.localize_title(title, "zh")
+    card_content = await card_generator.generate_card(paper, mode="discovery", language=language)
+    plain_summary = _clean_text((card_content or {}).get("plain_summary"))
+    if len(plain_summary) < 24:
+        return None
+    if language.startswith("zh") and not _contains_cjk(plain_summary):
+        return None
+    if language.startswith("zh") and not _contains_cjk(title_zh):
+        title_zh = ""
+
+    metadata = enrich_paper_metadata(paper, journal_zone)
+    return PaperSummary(
+        paper_id=paper.get("paperId", ""),
+        title=title,
+        title_zh=title_zh,
+        authors=normalize_authors(paper),
+        year=paper.get("year"),
+        citation_count=paper.get("citationCount") or 0,
+        abstract=paper.get("abstract"),
+        venue=paper.get("venue"),
+        doi=resolve_doi(paper),
+        url=resolve_url(paper),
+        similarity_score=similarity,
+        issn=metadata["issn"],
+        eissn=metadata["eissn"],
+        zone=metadata["zone"],
+        language=language,
+        card_content=card_content,
     )

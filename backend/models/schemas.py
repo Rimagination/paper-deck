@@ -26,6 +26,8 @@ class PaperSummary(BaseModel):
     similarity_score: float = 0.0
     issn: Optional[str] = None
     eissn: Optional[str] = None
+    language: str = "zh"
+    card_content: Optional[dict] = None
     zone: Optional[str] = None  # CAS zone: "1区"/"2区"/"3区"/"4区"
 
 
@@ -48,6 +50,7 @@ class RecommendRequest(BaseModel):
     limit: int = 20
     year_min: Optional[int] = None
     exclude_paper_ids: list[str] = Field(default_factory=list)
+    language: str = "zh"
 
 
 class GachaRequest(BaseModel):

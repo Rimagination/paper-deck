@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, Request
 
 from backend.models.schemas import PaperSummary
 from backend.services.interest import rank_papers_by_similarity
-from backend.services.paper_metadata import build_paper_summary
+from backend.services.paper_metadata import build_digest_summary
 from backend.services.semantic_scholar import SemanticScholarError
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
@@ -52,12 +52,14 @@ async def get_subscription_feed(request: Request, body: dict) -> dict:
     s2 = request.app.state.s2_client
     cache = request.app.state.cache
     journal_zone = request.app.state.journal_zone
+    card_gen = request.app.state.card_generator
 
     venue_ids: list[str] = body.get("venue_ids") or []
     interest_embedding: list[float] | None = body.get("interest_embedding")
     days_back: int = int(body.get("days_back") or 30)
     min_similarity: float = float(body.get("min_similarity") or 0.0)
     limit: int = min(int(body.get("limit") or 20), 50)
+    language: str = str(body.get("language") or "zh")
     excluded_ids = {paper_id for paper_id in (body.get("exclude_paper_ids") or []) if paper_id}
 
     if not venue_ids:
@@ -104,12 +106,17 @@ async def get_subscription_feed(request: Request, body: dict) -> dict:
     else:
         ranked = [{**p, "similarity_score": 0.0} for p in all_papers]
 
-    papers = [
-        build_paper_summary(
-            p,
-            journal_zone=journal_zone,
-            similarity=p.get("similarity_score", 0.0),
+    digests = await asyncio.gather(
+        *(
+            build_digest_summary(
+                paper,
+                card_generator=card_gen,
+                journal_zone=journal_zone,
+                similarity=paper.get("similarity_score", 0.0),
+                language=language,
+            )
+            for paper in ranked[: max(limit * 3, limit)]
         )
-        for p in ranked[:limit]
-    ]
+    )
+    papers = [paper for paper in digests if paper is not None][:limit]
     return {"papers": [p.model_dump() for p in papers]}

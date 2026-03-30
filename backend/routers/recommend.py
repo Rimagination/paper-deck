@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import random
 
 from fastapi import APIRouter, HTTPException, Request
@@ -13,7 +14,7 @@ from backend.models.schemas import (
     CardResponse,
 )
 from backend.services.interest import average_embeddings, rank_papers_by_similarity
-from backend.services.paper_metadata import build_paper_summary, enrich_paper_metadata
+from backend.services.paper_metadata import build_digest_summary, build_paper_summary, enrich_paper_metadata
 from backend.services.semantic_scholar import SemanticScholarError, normalize_authors, resolve_doi, resolve_url
 from backend.services.tier_classifier import classify_tier
 
@@ -93,10 +94,11 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
     cache = request.app.state.cache
     settings = request.app.state.settings
     journal_zone = request.app.state.journal_zone
+    card_gen = request.app.state.card_generator
 
     excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
 
-    cache_key = f"pd:rec:{':'.join(sorted(body.seed_paper_ids))}:{body.limit}"
+    cache_key = f"pd:rec:v2:{':'.join(sorted(body.seed_paper_ids))}:{body.limit}:{body.language}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         papers = [PaperSummary(**p) for p in cached]
@@ -110,26 +112,36 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
     if not s2_ids:
         raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
     try:
-        raw_papers = await s2.get_recommendations(s2_ids, limit=min(body.limit, settings.max_recommendations))
+        raw_papers = await s2.get_recommendations(
+            s2_ids,
+            limit=min(max(body.limit * 4, body.limit), settings.max_recommendations),
+        )
     except SemanticScholarError as exc:
         raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
     ranked_papers = await rank_recommendations(request, raw_papers, body.seed_paper_ids)
     if excluded_ids:
         ranked_papers = [paper for paper in ranked_papers if paper.get("paperId") not in excluded_ids]
 
-    papers = []
+    candidates = []
     for paper in ranked_papers:
         year = paper.get("year")
         if body.year_min and year and year < body.year_min:
             continue
+        candidates.append(paper)
 
-        papers.append(
-            build_paper_summary(
+    digests = await asyncio.gather(
+        *(
+            build_digest_summary(
                 paper,
+                card_generator=card_gen,
                 journal_zone=journal_zone,
                 similarity=paper.get("similarity_score") or 0.0,
+                language=body.language,
             )
+            for paper in candidates[: max(body.limit * 3, body.limit)]
         )
+    )
+    papers = [paper for paper in digests if paper is not None][: body.limit]
 
     await cache.set_json(cache_key, [p.model_dump() for p in papers], settings.cache_ttl_recommendation)
     return RecommendResponse(papers=papers)

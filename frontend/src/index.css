@@ -1327,18 +1327,19 @@ body::before {
     position: absolute;
     pointer-events: none;
     z-index: 0;
-    mix-blend-mode: screen;
+    mix-blend-mode: normal;
+    will-change: transform, opacity;
   }
 
   .draw-light-wheel {
     left: calc(50% + (var(--draw-parallax-x) * 0.45));
     top: calc(50% + (var(--draw-parallax-y) * 0.45));
     border-radius: 9999px;
-    filter: blur(34px);
-    opacity: 0.7;
+    filter: blur(46px);
+    opacity: 0.3;
     transform-origin: center;
     --draw-wheel-rot: 0deg;
-    animation: draw-light-rotate 24s linear infinite;
+    animation: draw-light-rotate 42s linear infinite;
   }
 
   .draw-light-wheel-a {
@@ -1349,10 +1350,10 @@ body::before {
         from 90deg,
         rgba(255, 255, 255, 0) 0deg,
         rgba(255, 255, 255, 0) 42deg,
-        rgba(129, 140, 248, 0.28) 96deg,
-        rgba(191, 219, 254, 0.18) 132deg,
+        rgba(129, 140, 248, 0.12) 96deg,
+        rgba(191, 219, 254, 0.08) 132deg,
         rgba(255, 255, 255, 0) 196deg,
-        rgba(56, 189, 248, 0.22) 248deg,
+        rgba(56, 189, 248, 0.1) 248deg,
         rgba(255, 255, 255, 0) 320deg,
         rgba(255, 255, 255, 0) 360deg
       );
@@ -1362,17 +1363,17 @@ body::before {
     width: 54vmax;
     height: 54vmax;
     --draw-wheel-rot: 18deg;
-    filter: blur(48px);
-    opacity: 0.42;
-    animation-duration: 34s;
+    filter: blur(64px);
+    opacity: 0.18;
+    animation-duration: 56s;
     animation-direction: reverse;
     background:
       conic-gradient(
         from 180deg,
         rgba(255, 255, 255, 0) 0deg,
-        rgba(199, 210, 254, 0.18) 68deg,
+        rgba(199, 210, 254, 0.08) 68deg,
         rgba(255, 255, 255, 0) 126deg,
-        rgba(125, 211, 252, 0.16) 210deg,
+        rgba(125, 211, 252, 0.08) 210deg,
         rgba(255, 255, 255, 0) 286deg,
         rgba(255, 255, 255, 0) 360deg
       );
@@ -1384,24 +1385,24 @@ body::before {
     border-radius: 9999px;
     transform-origin: center;
     --draw-glow-rot: 0deg;
-    animation: draw-rotating-glow-spin 44s linear infinite;
+    animation: draw-rotating-glow-spin 68s linear infinite;
   }
 
   .draw-rotating-glow-a {
     width: 82vmax;
     height: 82vmax;
-    filter: blur(78px);
-    opacity: 0.42;
+    filter: blur(104px);
+    opacity: 0.18;
     background:
-      radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 18%, rgba(255, 255, 255, 0) 42%),
+      radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 18%, rgba(255, 255, 255, 0) 42%),
       conic-gradient(
         from 110deg,
         rgba(255, 255, 255, 0) 0deg,
-        rgba(129, 140, 248, 0.22) 42deg,
+        rgba(129, 140, 248, 0.1) 42deg,
         rgba(255, 255, 255, 0) 104deg,
-        rgba(56, 189, 248, 0.2) 170deg,
+        rgba(56, 189, 248, 0.08) 170deg,
         rgba(255, 255, 255, 0) 230deg,
-        rgba(168, 85, 247, 0.18) 306deg,
+        rgba(168, 85, 247, 0.08) 306deg,
         rgba(255, 255, 255, 0) 360deg
       );
   }
@@ -1409,80 +1410,76 @@ body::before {
   .draw-rotating-glow-b {
     width: 60vmax;
     height: 60vmax;
-    filter: blur(96px);
-    opacity: 0.28;
+    filter: blur(124px);
+    opacity: 0.1;
     --draw-glow-rot: 26deg;
-    animation-duration: 58s;
+    animation-duration: 84s;
     animation-direction: reverse;
     background:
-      radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 32%),
+      radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 32%),
       conic-gradient(
         from 18deg,
         rgba(255, 255, 255, 0) 0deg,
-        rgba(191, 219, 254, 0.18) 78deg,
+        rgba(191, 219, 254, 0.08) 78deg,
         rgba(255, 255, 255, 0) 134deg,
-        rgba(125, 211, 252, 0.18) 210deg,
+        rgba(125, 211, 252, 0.08) 210deg,
         rgba(255, 255, 255, 0) 286deg,
-        rgba(196, 181, 253, 0.16) 336deg,
+        rgba(196, 181, 253, 0.07) 336deg,
         rgba(255, 255, 255, 0) 360deg
       );
   }
 
   .gacha-stage-view.is-dark .draw-rotating-glow-a {
-    opacity: 0.34;
-    filter: blur(88px);
+    opacity: 0.14;
+    filter: blur(112px);
   }
 
   .gacha-stage-view.is-dark .draw-rotating-glow-b {
-    opacity: 0.24;
-    filter: blur(108px);
+    opacity: 0.08;
+    filter: blur(132px);
   }
 
   .gacha-stage-view.is-light .draw-rotating-glow-a {
-    opacity: 0.5;
+    opacity: 0.2;
   }
 
   .gacha-stage-view.is-light .draw-rotating-glow-b {
-    opacity: 0.32;
+    opacity: 0.12;
   }
 
   .draw-light-sweep {
     border-radius: 9999px;
-    filter: blur(76px);
-    opacity: 0.46;
-    animation: draw-light-drift 18s ease-in-out infinite;
+    filter: blur(92px);
+    opacity: 0.12;
+    animation: draw-light-drift 32s ease-in-out infinite;
   }
 
   .gacha-stage-view.is-loading .draw-light-wheel {
-    filter: blur(54px);
-    opacity: 0.92;
-    animation:
-      draw-light-rotate 17s linear infinite,
-      draw-loading-breathe 5.2s ease-in-out infinite;
+    filter: blur(60px);
+    opacity: 0.38;
+    animation: draw-light-rotate 30s linear infinite;
   }
 
   .gacha-stage-view.is-loading .draw-light-wheel-b {
-    opacity: 0.68;
-    filter: blur(72px);
-    animation-duration: 24s, 4.6s;
+    opacity: 0.22;
+    filter: blur(78px);
+    animation-duration: 42s;
   }
 
   .gacha-stage-view.is-loading .draw-rotating-glow-a {
-    opacity: 0.62;
-    animation-duration: 32s;
+    opacity: 0.24;
+    animation-duration: 54s;
   }
 
   .gacha-stage-view.is-loading .draw-rotating-glow-b {
-    opacity: 0.38;
-    animation-duration: 46s;
+    opacity: 0.14;
+    animation-duration: 76s;
   }
 
   .gacha-stage-view.is-loading .draw-light-sweep {
-    filter: blur(112px);
-    opacity: 0.62;
-    animation:
-      draw-light-drift 11s ease-in-out infinite,
-      draw-loading-sweep-pulse 4.2s ease-in-out infinite;
+    filter: blur(120px);
+    opacity: 0.16;
+    animation: draw-light-drift 24s ease-in-out infinite;
   }
 
   .draw-light-sweep-a {
@@ -2126,14 +2123,14 @@ body::before {
   @keyframes draw-flip-flash-burst {
     0% {
       opacity: 0;
-      transform: scale(0.78);
+      transform: scale(0.94);
     }
     18% {
-      opacity: 0.95;
+      opacity: 0.2;
     }
     100% {
       opacity: 0;
-      transform: scale(1.18);
+      transform: scale(1.04);
     }
   }
 
@@ -2272,18 +2269,15 @@ body::before {
 
   @keyframes draw-light-drift {
     0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--draw-sweep-rot, 0deg)) scale(1); }
-    50% { transform: translate3d(18px, -12px, 0) rotate(calc(var(--draw-sweep-rot, 0deg) + 6deg)) scale(1.06); }
+    50% { transform: translate3d(10px, -6px, 0) rotate(calc(var(--draw-sweep-rot, 0deg) + 2deg)) scale(1.01); }
   }
 
   @keyframes draw-rotating-glow-spin {
     0% {
-      transform: translate(-50%, -50%) rotate(var(--draw-glow-rot, 0deg)) scale(0.98);
-    }
-    50% {
-      transform: translate(-50%, -50%) rotate(calc(var(--draw-glow-rot, 0deg) + 180deg)) scale(1.04);
+      transform: translate(-50%, -50%) rotate(var(--draw-glow-rot, 0deg));
     }
     100% {
-      transform: translate(-50%, -50%) rotate(calc(var(--draw-glow-rot, 0deg) + 360deg)) scale(0.98);
+      transform: translate(-50%, -50%) rotate(calc(var(--draw-glow-rot, 0deg) + 360deg));
     }
   }
 
@@ -2508,11 +2502,11 @@ body::before {
     pointer-events: none;
     opacity: 0;
     background:
-      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.34) 24%, rgba(255,255,255,0) 58%),
-      linear-gradient(120deg, rgba(255,255,255,0) 18%, rgba(255,255,255,0.72) 48%, rgba(255,255,255,0) 76%);
-    mix-blend-mode: screen;
-    filter: blur(16px);
-    transform: scale(0.82);
+      radial-gradient(circle at 50% 50%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.1) 24%, rgba(255,255,255,0) 58%),
+      linear-gradient(120deg, rgba(255,255,255,0) 18%, rgba(255,255,255,0.12) 48%, rgba(255,255,255,0) 76%);
+    mix-blend-mode: normal;
+    filter: blur(28px);
+    transform: scale(0.92);
   }
 
   .draw-flip-flash.is-active {
@@ -3973,6 +3967,13 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   color: var(--text-main);
 }
 
+.digest-card-title-secondary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
 .digest-card-body {
   display: grid;
   gap: 12px;
@@ -3989,6 +3990,15 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   font-size: 14px;
   line-height: 1.8;
   color: var(--text-strong);
+}
+
+.digest-card-brief-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6366f1;
 }
 
 .digest-card-chip,
@@ -4119,6 +4129,10 @@ html[data-theme="dark"] .discover-metric-card span,
 html[data-theme="dark"] .discover-rail-kicker,
 html[data-theme="dark"] .digest-card-eyebrow {
   color: #a5b4fc;
+}
+
+html[data-theme="dark"] .digest-card-brief-label {
+  color: #c7d2fe;
 }
 
 html[data-theme="dark"] .reading-chip,

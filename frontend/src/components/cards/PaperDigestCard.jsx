@@ -4,9 +4,28 @@ import TierBadge from "./TierBadge";
 
 function deriveSummary(paper) {
   if (paper?.card_content?.plain_summary) return paper.card_content.plain_summary;
+  if (paper?.card_content?.key_insight) return paper.card_content.key_insight;
   if (paper?.card_content?.core_contribution) return paper.card_content.core_contribution;
   if (paper?.card_content?.key_findings) return paper.card_content.key_findings;
   return paper?.abstract || "";
+}
+
+function getTitleLines(paper, locale) {
+  const title = String(paper?.title || "").trim();
+  const titleZh = String(paper?.title_zh || "").trim();
+  const hasBilingual = Boolean(title && titleZh && titleZh !== title);
+
+  if (locale === "zh") {
+    return {
+      primary: titleZh || title,
+      secondary: hasBilingual ? title : "",
+    };
+  }
+
+  return {
+    primary: title || titleZh,
+    secondary: hasBilingual ? titleZh : "",
+  };
 }
 
 export default function PaperDigestCard({
@@ -19,16 +38,19 @@ export default function PaperDigestCard({
 }) {
   const { t, locale } = useLanguage();
   const summary = deriveSummary(paper);
+  const titleLines = getTitleLines(paper, locale);
   const themeGroup = getCardThemeGroup({ ...paper, mode: paper?.mode || "research" });
   const matchPct = paper?.similarity_score > 0 ? Math.round(paper.similarity_score * 100) : null;
   const citesLabel = locale === "en" ? "cites" : "引用";
+  const briefLabel = locale === "en" ? "Brief" : "中文简报";
 
   return (
     <article className="digest-card">
       <div className="digest-card-top">
         <div className="space-y-2">
           {eyebrow && <p className="digest-card-eyebrow">{eyebrow}</p>}
-          <h3 className="digest-card-title">{title || paper?.title}</h3>
+          <h3 className="digest-card-title">{title || titleLines.primary}</h3>
+          {titleLines.secondary && <p className="digest-card-title-secondary">{titleLines.secondary}</p>}
         </div>
         <div className="flex items-center gap-2">
           {matchPct !== null && <span className="digest-card-match">{matchPct}% {t("recommend.matchScore")}</span>}
@@ -42,7 +64,12 @@ export default function PaperDigestCard({
           {paper?.venue ? ` / ${paper.venue}` : ""}
           {paper?.year ? ` / ${paper.year}` : ""}
         </p>
-        {summary && <p className="digest-card-summary">{summary}</p>}
+        {summary && (
+          <div className="space-y-2">
+            <p className="digest-card-brief-label">{briefLabel}</p>
+            <p className="digest-card-summary">{summary}</p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {themeGroup && <span className="digest-card-chip">{themeGroup}</span>}
           {paper?.doi && <span className="digest-card-chip">DOI</span>}

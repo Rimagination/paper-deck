@@ -191,7 +191,7 @@ export default function SeedView({
       return;
     }
     loadDigest();
-  }, [profileInfo?.embedding?.length, seeds.map((paper) => paper.paper_id).join("|"), excludedPaperIds.join("|"), cardMode]);
+  }, [profileInfo?.embedding?.length, seeds.map((paper) => paper.paper_id).join("|"), excludedPaperIds.join("|"), cardMode, locale]);
 
   useEffect(() => {
     if (!profileInfo || subscribedVenues.length === 0) {
@@ -199,7 +199,7 @@ export default function SeedView({
       return;
     }
     loadSubscribedDigest();
-  }, [profileInfo?.embedding?.length, subscribedVenues.map((venue) => venue.id).join("|"), excludedPaperIds.join("|")]);
+  }, [profileInfo?.embedding?.length, subscribedVenues.map((venue) => venue.id).join("|"), excludedPaperIds.join("|"), locale]);
 
   function invalidateProfile() {
     setProfileInfo(null);
@@ -369,7 +369,8 @@ export default function SeedView({
         seeds.map((paper) => paper.paper_id),
         10,
         null,
-        excludedPaperIds
+        excludedPaperIds,
+        locale,
       );
       setDigestPapers(result.papers || []);
     } catch (error) {
@@ -390,6 +391,7 @@ export default function SeedView({
         minSimilarity: 0,
         limit: 6,
         excludePaperIds: excludedPaperIds,
+        language: locale,
       });
       setSubscribedDigest(papers);
     } catch (error) {
@@ -823,7 +825,17 @@ export default function SeedView({
                             onClick={() => onViewCard?.(paper)}
                             className="w-full rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3 text-left transition-colors hover:bg-slate-100/80"
                           >
-                            <p className="line-clamp-2 text-sm font-medium text-slate-800">{paper.title}</p>
+                            <p className="line-clamp-2 text-sm font-medium text-slate-800">
+                              {paper.title_zh || paper.title}
+                            </p>
+                            {paper.title_zh && paper.title_zh !== paper.title && (
+                              <p className="mt-1 line-clamp-2 text-xs text-slate-500">{paper.title}</p>
+                            )}
+                            {paper.card_content?.plain_summary && (
+                              <p className="mt-2 line-clamp-3 text-xs leading-6 text-slate-600">
+                                {paper.card_content.plain_summary}
+                              </p>
+                            )}
                             <p className="mt-1 text-xs text-slate-500">
                               {[paper.venue, paper.year].filter(Boolean).join(" / ")}
                             </p>
