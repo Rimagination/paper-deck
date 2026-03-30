@@ -5,6 +5,10 @@ on:
     branches: [main, clean-main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-paperdeck-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sync-to-hf:
     runs-on: ubuntu-latest
@@ -25,6 +29,30 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Frontend build smoke test
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Backend import smoke test
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          python -c "from backend.main import app; print(app.title)"
+
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
@@ -35,6 +63,7 @@ jobs:
           HF_SPACE_TOKEN: ${{ secrets.HF_SPACE_TOKEN }}
           HF_SPACE_URL: https://oauth2:${{ secrets.HF_SPACE_TOKEN }}@huggingface.co/spaces/Rimagination/paper-deck
         run: |
+          git remote remove hf || true
           git remote add hf "$HF_SPACE_URL"
           git push hf HEAD:main --force
 

@@ -1,5 +1,15 @@
 # PaperDeck - Hugging Face Spaces Deployment
-# Single-process: uvicorn serves both API and pre-built frontend.
+# Multi-stage build: compile the frontend from source, then serve it from FastAPI.
+
+FROM node:20-slim AS frontend-build
+
+WORKDIR /frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+COPY frontend/ ./
+RUN npm run build
 
 FROM python:3.12-slim
 
@@ -15,7 +25,7 @@ COPY backend/requirements.txt /app/backend/
 RUN pip install -r /app/backend/requirements.txt
 
 COPY backend/ /app/backend/
-COPY frontend/dist /app/frontend/dist
+COPY --from=frontend-build /frontend/dist /app/frontend/dist
 
 EXPOSE 7860
 

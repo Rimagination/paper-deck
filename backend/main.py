@@ -119,8 +119,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(cards_router, prefix="/api")
     app.include_router(subscriptions_router, prefix="/api")
 
-    # --- Serve pre-built frontend (SPA) ---
-    # Resolve dist folder: /app/frontend/dist in Docker, or local dev path
+    # --- Serve the built frontend bundle (SPA) ---
+    # Resolve dist folder: /app/frontend/dist in Docker, or local build output in development
     _here = Path(__file__).resolve().parent
     _dist_candidates = [
         Path("/app/frontend/dist"),           # Docker layout
