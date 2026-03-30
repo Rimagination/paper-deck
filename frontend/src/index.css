@@ -4536,38 +4536,6 @@ html[data-theme="dark"] .reading-headline {
   font-weight: 500;
 }
 
-.draw-loading-marquee {
-  position: relative;
-  width: min(44rem, 100%);
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.96) 10%, rgba(0, 0, 0, 0.96) 90%, transparent);
-}
-
-.draw-loading-marquee-track {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: max-content;
-  padding: 2px 0;
-  animation: draw-loading-marquee-shift 16s linear infinite;
-}
-
-.draw-loading-marquee-chip {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  border: 1px solid rgba(186, 148, 70, 0.18);
-  background: rgba(255, 255, 255, 0.34);
-  padding: 8px 14px;
-  font-size: 12px;
-  line-height: 1;
-  color: rgba(90, 72, 45, 0.84);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 0 24px rgba(186, 148, 70, 0.1);
-  white-space: nowrap;
-}
-
 .draw-loading-runeline {
   margin-top: 2px;
 }
@@ -4580,25 +4548,6 @@ html[data-theme="dark"] .reading-headline {
 .draw-loading-runeline span:nth-child(6) {
   width: 36px;
   animation-delay: -1.85s;
-}
-
-.gacha-stage-view.is-dark .draw-loading-marquee-chip {
-  border-color: rgba(245, 208, 126, 0.18);
-  background: rgba(15, 23, 42, 0.38);
-  color: rgba(248, 250, 252, 0.82);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 0 28px rgba(245, 208, 126, 0.08);
-}
-
-@keyframes draw-loading-marquee-shift {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(-50%);
-  }
 }
 
 .discover-memory-layout {
@@ -4893,11 +4842,6 @@ html[data-theme="dark"] .discover-memory-chip {
 }
 
 @media (max-width: 767px) {
-  .draw-loading-marquee-chip {
-    padding: 7px 12px;
-    font-size: 11px;
-  }
-
   .discover-memory-cloud {
     min-height: 280px;
   }

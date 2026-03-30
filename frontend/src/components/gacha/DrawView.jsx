@@ -51,7 +51,7 @@ function CardBack({ zone, tier, modeLabel }) {
   );
 }
 
-function EmptyState({ title, body, actionLabel, onAction }) {
+function EmptyState({ title, body, actionLabel, onAction, secondaryActionLabel, onSecondaryAction }) {
   return (
     <section className="paper-surface flex min-h-[360px] flex-col items-center justify-center rounded-[30px] px-6 py-14 text-center">
       <div className="max-w-lg">
@@ -62,9 +62,16 @@ function EmptyState({ title, body, actionLabel, onAction }) {
           {body}
         </p>
       </div>
-      <button onClick={onAction} className="app-primary-button mt-8 rounded-2xl px-5 py-3 text-sm font-medium">
-        {actionLabel}
-      </button>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <button onClick={onAction} className="app-primary-button rounded-2xl px-5 py-3 text-sm font-medium">
+          {actionLabel}
+        </button>
+        {secondaryActionLabel && onSecondaryAction ? (
+          <button onClick={onSecondaryAction} className="app-outline-button rounded-2xl px-5 py-3 text-sm font-medium">
+            {secondaryActionLabel}
+          </button>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -91,6 +98,9 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
             "Citations are feeding the next summon.",
             "Signals from your seed papers are stabilizing the deck.",
           ],
+          retryAction: "Try again",
+          errorTitle: "The summon faltered",
+          errorBody: "Your interest memory is still here, but the next card did not resolve successfully. Try summoning again.",
           exhaustedTitle: "The current deck has gone quiet",
           exhaustedBody: "No new cards are surfacing from the current memory. Add more seeds or rebuild the interest memory to continue.",
         }
@@ -110,6 +120,9 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
             "\u79cd\u5b50\u8bba\u6587\u7684\u4fe1\u53f7\u6b63\u5728\u7ed9\u65b0\u5361\u6ce8\u5165\u5f62\u72b6",
             "\u5f15\u6587\u4e0e\u4e3b\u9898\u6b63\u5728\u4e3a\u4e0b\u4e00\u6b21\u53ec\u724c\u79ef\u84c4\u80fd\u91cf",
           ],
+          retryAction: "\u91cd\u65b0\u53ec\u724c",
+          errorTitle: "\u53ec\u724c\u6682\u65f6\u5931\u8d25\u4e86",
+          errorBody: "\u4f60\u7684\u5174\u8da3\u8bb0\u5fc6\u4ecd\u7136\u5b58\u5728\uff0c\u53ea\u662f\u8fd9\u6b21\u65b0\u724c\u6ca1\u6709\u987a\u5229\u51dd\u6210\u3002\u53ef\u4ee5\u76f4\u63a5\u91cd\u65b0\u53ec\u724c\u3002",
           exhaustedTitle: "\u5f53\u524d\u724c\u7ec4\u6682\u65f6\u5b89\u9759\u4e0b\u6765\u4e86",
           exhaustedBody: "\u73b0\u6709\u5174\u8da3\u8bb0\u5fc6\u91cc\u6ca1\u6709\u66f4\u591a\u65b0\u724c\u6d6e\u73b0\u3002\u53ef\u4ee5\u518d\u52a0\u51e0\u7bc7\u79cd\u5b50\u8bba\u6587\uff0c\u6216\u91cd\u65b0\u751f\u6210\u4e00\u6b21\u5174\u8da3\u8bb0\u5fc6\u3002",
         };
@@ -254,8 +267,6 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
   const isCollected = collected.has(currentIndex);
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
   const loadingSubtitle = ui.loadingPhrases[loadingPhraseIndex];
-  const loadingMarquee = [...ui.loadingPhrases, ...ui.loadingPhrases];
-
   const cardStyle = {
     "--gacha-tilt-x": `${cardMotion.tiltX}deg`,
     "--gacha-tilt-y": `${cardMotion.tiltY}deg`,
@@ -369,15 +380,6 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
               {ui.loadingTitle}
             </h3>
             <p className="draw-loading-subtitle">{loadingSubtitle}</p>
-            <div className="draw-loading-marquee" aria-hidden="true">
-              <div className="draw-loading-marquee-track">
-                {loadingMarquee.map((phrase, index) => (
-                  <span key={`${phrase}-${index}`} className="draw-loading-marquee-chip">
-                    {phrase}
-                  </span>
-                ))}
-              </div>
-            </div>
             <div className="draw-loading-runeline" aria-hidden="true">
               <span />
               <span />
@@ -395,10 +397,12 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
   if ((drawStatus === "empty" || drawStatus === "error") && cards.length === 0) {
     return (
       <EmptyState
-        title={drawStatus === "empty" ? ui.exhaustedTitle : ui.emptyTitle}
-        body={fetchError || (drawStatus === "empty" ? ui.exhaustedBody : ui.emptyBody)}
-        actionLabel={ui.emptyAction}
-        onAction={onOpenDiscover}
+        title={drawStatus === "empty" ? ui.exhaustedTitle : ui.errorTitle}
+        body={fetchError || (drawStatus === "empty" ? ui.exhaustedBody : ui.errorBody)}
+        actionLabel={drawStatus === "empty" ? ui.emptyAction : ui.retryAction}
+        onAction={drawStatus === "empty" ? onOpenDiscover : fetchMore}
+        secondaryActionLabel={drawStatus === "empty" ? null : ui.discoverLabel}
+        onSecondaryAction={drawStatus === "empty" ? null : onOpenDiscover}
       />
     );
   }
