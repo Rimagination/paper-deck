@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # App
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "*"]
     max_seeds: int = 20
-    max_recommendations: int = 50
+    max_recommendations: int = 100
     default_draw_count: int = 5
     user_agent: str = "PaperDeck/1.0"
 

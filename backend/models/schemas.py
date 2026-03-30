@@ -56,6 +56,7 @@ class RecommendRequest(BaseModel):
 
 class GachaRequest(BaseModel):
     seed_paper_ids: list[str]
+    seed_papers: list[PaperSummary] = Field(default_factory=list)
     count: int = 5
     mode: str = "research"
     language: str = "zh"

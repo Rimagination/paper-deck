@@ -14,7 +14,7 @@ from backend.models.schemas import (
     CardResponse,
 )
 from backend.services.interest import average_embeddings, rank_papers_by_similarity
-from backend.services.paper_metadata import build_digest_summary, build_paper_summary, enrich_paper_metadata
+from backend.services.paper_metadata import build_digest_summary, enrich_paper_metadata
 from backend.services.semantic_scholar import SemanticScholarError, normalize_authors, resolve_doi, resolve_url
 from backend.services.tier_classifier import classify_tier
 
@@ -24,12 +24,12 @@ router = APIRouter(prefix="/recommend", tags=["recommend"])
 async def resolve_to_s2_ids(request: Request, paper_ids: list[str]) -> list[str]:
     """Resolve DOI:/OA:-prefixed IDs to canonical S2 IDs when possible."""
     if not any(":" in pid for pid in paper_ids):
-        return paper_ids
+        return [paper_id for paper_id in paper_ids if paper_id]
 
     s2 = request.app.state.s2_client
     try:
         resolved = await s2.resolve_paper_ids(paper_ids)
-        return resolved
+        return [paper_id for paper_id in resolved if paper_id and ":" not in paper_id]
     except SemanticScholarError:
         return [paper_id for paper_id in paper_ids if paper_id and ":" not in paper_id]
 
@@ -86,6 +86,102 @@ async def rank_recommendations(
         enriched.append({**paper, **embedding_by_id.get(paper_id, {})})
 
     return rank_papers_by_similarity(interest_embedding, enriched)
+
+
+def _ranked_pool_cache_key(seed_paper_ids: list[str], limit: int) -> str:
+    normalized_ids = sorted({paper_id for paper_id in seed_paper_ids if paper_id})
+    return f"pd:ranked-pool:v1:{':'.join(normalized_ids)}:{limit}"
+
+
+async def _get_ranked_recommendation_pool(
+    request: Request,
+    seed_paper_ids: list[str],
+    *,
+    limit: int,
+    fail_open: bool = False,
+) -> tuple[list[str], list[dict]]:
+    cache = request.app.state.cache
+    settings = request.app.state.settings
+    s2 = request.app.state.s2_client
+
+    s2_ids = await resolve_to_s2_ids(request, seed_paper_ids)
+    if not s2_ids:
+        if fail_open:
+            return [], []
+        raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
+
+    cache_key = _ranked_pool_cache_key(s2_ids, limit)
+    cached = await cache.get_json(cache_key)
+
+    try:
+        raw_papers = await s2.get_recommendations(s2_ids, limit=limit)
+        ranked_papers = await rank_recommendations(request, raw_papers, seed_paper_ids)
+    except SemanticScholarError as exc:
+        if cached is not None:
+            return s2_ids, cached
+        if fail_open:
+            return s2_ids, []
+        raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
+
+    if ranked_papers:
+        await cache.set_json(cache_key, ranked_papers, settings.cache_ttl_recommendation)
+        return s2_ids, ranked_papers
+
+    if cached is not None:
+        return s2_ids, cached
+
+    return s2_ids, []
+
+
+async def _build_seed_echo_pool(
+    request: Request,
+    original_seed_ids: list[str],
+    resolved_seed_ids: list[str],
+    excluded_ids: set[str],
+    fallback_seed_papers: list[PaperSummary] | None = None,
+) -> list[dict]:
+    s2 = request.app.state.s2_client
+    oa = request.app.state.oa_client
+
+    try:
+        seed_papers = await s2.get_papers_batch(resolved_seed_ids)
+    except SemanticScholarError:
+        seed_papers = []
+
+    if not seed_papers:
+        lookups = await asyncio.gather(
+            *(oa.get_paper_by_lookup(paper_id) for paper_id in original_seed_ids),
+            return_exceptions=True,
+        )
+        seed_papers = [paper for paper in lookups if isinstance(paper, dict)]
+
+    if not seed_papers and fallback_seed_papers:
+        seed_papers = [
+            {
+                "paperId": paper.paper_id,
+                "title": paper.title,
+                "authors": [{"name": author} for author in paper.authors if author],
+                "year": paper.year,
+                "citationCount": paper.citation_count or 0,
+                "abstract": paper.abstract,
+                "venue": paper.venue,
+                "externalIds": {"DOI": paper.doi} if paper.doi else {},
+                "url": paper.url,
+            }
+            for paper in fallback_seed_papers
+            if paper.paper_id
+        ]
+
+    fallback_pool = []
+    seen_ids: set[str] = set()
+    for paper in seed_papers:
+        paper_id = str(paper.get("paperId") or "").strip()
+        if not paper_id or paper_id in excluded_ids or paper_id in seen_ids:
+            continue
+        seen_ids.add(paper_id)
+        fallback_pool.append({**paper, "similarity_score": 1.0})
+
+    return fallback_pool
 
 
 @router.post("")
@@ -149,27 +245,32 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
 
 @router.post("/gacha")
 async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
-    s2 = request.app.state.s2_client
+    settings = request.app.state.settings
     card_gen = request.app.state.card_generator
     journal_zone = request.app.state.journal_zone
 
     excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
 
-    s2_ids = await resolve_to_s2_ids(request, body.seed_paper_ids)
-    if not s2_ids:
-        raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
-    try:
-        raw_papers = await s2.get_recommendations(
-            s2_ids,
-            limit=max(body.count * 3, 20),
-        )
-    except SemanticScholarError as exc:
-        raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
-    ranked_papers = await rank_recommendations(request, raw_papers, body.seed_paper_ids)
+    pool_limit = min(max(body.count * 10, 40), settings.max_recommendations)
+    s2_ids, ranked_papers = await _get_ranked_recommendation_pool(
+        request,
+        body.seed_paper_ids,
+        limit=pool_limit,
+        fail_open=True,
+    )
     if excluded_ids:
         ranked_papers = [paper for paper in ranked_papers if paper.get("paperId") not in excluded_ids]
 
-    draw_pool = ranked_papers[: body.count * 3]
+    draw_pool = ranked_papers[: max(body.count * 8, body.count)]
+    if not draw_pool:
+        draw_pool = await _build_seed_echo_pool(
+            request,
+            body.seed_paper_ids,
+            s2_ids,
+            excluded_ids,
+            body.seed_papers,
+        )
+
     random.shuffle(draw_pool)
     selected = draw_pool[: body.count]
 

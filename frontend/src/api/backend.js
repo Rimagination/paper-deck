@@ -76,9 +76,17 @@ export async function getRecommendations(seedPaperIds, limit = 20, yearMin = nul
   return response.data;
 }
 
-export async function gachaDraw(seedPaperIds, count = 5, mode = "research", language = "zh", excludePaperIds = []) {
+export async function gachaDraw(
+  seedPaperIds,
+  count = 5,
+  mode = "research",
+  language = "zh",
+  excludePaperIds = [],
+  seedPapers = []
+) {
   const body = {
     seed_paper_ids: seedPaperIds,
+    seed_papers: seedPapers,
     count,
     mode,
     language,

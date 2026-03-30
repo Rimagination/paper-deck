@@ -1911,6 +1911,10 @@ body::before {
     color: rgba(90, 72, 45, 0.82);
   }
 
+  .draw-loading-subtitle-cycle {
+    animation: draw-loading-subtitle-cycle 1.8s ease both;
+  }
+
   .draw-loading-runeline {
     display: flex;
     align-items: center;
@@ -2386,6 +2390,25 @@ body::before {
   @keyframes draw-loading-rune-pulse {
     0%, 100% { opacity: 0.28; transform: scaleX(0.92); }
     50% { opacity: 0.9; transform: scaleX(1.04); }
+  }
+
+  @keyframes draw-loading-subtitle-cycle {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    18% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    82% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
   }
 
   @keyframes draw-loading-orb-surge {

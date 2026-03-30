@@ -76,7 +76,7 @@ function EmptyState({ title, body, actionLabel, onAction, secondaryActionLabel, 
   );
 }
 
-export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenDiscover, onViewCard }) {
+export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onOpenDiscover, onViewCard }) {
   const { t, locale } = useLanguage();
   const { theme: appTheme } = useTheme();
   const { getCollectedPaperIds, toggleFavorite } = useScanSciAuth();
@@ -141,11 +141,24 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
   const [flipFlashActive, setFlipFlashActive] = useState(false);
 
   const isDark = appTheme === "dark";
+  const effectiveSeedPaperIds = useMemo(() => {
+    const fallbackIds = Array.isArray(profileInfo?.seed_papers)
+      ? profileInfo.seed_papers.map((paper) => paper?.paper_id).filter(Boolean)
+      : [];
+    const sourceIds = Array.isArray(seedPaperIds) && seedPaperIds.length > 0 ? seedPaperIds : fallbackIds;
+    return [...new Set(sourceIds.filter(Boolean))];
+  }, [profileInfo, seedPaperIds]);
+  const hasInterestMemory =
+    profileReady ||
+    effectiveSeedPaperIds.length > 0 ||
+    Boolean(profileInfo?.seed_count) ||
+    Boolean(profileInfo?.embedding?.length);
+  const fallbackSeedPapers = Array.isArray(profileInfo?.seed_papers) ? profileInfo.seed_papers : [];
   const seenIds = useRef(new Set());
   const flipFlashTimeoutRef = useRef(null);
 
   async function fetchMore() {
-    if (isFetching || !profileReady || seedPaperIds.length === 0) return;
+    if (isFetching || !hasInterestMemory || effectiveSeedPaperIds.length === 0) return;
 
     const hadCards = cards.length > 0;
     setIsFetching(true);
@@ -156,7 +169,7 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
 
     try {
       const excluded = [...new Set([...getCollectedPaperIds(), ...seenIds.current])];
-      const result = await gachaDraw(seedPaperIds, 5, cardMode, locale, excluded);
+      const result = await gachaDraw(effectiveSeedPaperIds, 5, cardMode, locale, excluded, fallbackSeedPapers);
       const nextCards = Array.isArray(result.cards) ? result.cards : [];
 
       if (nextCards.length > 0) {
@@ -167,7 +180,14 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
       }
 
       seenIds.current = new Set(getCollectedPaperIds());
-      const retry = await gachaDraw(seedPaperIds, 5, cardMode, locale, [...seenIds.current]);
+      const retry = await gachaDraw(
+        effectiveSeedPaperIds,
+        5,
+        cardMode,
+        locale,
+        [...seenIds.current],
+        fallbackSeedPapers
+      );
       const retryCards = Array.isArray(retry.cards) ? retry.cards : [];
 
       if (retryCards.length > 0) {
@@ -201,20 +221,20 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
     setStageMotion({ x: 0, y: 0 });
     setFlipFlashActive(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileReady, seedPaperIds.join(","), cardMode]);
+  }, [profileReady, effectiveSeedPaperIds.join(","), cardMode]);
 
   useEffect(() => {
-    if (profileReady && seedPaperIds.length > 0) {
+    if (hasInterestMemory && effectiveSeedPaperIds.length > 0) {
       fetchMore();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileReady, seedPaperIds.join(","), cardMode]);
+  }, [hasInterestMemory, effectiveSeedPaperIds.join(","), cardMode]);
 
   useEffect(() => {
     const remaining = cards.length - currentIndex - 1;
     if (
-      profileReady &&
-      seedPaperIds.length > 0 &&
+      hasInterestMemory &&
+      effectiveSeedPaperIds.length > 0 &&
       cards.length > 0 &&
       currentIndex < cards.length &&
       remaining <= 1 &&
@@ -251,7 +271,7 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
     return () => clearInterval(intervalId);
   }, [drawStatus, ui.loadingPhrases]);
 
-  if (!profileReady || seedPaperIds.length === 0) {
+  if (!hasInterestMemory || effectiveSeedPaperIds.length === 0) {
     return (
       <EmptyState
         title={ui.emptyTitle}
@@ -379,7 +399,9 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
             <h3 className={`draw-loading-title ${locale === "zh" ? "font-heading-cn is-cn" : "font-heading"}`}>
               {ui.loadingTitle}
             </h3>
-            <p className="draw-loading-subtitle">{loadingSubtitle}</p>
+            <p key={loadingSubtitle} className="draw-loading-subtitle draw-loading-subtitle-cycle">
+              {loadingSubtitle}
+            </p>
             <div className="draw-loading-runeline" aria-hidden="true">
               <span />
               <span />
@@ -399,10 +421,10 @@ export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenD
       <EmptyState
         title={drawStatus === "empty" ? ui.exhaustedTitle : ui.errorTitle}
         body={fetchError || (drawStatus === "empty" ? ui.exhaustedBody : ui.errorBody)}
-        actionLabel={drawStatus === "empty" ? ui.emptyAction : ui.retryAction}
-        onAction={drawStatus === "empty" ? onOpenDiscover : fetchMore}
-        secondaryActionLabel={drawStatus === "empty" ? null : ui.discoverLabel}
-        onSecondaryAction={drawStatus === "empty" ? null : onOpenDiscover}
+        actionLabel={ui.retryAction}
+        onAction={fetchMore}
+        secondaryActionLabel={ui.discoverLabel}
+        onSecondaryAction={onOpenDiscover}
       />
     );
   }
