@@ -94,7 +94,7 @@ export async function gachaDraw(
   };
   const aiProvider = getActiveProviderConfig();
   if (aiProvider) body.ai_provider = aiProvider;
-  const response = await api.post("/recommend/gacha", body);
+  const response = await api.post("/recommend/gacha", body, { timeout: 120000 });
   return response.data;
 }
 

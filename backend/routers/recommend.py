@@ -21,6 +21,52 @@ from backend.services.tier_classifier import classify_tier
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
 
+async def _build_card_response(
+    *,
+    paper: dict,
+    body: GachaRequest,
+    card_gen,
+    journal_zone,
+) -> CardResponse:
+    metadata = enrich_paper_metadata(paper, journal_zone)
+    tier = classify_tier(
+        citation_count=paper.get("citationCount") or 0,
+        venue=paper.get("venue"),
+        year=paper.get("year"),
+    )
+
+    card_content, title_zh = await asyncio.gather(
+        card_gen.generate_card(
+            paper,
+            mode=body.mode,
+            language=body.language,
+            ai_provider=body.ai_provider,
+        ),
+        card_gen.localize_title(paper.get("title") or "Untitled", "zh"),
+    )
+
+    return CardResponse(
+        paper_id=paper.get("paperId", ""),
+        title=paper.get("title") or "Untitled",
+        title_zh=title_zh,
+        abstract=paper.get("abstract"),
+        authors=normalize_authors(paper),
+        year=paper.get("year"),
+        venue=paper.get("venue"),
+        citation_count=paper.get("citationCount") or 0,
+        doi=resolve_doi(paper),
+        url=resolve_url(paper),
+        mode=body.mode,
+        language=body.language,
+        card_content=card_content,
+        tier=tier,
+        similarity_score=paper.get("similarity_score") or 0.0,
+        zone=metadata["zone"],
+        issn=metadata["issn"],
+        eissn=metadata["eissn"],
+    )
+
+
 async def resolve_to_s2_ids(request: Request, paper_ids: list[str]) -> list[str]:
     """Resolve DOI:/OA:-prefixed IDs to canonical S2 IDs when possible."""
     if not any(":" in pid for pid in paper_ids):
@@ -277,42 +323,16 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
     if not selected:
         return GachaResponse(cards=[])
 
-    cards = []
-    for paper in selected:
-        metadata = enrich_paper_metadata(paper, journal_zone)
-        tier = classify_tier(
-            citation_count=paper.get("citationCount") or 0,
-            venue=paper.get("venue"),
-            year=paper.get("year"),
+    cards = await asyncio.gather(
+        *(
+            _build_card_response(
+                paper=paper,
+                body=body,
+                card_gen=card_gen,
+                journal_zone=journal_zone,
+            )
+            for paper in selected
         )
-
-        card_content = await card_gen.generate_card(
-            paper,
-            mode=body.mode,
-            language=body.language,
-            ai_provider=body.ai_provider,
-        )
-        title_zh = await card_gen.localize_title(paper.get("title") or "Untitled", "zh")
-
-        cards.append(CardResponse(
-            paper_id=paper.get("paperId", ""),
-            title=paper.get("title") or "Untitled",
-            title_zh=title_zh,
-            abstract=paper.get("abstract"),
-            authors=normalize_authors(paper),
-            year=paper.get("year"),
-            venue=paper.get("venue"),
-            citation_count=paper.get("citationCount") or 0,
-            doi=resolve_doi(paper),
-            url=resolve_url(paper),
-            mode=body.mode,
-            language=body.language,
-            card_content=card_content,
-            tier=tier,
-            similarity_score=paper.get("similarity_score") or 0.0,
-            zone=metadata["zone"],
-            issn=metadata["issn"],
-            eissn=metadata["eissn"],
-        ))
+    )
 
     return GachaResponse(cards=cards)

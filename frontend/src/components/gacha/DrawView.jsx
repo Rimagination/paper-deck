@@ -18,6 +18,7 @@ const ORBITAL_BODIES = [
   { size: "var(--draw-stage-orbit-5-size)", duration: "62s", delay: "-18s", direction: "reverse", dotClass: "is-uranus" },
   { size: "var(--draw-stage-orbit-5-size)", duration: "74s", delay: "-46s", direction: "normal", dotClass: "is-neptune" },
 ];
+const DRAW_BATCH_SIZE = 1;
 
 function CardBack({ zone, tier, modeLabel }) {
   const { t } = useLanguage();
@@ -169,7 +170,14 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
     try {
       const excluded = [...new Set([...getCollectedPaperIds(), ...seenIds.current])];
-      const result = await gachaDraw(effectiveSeedPaperIds, 5, cardMode, locale, excluded, fallbackSeedPapers);
+      const result = await gachaDraw(
+        effectiveSeedPaperIds,
+        DRAW_BATCH_SIZE,
+        cardMode,
+        locale,
+        excluded,
+        fallbackSeedPapers
+      );
       const nextCards = Array.isArray(result.cards) ? result.cards : [];
 
       if (nextCards.length > 0) {
@@ -182,7 +190,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
       seenIds.current = new Set(getCollectedPaperIds());
       const retry = await gachaDraw(
         effectiveSeedPaperIds,
-        5,
+        DRAW_BATCH_SIZE,
         cardMode,
         locale,
         [...seenIds.current],
