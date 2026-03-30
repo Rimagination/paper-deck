@@ -203,6 +203,22 @@ body::before {
     background: var(--control-bg);
   }
 
+  .app-ai-settings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition:
+      background-color 0.22s ease,
+      color 0.22s ease,
+      transform 0.22s ease;
+  }
+
+  .app-ai-settings-btn:hover {
+    color: var(--text-main);
+    background: var(--control-bg);
+  }
+
   .app-theme-toggle {
     display: inline-flex;
     align-items: center;
@@ -3442,4 +3458,130 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
     margin-top: 14px;
     padding-top: 12px;
   }
+}
+
+/* ─── AI Provider Settings Modal ─────────────────────────────────────── */
+
+.ai-settings-panel {
+  background: var(--surface-bg, #fff);
+  color: var(--text-main, #1a1a2e);
+  border: 1px solid var(--control-border, #e2e8f0);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.ai-settings-title {
+  color: var(--text-main, #1a1a2e);
+}
+
+.ai-settings-subtitle {
+  color: var(--text-main, #1a1a2e);
+}
+
+.ai-settings-label {
+  color: var(--text-muted, #64748b);
+}
+
+.ai-settings-input {
+  background: var(--control-bg, #f1f5f9);
+  border: 1px solid var(--control-border, #e2e8f0);
+  color: var(--text-main, #1a1a2e);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.ai-settings-input:focus {
+  border-color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.ai-settings-hint {
+  color: var(--text-muted, #94a3b8);
+}
+
+.ai-settings-back-btn {
+  color: var(--text-muted, #64748b);
+  transition: color 0.15s ease;
+}
+
+.ai-settings-back-btn:hover {
+  color: var(--text-main, #1a1a2e);
+}
+
+.ai-settings-row {
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.ai-settings-active-row {
+  background: var(--control-active-bg, rgba(99, 102, 241, 0.08));
+  border: 1px solid var(--accent, #6366f1);
+}
+
+.ai-settings-radio-on {
+  border-color: var(--accent, #6366f1);
+  color: var(--accent, #6366f1);
+}
+
+.ai-settings-radio-off {
+  border-color: var(--control-border, #cbd5e1);
+}
+
+.ai-settings-card {
+  background: var(--control-bg, #f8fafc);
+  border: 1px solid var(--control-border, #e2e8f0);
+}
+
+.ai-settings-cancel-btn {
+  background: var(--control-bg, #f1f5f9);
+  color: var(--text-muted, #64748b);
+  border: 1px solid var(--control-border, #e2e8f0);
+  transition: background-color 0.2s ease;
+}
+
+.ai-settings-cancel-btn:hover {
+  background: var(--control-border, #e2e8f0);
+}
+
+.ai-settings-save-btn {
+  background: var(--accent, #6366f1);
+  color: #fff;
+  transition: opacity 0.2s ease;
+}
+
+.ai-settings-save-btn:hover {
+  opacity: 0.9;
+}
+
+.ai-settings-add-btn {
+  background: var(--control-bg, #f1f5f9);
+  color: var(--accent, #6366f1);
+  border: 1px dashed var(--control-border, #cbd5e1);
+  transition: background-color 0.2s ease;
+}
+
+.ai-settings-add-btn:hover {
+  background: var(--control-border, #e2e8f0);
+}
+
+.ai-settings-notice {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.ai-settings-notice-icon {
+  color: var(--accent, #6366f1);
+}
+
+.ai-settings-notice-text {
+  color: var(--text-muted, #64748b);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
