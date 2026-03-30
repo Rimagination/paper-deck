@@ -4,7 +4,7 @@ const STORAGE_KEY = "paper-deck-language";
 
 const messages = {
   en: {
-    page: { title: "PaperDeck | Research Inbox" },
+    page: { title: "PaperDeck | Research Discovery" },
     nav: {
       seeds: "Discover",
       draw: "Draw",
@@ -207,7 +207,7 @@ const messages = {
     },
   },
   zh: {
-    page: { title: "PaperDeck | 研究收件箱" },
+    page: { title: "PaperDeck | 文献发现" },
     nav: {
       seeds: "收件箱",
       draw: "抽卡",

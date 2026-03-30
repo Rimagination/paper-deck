@@ -4,7 +4,7 @@ import { gachaDraw } from "../../api/backend";
 import { useLanguage } from "../../i18n";
 import { markCardRead } from "../../readingState";
 import { useTheme } from "../../theme";
-import TierBadge, { getTierConfig } from "../cards/TierBadge";
+import { getTierConfig } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
 import ReadingPanel from "../cards/ReadingPanel";
 
@@ -22,6 +22,7 @@ const ORBITAL_BODIES = [
 function CardBack({ zone, tier, modeLabel }) {
   const { t } = useLanguage();
   const theme = getTierConfig(zone || tier);
+
   return (
     <div className={`gacha-card-back ${theme.cardClass}`}>
       <div className="gacha-card-back-grid" />
@@ -54,8 +55,12 @@ function EmptyState({ title, body, actionLabel, onAction }) {
   return (
     <section className="paper-surface flex min-h-[360px] flex-col items-center justify-center rounded-[30px] px-6 py-14 text-center">
       <div className="max-w-lg">
-        <h2 className="font-heading-cn text-3xl font-semibold" style={{ color: "var(--text-main)" }}>{title}</h2>
-        <p className="mt-3 text-sm leading-7" style={{ color: "var(--text-muted)" }}>{body}</p>
+        <h2 className="font-heading-cn text-3xl font-semibold" style={{ color: "var(--text-main)" }}>
+          {title}
+        </h2>
+        <p className="mt-3 text-sm leading-7" style={{ color: "var(--text-muted)" }}>
+          {body}
+        </p>
       </div>
       <button onClick={onAction} className="app-primary-button mt-8 rounded-2xl px-5 py-3 text-sm font-medium">
         {actionLabel}
@@ -64,7 +69,7 @@ function EmptyState({ title, body, actionLabel, onAction }) {
   );
 }
 
-export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onOpenDiscover, onViewCard }) {
+export default function DrawView({ profileReady, seedPaperIds, cardMode, onOpenDiscover, onViewCard }) {
   const { t, locale } = useLanguage();
   const { theme: appTheme } = useTheme();
   const { getCollectedPaperIds, toggleFavorite } = useScanSciAuth();
@@ -75,12 +80,38 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           quickRead: "Quick Read",
           readingBody: "Flip decides what to inspect next. The panel now holds the structured interpretation.",
           quickBody: "Use the quick brief to decide whether this paper deserves a deeper read.",
+          discoverLabel: "Discover",
+          emptyTitle: "Nothing to draw yet",
+          emptyBody: "Generate your interest memory in Discover first. The draw deck is built directly from that memory.",
+          emptyAction: "Go to Discover",
+          loadingTitle: "Casting the next card",
+          loadingPhrases: [
+            "Research memory is condensing into the next card.",
+            "Keywords are tracing the next sigil.",
+            "Citations are feeding the next summon.",
+            "Signals from your seed papers are stabilizing the deck.",
+          ],
+          exhaustedTitle: "The current deck has gone quiet",
+          exhaustedBody: "No new cards are surfacing from the current memory. Add more seeds or rebuild the interest memory to continue.",
         }
       : {
-          readingLayer: "阅读层",
-          quickRead: "快速速览",
-          readingBody: "翻牌决定下一步看什么，这里承接结构化研究解读。",
-          quickBody: "先用速览判断这篇论文值不值得进一步细读。",
+          readingLayer: "\u7814\u7a76\u9605\u8bfb",
+          quickRead: "\u5feb\u901f\u901f\u89c8",
+          readingBody: "\u7ffb\u724c\u51b3\u5b9a\u4e0b\u4e00\u6b65\u770b\u4ec0\u4e48\uff0c\u8fd9\u91cc\u627f\u63a5\u7ed3\u6784\u5316\u7684\u7814\u7a76\u89e3\u8bfb\u3002",
+          quickBody: "\u5148\u7528\u901f\u89c8\u5224\u65ad\u8fd9\u7bc7\u8bba\u6587\u662f\u5426\u503c\u5f97\u7ee7\u7eed\u7ec6\u8bfb\u3002",
+          discoverLabel: "\u53d1\u73b0",
+          emptyTitle: "\u73b0\u5728\u8fd8\u6ca1\u6709\u53ef\u62bd\u7684\u724c\u7ec4",
+          emptyBody: "\u5148\u5728\u53d1\u73b0\u9875\u641c\u8bba\u6587\u5e76\u751f\u6210\u5174\u8da3\u8bb0\u5fc6\uff0c\u62bd\u5361\u9875\u624d\u4f1a\u4ece\u8fd9\u4efd\u8bb0\u5fc6\u91cc\u7ee7\u7eed\u53ec\u724c\u3002",
+          emptyAction: "\u53bb\u53d1\u73b0",
+          loadingTitle: "\u9b54\u6cd5\u53ec\u724c\u4e2d",
+          loadingPhrases: [
+            "\u7814\u7a76\u8bb0\u5fc6\u6b63\u6cbf\u7740\u8bcd\u4e0e\u5f15\u6587\u7f13\u7f13\u805a\u6210\u4e0b\u4e00\u5f20\u724c",
+            "\u5173\u952e\u8bcd\u6b63\u5728\u7f16\u7ec7\u4e0b\u4e00\u9053\u724c\u9762\u7eb9\u8def",
+            "\u79cd\u5b50\u8bba\u6587\u7684\u4fe1\u53f7\u6b63\u5728\u7ed9\u65b0\u5361\u6ce8\u5165\u5f62\u72b6",
+            "\u5f15\u6587\u4e0e\u4e3b\u9898\u6b63\u5728\u4e3a\u4e0b\u4e00\u6b21\u53ec\u724c\u79ef\u84c4\u80fd\u91cf",
+          ],
+          exhaustedTitle: "\u5f53\u524d\u724c\u7ec4\u6682\u65f6\u5b89\u9759\u4e0b\u6765\u4e86",
+          exhaustedBody: "\u73b0\u6709\u5174\u8da3\u8bb0\u5fc6\u91cc\u6ca1\u6709\u66f4\u591a\u65b0\u724c\u6d6e\u73b0\u3002\u53ef\u4ee5\u518d\u52a0\u51e0\u7bc7\u79cd\u5b50\u8bba\u6587\uff0c\u6216\u91cd\u65b0\u751f\u6210\u4e00\u6b21\u5174\u8da3\u8bb0\u5fc6\u3002",
         };
 
   const [cards, setCards] = useState([]);
@@ -89,6 +120,8 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const [collected, setCollected] = useState(new Set());
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState("");
+  const [drawStatus, setDrawStatus] = useState("idle");
+  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
   const [cardMotion, setCardMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
   const [settled, setSettled] = useState({});
   const [stageMotion, setStageMotion] = useState({ x: 0, y: 0 });
@@ -100,45 +133,86 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
   async function fetchMore() {
     if (isFetching || !profileReady || seedPaperIds.length === 0) return;
+
+    const hadCards = cards.length > 0;
     setIsFetching(true);
     setFetchError("");
+    if (!hadCards) {
+      setDrawStatus("loading");
+    }
+
     try {
       const excluded = [...new Set([...getCollectedPaperIds(), ...seenIds.current])];
       const result = await gachaDraw(seedPaperIds, 5, cardMode, locale, excluded);
-      if (Array.isArray(result.cards) && result.cards.length > 0) {
-        result.cards.forEach((c) => seenIds.current.add(c.paper_id));
-        setCards((prev) => [...prev, ...result.cards]);
-      } else {
-        // pool exhausted – reset seen set and retry with only collected excluded
-        seenIds.current = new Set(getCollectedPaperIds());
-        const retry = await gachaDraw(seedPaperIds, 5, cardMode, locale, [...seenIds.current]);
-        if (Array.isArray(retry.cards) && retry.cards.length > 0) {
-          retry.cards.forEach((c) => seenIds.current.add(c.paper_id));
-          setCards((prev) => [...prev, ...retry.cards]);
-        }
+      const nextCards = Array.isArray(result.cards) ? result.cards : [];
+
+      if (nextCards.length > 0) {
+        nextCards.forEach((card) => seenIds.current.add(card.paper_id));
+        setCards((prev) => [...prev, ...nextCards]);
+        setDrawStatus("ready");
+        return;
       }
+
+      seenIds.current = new Set(getCollectedPaperIds());
+      const retry = await gachaDraw(seedPaperIds, 5, cardMode, locale, [...seenIds.current]);
+      const retryCards = Array.isArray(retry.cards) ? retry.cards : [];
+
+      if (retryCards.length > 0) {
+        retryCards.forEach((card) => seenIds.current.add(card.paper_id));
+        setCards((prev) => [...prev, ...retryCards]);
+        setDrawStatus("ready");
+        return;
+      }
+
+      setFetchError(t("draw.emptyPool"));
+      setDrawStatus(hadCards ? "ready" : "empty");
     } catch {
       setFetchError(t("draw.error"));
+      setDrawStatus(hadCards ? "ready" : "error");
+    } finally {
+      setIsFetching(false);
     }
-    setIsFetching(false);
   }
 
-  // initial fetch
   useEffect(() => {
-    if (profileReady && seedPaperIds.length > 0) fetchMore();
+    seenIds.current = new Set(getCollectedPaperIds());
+    setCards([]);
+    setCurrentIndex(0);
+    setFlipped({});
+    setCollected(new Set());
+    setFetchError("");
+    setDrawStatus("idle");
+    setLoadingPhraseIndex(0);
+    setSettled({});
+    setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+    setStageMotion({ x: 0, y: 0 });
+    setFlipFlashActive(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, seedPaperIds.join(","), cardMode]);
 
-  // pre-fetch when running low
   useEffect(() => {
-    const remaining = cards.length - currentIndex - 1;
-    if (profileReady && seedPaperIds.length > 0 && remaining <= 1 && !isFetching) {
+    if (profileReady && seedPaperIds.length > 0) {
       fetchMore();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, cards.length, isFetching]);
+  }, [profileReady, seedPaperIds.join(","), cardMode]);
 
-  // reset tilt on card change
+  useEffect(() => {
+    const remaining = cards.length - currentIndex - 1;
+    if (
+      profileReady &&
+      seedPaperIds.length > 0 &&
+      cards.length > 0 &&
+      currentIndex < cards.length &&
+      remaining <= 1 &&
+      !isFetching &&
+      drawStatus === "ready"
+    ) {
+      fetchMore();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, cards.length, isFetching, drawStatus]);
+
   useEffect(() => {
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
   }, [currentIndex]);
@@ -151,27 +225,36 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     };
   }, []);
 
+  useEffect(() => {
+    if (drawStatus !== "loading") {
+      setLoadingPhraseIndex(0);
+      return undefined;
+    }
+
+    const intervalId = setInterval(() => {
+      setLoadingPhraseIndex((current) => (current + 1) % ui.loadingPhrases.length);
+    }, 1800);
+
+    return () => clearInterval(intervalId);
+  }, [drawStatus, ui.loadingPhrases]);
+
   if (!profileReady || seedPaperIds.length === 0) {
     return (
       <EmptyState
-        title={t("draw.emptyTitle")}
-        body={t("draw.emptyBody")}
-        actionLabel={t("draw.openDiscover")}
+        title={ui.emptyTitle}
+        body={ui.emptyBody}
+        actionLabel={ui.emptyAction}
         onAction={onOpenDiscover}
       />
     );
   }
 
-  const currentCard = cards[currentIndex];
+  const currentCard = cards[currentIndex] || null;
   const isFlipped = !!flipped[currentIndex];
   const isCollected = collected.has(currentIndex);
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
-  const loadingTitle = locale === "zh" ? "星盘召牌中" : "Invoking the Deck";
-  const loadingSubtitle = locale === "zh"
-    ? "研究记忆正沿着词与引文缓缓聚成下一张牌"
-    : "Research signals are condensing into the next card.";
-  const authorLine = currentCard ? (currentCard.authors || []).slice(0, 2).join(", ") : "";
-  const metaLine = currentCard ? [authorLine, currentCard.venue, currentCard.year].filter(Boolean).join(" / ") : "";
+  const loadingSubtitle = ui.loadingPhrases[loadingPhraseIndex];
+  const loadingMarquee = [...ui.loadingPhrases, ...ui.loadingPhrases];
 
   const cardStyle = {
     "--gacha-tilt-x": `${cardMotion.tiltX}deg`,
@@ -197,18 +280,17 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
       }
       requestAnimationFrame(() => setFlipFlashActive(true));
       flipFlashTimeoutRef.current = setTimeout(() => setFlipFlashActive(false), 420);
-      // After flip animation completes, flatten 3D so scroll is smooth
       setTimeout(() => {
         setSettled((prev) => ({ ...prev, [currentIndex]: true }));
       }, 780);
     }
   }
 
-  function handleCardMove(e) {
+  function handleCardMove(event) {
     if (isFlipped) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
     setCardMotion({ tiltX: (0.5 - y) * 12, tiltY: (x - 0.5) * 14, glowX: x * 100, glowY: y * 100 });
   }
 
@@ -243,11 +325,10 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
       { label: t("draw.deckCollectedCount"), value: collected.size },
       ...(currentCard ? [{ label: t("card.citations"), value: currentCard.citation_count || 0 }] : []),
     ],
-    [collected.size, currentCard?.citation_count, modeLabel, t],
+    [collected.size, currentCard, modeLabel, t]
   );
 
-  // loading: no cards yet
-  if (cards.length === 0) {
+  if (drawStatus === "loading" && cards.length === 0) {
     return (
       <div
         className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`}
@@ -268,13 +349,13 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
         <div className="draw-loading-veil draw-loading-veil-b" />
         <div className="draw-loading-veil draw-loading-veil-c" />
         <div className="draw-loading-starfield" aria-hidden="true" />
-        {!isDark && (
+        {!isDark ? (
           <>
             <div className="draw-glow-orb draw-glow-orb-a" />
             <div className="draw-glow-orb draw-glow-orb-b" />
             <div className="draw-glow-orb draw-glow-orb-c" />
           </>
-        )}
+        ) : null}
         <div className="draw-loading-ritual" aria-live="polite">
           <div className="draw-loading-sigil" aria-hidden="true">
             <div className="draw-loading-sigil-ring draw-loading-sigil-ring-a" />
@@ -285,10 +366,21 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           <div className="draw-loading-copy">
             <p className="draw-loading-kicker">{`${t("draw.eyebrow")} / ${modeLabel}`}</p>
             <h3 className={`draw-loading-title ${locale === "zh" ? "font-heading-cn is-cn" : "font-heading"}`}>
-              {loadingTitle}
+              {ui.loadingTitle}
             </h3>
             <p className="draw-loading-subtitle">{loadingSubtitle}</p>
+            <div className="draw-loading-marquee" aria-hidden="true">
+              <div className="draw-loading-marquee-track">
+                {loadingMarquee.map((phrase, index) => (
+                  <span key={`${phrase}-${index}`} className="draw-loading-marquee-chip">
+                    {phrase}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="draw-loading-runeline" aria-hidden="true">
+              <span />
+              <span />
               <span />
               <span />
               <span />
@@ -297,6 +389,28 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           </div>
         </div>
       </div>
+    );
+  }
+
+  if ((drawStatus === "empty" || drawStatus === "error") && cards.length === 0) {
+    return (
+      <EmptyState
+        title={drawStatus === "empty" ? ui.exhaustedTitle : ui.emptyTitle}
+        body={fetchError || (drawStatus === "empty" ? ui.exhaustedBody : ui.emptyBody)}
+        actionLabel={ui.emptyAction}
+        onAction={onOpenDiscover}
+      />
+    );
+  }
+
+  if (currentIndex >= cards.length && cards.length > 0) {
+    return (
+      <EmptyState
+        title={ui.exhaustedTitle}
+        body={fetchError || ui.exhaustedBody}
+        actionLabel={ui.discoverLabel}
+        onAction={onOpenDiscover}
+      />
     );
   }
 
@@ -313,17 +427,15 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
       <div className="draw-rotating-glow draw-rotating-glow-b" />
       <div className="draw-light-sweep draw-light-sweep-a" />
       <div className="draw-light-sweep draw-light-sweep-b" />
-      {/* light-theme floating glow orbs */}
-      {!isDark && (
+      {!isDark ? (
         <>
           <div className="draw-glow-orb draw-glow-orb-a" />
           <div className="draw-glow-orb draw-glow-orb-b" />
           <div className="draw-glow-orb draw-glow-orb-c" />
         </>
-      )}
+      ) : null}
 
       <div className={`gacha-shell ${isDark ? "is-dark" : "is-light"}`}>
-        {/* header */}
         <header className="gacha-shell-header">
           <div>
             <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
@@ -339,9 +451,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           </div>
         </header>
 
-        {/* 2-column: stage + inspector */}
         <div className="draw-stage-grid">
-          {/* center card stage */}
           <div className="gacha-stage">
             <div className="gacha-stage-cosmos" aria-hidden="true">
               <div className="gacha-stage-aura gacha-stage-aura-a" />
@@ -373,21 +483,18 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
               onMouseLeave={showScrollCard ? undefined : resetCardMotion}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && handleFlip()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") handleFlip();
+              }}
               aria-label={t("gacha.tapToReveal")}
             >
               {currentCard && !showScrollCard ? (
-                <div
-                  className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`}
-                  style={cardStyle}
-                >
-                  {/* back face — hidden once settled to free GPU layers */}
-                    <div className="backface-hidden absolute inset-0 cursor-pointer">
-                      <div className="gacha-card-face gacha-card-face-back">
-                        <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
-                      </div>
+                <div className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`} style={cardStyle}>
+                  <div className="backface-hidden absolute inset-0 cursor-pointer">
+                    <div className="gacha-card-face gacha-card-face-back">
+                      <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
                     </div>
-                  {/* front face — becomes normal scrollable element once settled */}
+                  </div>
                   <div className="backface-hidden rotate-y-180 absolute inset-0">
                     <div className="gacha-card-face gacha-card-face-front gacha-card-scroll">
                       <PaperCard card={currentCard} mode={cardMode} />
@@ -395,6 +502,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                   </div>
                 </div>
               ) : null}
+
               {showScrollCard ? (
                 <div className={`gacha-card-scroll-shell ${isCollected ? "is-collected" : ""}`}>
                   <div className="gacha-card-scroll-shell-inner">
@@ -402,25 +510,22 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                   </div>
                 </div>
               ) : null}
+
               {!currentCard ? (
                 <div className="draw-card-placeholder">
                   <div className="draw-loading-spinner" />
                 </div>
               ) : null}
+
               <div className={`draw-flip-flash ${flipFlashActive ? "is-active" : ""}`} aria-hidden="true" />
             </div>
 
             <div className="gacha-stage-caption">
-              <p className="gacha-shell-kicker">
-                {isFlipped && currentCard ? "" : t("gacha.tapToReveal")}
-              </p>
-              <p className="draw-stage-meta">
-                {isFlipped && currentCard ? "" : modeLabel}
-              </p>
+              <p className="gacha-shell-kicker">{isFlipped && currentCard ? "" : t("gacha.tapToReveal")}</p>
+              <p className="draw-stage-meta">{isFlipped && currentCard ? "" : modeLabel}</p>
             </div>
           </div>
 
-          {/* right inspector */}
           <aside className="gacha-inspector">
             <div className="gacha-inspector-panel">
               <p className="gacha-shell-kicker">{t("draw.memorySource")}</p>
@@ -433,25 +538,22 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                 ))}
               </div>
             </div>
+
             {isFlipped && currentCard ? (
               <div className="gacha-inspector-panel gacha-inspector-reading">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="gacha-shell-kicker">{cardMode === "research" ? ui.readingLayer : ui.quickRead}</p>
-                    <p className="draw-inspector-body">
-                      {cardMode === "research"
-                        ? ui.readingBody
-                        : ui.quickBody}
-                    </p>
+                    <p className="draw-inspector-body">{cardMode === "research" ? ui.readingBody : ui.quickBody}</p>
                   </div>
-                  {onViewCard && (
+                  {onViewCard ? (
                     <button
                       onClick={() => onViewCard(currentCard)}
                       className="app-outline-button rounded-xl px-3 py-2 text-xs font-medium"
                     >
                       {t("recommend.viewCard")}
                     </button>
-                  )}
+                  ) : null}
                 </div>
                 <div className="mt-4">
                   <ReadingPanel card={currentCard} mode={cardMode} />
@@ -465,17 +567,17 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                 </p>
               </div>
             )}
-            {isFetching && (
+
+            {isFetching ? (
               <div className="draw-fetch-row">
                 <div className="draw-fetch-dot" />
                 <span>{t("draw.drawing")}</span>
               </div>
-            )}
-            {fetchError && <p className="draw-fetch-error">{fetchError}</p>}
+            ) : null}
+            {fetchError ? <p className="draw-fetch-error">{fetchError}</p> : null}
           </aside>
         </div>
 
-        {/* action bar */}
         <div className="gacha-actions">
           <div className="gacha-actions-group">
             <button
@@ -492,18 +594,15 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             >
               {t("gacha.nextCard")}
             </button>
-            {isFlipped && currentCard && onViewCard && (
-              <button
-                onClick={() => onViewCard(currentCard)}
-                className="gacha-action-button"
-              >
+            {isFlipped && currentCard && onViewCard ? (
+              <button onClick={() => onViewCard(currentCard)} className="gacha-action-button">
                 {t("recommend.viewCard")}
               </button>
-            )}
+            ) : null}
           </div>
           <div className="gacha-secondary-actions">
             <button onClick={onOpenDiscover} className="gacha-text-button">
-              {t("draw.backToDiscover")}
+              {ui.discoverLabel}
             </button>
           </div>
         </div>

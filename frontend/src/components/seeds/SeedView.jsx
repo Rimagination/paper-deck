@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useScanSciAuth } from "../../auth";
-import { getRecommendations, getSubscriptionFeed, generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
+import { generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
 import { useLanguage } from "../../i18n";
-import PaperDigestCard from "../cards/PaperDigestCard";
 import { buildInterestMemory } from "./interestMemory";
 
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
@@ -40,16 +39,18 @@ function formatSyncedAt(value) {
 
 function buildSearchRowMeta(paper, locale) {
   const parts = [];
-  if (paper.venue) {
-    parts.push(paper.venue);
-  }
-  if (paper.year) {
-    parts.push(String(paper.year));
-  }
+  if (paper.venue) parts.push(paper.venue);
+  if (paper.year) parts.push(String(paper.year));
   if (paper.citation_count) {
     parts.push(locale === "en" ? `${paper.citation_count} cites` : `${paper.citation_count} 引用`);
   }
   return parts.join(" / ");
+}
+
+function buildTimeSpan(memory, t) {
+  return memory.yearMin && memory.yearMax
+    ? `${memory.yearMin} - ${memory.yearMax}`
+    : t("seeds.memoryYearsFallback");
 }
 
 function SectionFrame({ title, subtitle, action, children }) {
@@ -57,8 +58,14 @@ function SectionFrame({ title, subtitle, action, children }) {
     <section className="paper-surface rounded-[28px] p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-          {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text-main)" }}>
+            {title}
+          </h3>
+          {subtitle ? (
+            <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+              {subtitle}
+            </p>
+          ) : null}
         </div>
         {action}
       </div>
@@ -67,16 +74,145 @@ function SectionFrame({ title, subtitle, action, children }) {
   );
 }
 
+function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
+  const maxKeywordCount = Math.max(...memory.keywordEntries.map((entry) => entry.count), 1);
+  const timeSpan = buildTimeSpan(memory, t);
+  const stats =
+    locale === "en"
+      ? [
+          { label: "Seeds", value: memory.papers.length },
+          { label: "Years", value: timeSpan },
+          { label: "Cites", value: memory.avgCitations },
+          { label: "Zone", value: memory.dominantZone || "Unrated" },
+        ]
+      : [
+          { label: "\u79cd\u5b50", value: memory.papers.length },
+          { label: "\u65f6\u95f4", value: timeSpan },
+          { label: "\u5f15\u6587", value: memory.avgCitations },
+          { label: "\u5206\u533a", value: memory.dominantZone || "\u5f85\u5b9a" },
+        ];
+
+  const heading = locale === "en" ? "Interest memory is now in shape" : "\u5174\u8da3\u8bb0\u5fc6\u5df2\u7ecf\u6210\u5f62";
+  const description =
+    memory.venues.length > 0
+      ? t("seeds.memorySummary", { venue: memory.venues[0].name, years: timeSpan })
+      : t("seeds.memorySummaryFallback", { years: timeSpan });
+
+  return (
+    <section className="paper-surface rounded-[30px] p-6 sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-3xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
+            {t("seeds.memoryEyebrow")}
+          </p>
+          <h3 className="mt-3 font-heading-cn text-2xl font-semibold sm:text-3xl" style={{ color: "var(--text-main)" }}>
+            {heading}
+          </h3>
+          <p className="mt-3 max-w-3xl text-sm leading-7" style={{ color: "var(--text-muted)" }}>
+            {description}
+          </p>
+        </div>
+        <button
+          onClick={onOpenDraw}
+          className="app-accent-button rounded-2xl px-5 py-3 text-sm font-semibold"
+        >
+          {t("seeds.openDraw")}
+        </button>
+      </div>
+
+      <div className="discover-memory-layout mt-7">
+        <div className="discover-memory-cloud">
+          <div className="discover-memory-cloud-grid" aria-hidden="true" />
+          <div className="discover-memory-cloud-glow discover-memory-cloud-glow-a" aria-hidden="true" />
+          <div className="discover-memory-cloud-glow discover-memory-cloud-glow-b" aria-hidden="true" />
+          <div className="discover-memory-cloud-glow discover-memory-cloud-glow-c" aria-hidden="true" />
+          <div className="discover-memory-cloud-copy">
+            <p className="discover-memory-cloud-kicker">{t("seeds.memoryCloudEyebrow")}</p>
+            <p className="discover-memory-cloud-headline">{memory.headline}</p>
+          </div>
+          <div className="discover-memory-word-cloud">
+            {memory.keywordEntries.length > 0 ? (
+              memory.keywordEntries.map((entry) => {
+                const ratio = maxKeywordCount > 0 ? entry.count / maxKeywordCount : 1;
+                return (
+                  <span
+                    key={entry.word}
+                    className="discover-memory-word"
+                    style={{
+                      "--cloud-scale": (0.86 + ratio * 0.6).toFixed(2),
+                      "--cloud-opacity": (0.56 + ratio * 0.34).toFixed(2),
+                    }}
+                  >
+                    {entry.word}
+                  </span>
+                );
+              })
+            ) : (
+              <span className="discover-memory-word is-empty">
+                {locale === "en" ? "Keywords will appear once papers carry enough metadata." : "\u5173\u952e\u8bcd\u4f1a\u5728\u8bba\u6587\u4fe1\u606f\u8db3\u591f\u540e\u51fa\u73b0"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <aside className="discover-memory-inspector">
+          <div className="discover-memory-stat-grid">
+            {stats.map((item) => (
+              <div key={item.label} className="discover-memory-stat">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+
+          {memory.echoes.length > 0 ? (
+            <div className="discover-memory-panel">
+              <p className="discover-memory-panel-label">
+                {locale === "en" ? "Echoes" : "\u56de\u54cd"}
+              </p>
+              <div className="discover-memory-chip-row">
+                {memory.echoes.map((entry) => (
+                  <span key={entry} className="discover-memory-chip">
+                    {entry}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="discover-memory-panel">
+            <p className="discover-memory-panel-label">
+              {locale === "en" ? "Sources" : "\u6765\u6e90"}
+            </p>
+            <div className="discover-memory-source-list">
+              {memory.venues.length > 0 ? (
+                memory.venues.map((venue) => (
+                  <div key={venue.name} className="discover-memory-source-row">
+                    <span>{venue.name}</span>
+                    <strong>{venue.count}</strong>
+                  </div>
+                ))
+              ) : (
+                <p className="discover-memory-empty">
+                  {locale === "en"
+                    ? "Venue clusters appear once the selected papers carry source metadata."
+                    : "\u8bba\u6587\u6765\u6e90\u66f4\u5b8c\u6574\u540e\uff0c\u8fd9\u91cc\u4f1a\u663e\u793a\u7ecf\u5e38\u51fa\u73b0\u7684\u671f\u520a\u548c\u4f1a\u8bae"}
+                </p>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
 export default function SeedView({
   initialSeeds,
   initialProfile,
-  subscribedVenues,
-  cardMode,
   onProfileGenerated,
   onSeedsUpdated,
   onOpenDraw,
-  onOpenSubscriptions,
-  onViewCard,
 }) {
   const { locale, t } = useLanguage();
   const {
@@ -87,7 +223,6 @@ export default function SeedView({
     loadPaperDeckProfile,
     saveInterestProfile,
     getPaperDeckProfile,
-    getCollectedPaperIds,
   } = useScanSciAuth();
 
   const [query, setQuery] = useState("");
@@ -105,18 +240,40 @@ export default function SeedView({
   const [isLoadingSavedProfile, setIsLoadingSavedProfile] = useState(false);
   const [savedProfileLoadError, setSavedProfileLoadError] = useState("");
   const [syncStatus, setSyncStatus] = useState("idle");
-  const [digestPapers, setDigestPapers] = useState([]);
-  const [subscribedDigest, setSubscribedDigest] = useState([]);
-  const [isLoadingDigest, setIsLoadingDigest] = useState(false);
-  const [isLoadingSubscribedDigest, setIsLoadingSubscribedDigest] = useState(false);
   const inputRef = useRef(null);
   const loadingGuardRef = useRef(null);
-  const savedProfileLoadFailedText = locale === "en" ? "Saved profile could not be loaded right now." : "暂时无法加载已保存画像。";
-  const retryText = locale === "en" ? "Retry" : "重试";
-  const generateProfileFailedText = locale === "en" ? "Interest memory could not be generated right now." : "暂时无法生成兴趣记忆。";
+
+  const savedProfileLoadFailedText =
+    locale === "en"
+      ? "Saved profile could not be loaded right now."
+      : "\u6682\u65f6\u65e0\u6cd5\u52a0\u8f7d\u5df2\u4fdd\u5b58\u7684\u5174\u8da3\u8bb0\u5fc6";
+  const retryText = locale === "en" ? "Retry" : "\u91cd\u8bd5";
+  const generateProfileFailedText =
+    locale === "en"
+      ? "Interest memory could not be generated right now."
+      : "\u6682\u65f6\u65e0\u6cd5\u751f\u6210\u5174\u8da3\u8bb0\u5fc6";
+  const ui =
+    locale === "en"
+      ? {
+          heroTitle: "Calibrate your research taste",
+          heroBody:
+            "Search a few anchor papers first. PaperDeck will distill the shared topics, venues, and citation texture into a compact interest memory.",
+          searchResultEyebrow: "Seed candidate",
+          memorySettings: "Memory setup",
+          selectedSeedsTitle: "Selected seed papers",
+          selectedSeedsSubtitle: "These papers define the current interest memory.",
+        }
+      : {
+          heroTitle: "\u6821\u51c6\u4f60\u7684\u7814\u7a76\u504f\u597d",
+          heroBody:
+            "\u5148\u7528\u51e0\u7bc7\u5173\u952e\u8bba\u6587\u6821\u51c6\u4f60\u7684\u5174\u8da3\u8bb0\u5fc6\uff0cPaperDeck \u4f1a\u628a\u5b83\u4eec\u5171\u540c\u7684\u4e3b\u9898\u3001\u6765\u6e90\u548c\u5f15\u6587\u8d28\u611f\u63d0\u70bc\u6210\u4e00\u5f20\u7d27\u51d1\u7684\u8bb0\u5fc6\u56fe\u8c31",
+          searchResultEyebrow: "\u79cd\u5b50\u5019\u9009",
+          memorySettings: "\u8bb0\u5fc6\u8bbe\u7f6e",
+          selectedSeedsTitle: "\u5df2\u9009\u79cd\u5b50\u8bba\u6587",
+          selectedSeedsSubtitle: "\u8fd9\u4e9b\u8bba\u6587\u6b63\u5728\u5b9a\u4e49\u5f53\u524d\u7684\u5174\u8da3\u8bb0\u5fc6",
+        };
 
   const memory = useMemo(() => buildInterestMemory(profileInfo), [profileInfo]);
-  const excludedPaperIds = useMemo(() => [...getCollectedPaperIds()], [getCollectedPaperIds]);
 
   useEffect(() => {
     async function loadSavedProfile() {
@@ -198,27 +355,9 @@ export default function SeedView({
     setProfileInfo(initialProfile || null);
   }, [initialProfile]);
 
-  useEffect(() => {
-    if (!profileInfo || seeds.length === 0) {
-      setDigestPapers([]);
-      return;
-    }
-    loadDigest();
-  }, [profileInfo?.embedding?.length, seeds.map((paper) => paper.paper_id).join("|"), excludedPaperIds.join("|"), cardMode, locale]);
-
-  useEffect(() => {
-    if (!profileInfo || subscribedVenues.length === 0) {
-      setSubscribedDigest([]);
-      return;
-    }
-    loadSubscribedDigest();
-  }, [profileInfo?.embedding?.length, subscribedVenues.map((venue) => venue.id).join("|"), excludedPaperIds.join("|"), locale]);
-
   function invalidateProfile() {
     setProfileInfo(null);
     setSyncStatus("idle");
-    setDigestPapers([]);
-    setSubscribedDigest([]);
     setGenerationError("");
   }
 
@@ -374,46 +513,6 @@ export default function SeedView({
     setIsGenerating(false);
   }
 
-  async function loadDigest() {
-    if (isLoadingDigest || seeds.length === 0) return;
-    setIsLoadingDigest(true);
-    try {
-      const result = await getRecommendations(
-        seeds.map((paper) => paper.paper_id),
-        10,
-        null,
-        excludedPaperIds,
-        locale,
-      );
-      setDigestPapers(result.papers || []);
-    } catch (error) {
-      console.error("Digest fetch failed:", error);
-      setDigestPapers([]);
-    }
-    setIsLoadingDigest(false);
-  }
-
-  async function loadSubscribedDigest() {
-    if (isLoadingSubscribedDigest || subscribedVenues.length === 0) return;
-    setIsLoadingSubscribedDigest(true);
-    try {
-      const papers = await getSubscriptionFeed({
-        venueIds: subscribedVenues.map((venue) => venue.id),
-        interestEmbedding: profileInfo?.embedding || null,
-        daysBack: 14,
-        minSimilarity: 0,
-        limit: 6,
-        excludePaperIds: excludedPaperIds,
-        language: locale,
-      });
-      setSubscribedDigest(papers);
-    } catch (error) {
-      console.error("Subscribed digest fetch failed:", error);
-      setSubscribedDigest([]);
-    }
-    setIsLoadingSubscribedDigest(false);
-  }
-
   async function handleOpenImport() {
     setShowImport(true);
     if (authStatus === "authenticated") {
@@ -461,73 +560,22 @@ export default function SeedView({
 
   const savedProfileCount = getProfileSeedCount(savedProfile);
   const savedProfileTime = formatSyncedAt(savedProfile?.updated_at || savedProfile?.created_at);
-  const hasDigest = Boolean(profileInfo && seeds.length > 0);
-  const ui =
-    locale === "en"
-      ? {
-          drawLabel: "Draw",
-          subscriptionsLabel: "Subscriptions",
-          heroEyebrow: "Inbox",
-          digestHeroTitle: "Your reading inbox",
-          digestHeroBody:
-            "This page is for deciding what deserves attention now. Draw stays as the surprise layer, while Sources controls where papers come from.",
-          searchResultEyebrow: "Seed candidate",
-          calibration: "Memory setup",
-          calibrationSeedsTitle: "Calibration seeds",
-          calibrationSeedsSubtitle: "These papers still define the current memory and can be swapped any time.",
-          digestTitle: "Inbox",
-          digestSubtitle: "One unified stream for what deserves attention now.",
-          recommendedEyebrow: (index) => `Recommended / ${index}`,
-          subscribedTitle: "Source signals",
-          subscribedSubtitle:
-            subscribedVenues.length > 0
-              ? "A compact preview of what your followed journals and conferences are adding."
-              : "Follow journals or conferences in Sources, then let Inbox decide what matters first.",
-          sourceCountLabel: "Followed sources",
-          sourceFreshLabel: "Fresh source papers",
-          sourceEmpty: "You are not following any journals or conferences yet.",
-          sourceTeaserLabel: "Recent source arrivals",
-        }
-      : {
-          drawLabel: "抽卡",
-          subscriptionsLabel: "订阅",
-          heroEyebrow: "Inbox",
-          digestHeroTitle: "你的今日文献收件箱",
-          digestHeroBody:
-            "这里负责决定现在先读什么。抽卡保留惊喜发现，信源页负责管理文献从哪里来。",
-          searchResultEyebrow: "种子候选",
-          calibration: "记忆设置",
-          calibrationSeedsTitle: "校准种子",
-          calibrationSeedsSubtitle: "这些论文仍在定义当前兴趣记忆，你可以随时替换它们。",
-          digestTitle: "今日收件箱",
-          digestSubtitle: "这里是一条统一阅读流，只回答现在该先看什么。",
-          recommendedEyebrow: (index) => `推荐 / ${index}`,
-          subscribedTitle: "信源概览",
-          subscribedSubtitle:
-            subscribedVenues.length > 0
-              ? "这里只保留一个简洁预览，完整的信源管理和信源流留在信源页。"
-              : "先在信源页关注期刊或会议，再让收件箱判断今天先读什么。",
-          sourceCountLabel: "已关注信源",
-          sourceFreshLabel: "新到信源论文",
-          sourceEmpty: "你还没有关注任何期刊或会议。",
-          sourceTeaserLabel: "最近进入的信源论文",
-        };
-  const subscribedPreview = subscribedDigest.slice(0, 3);
+  const hasProfile = Boolean(profileInfo && seeds.length > 0);
 
   return (
     <div className="space-y-6">
       <section className="paper-surface rounded-[32px] p-6 sm:p-7">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_320px]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_320px]">
           <div className="space-y-5">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
-                {hasDigest ? ui.heroEyebrow : t("seeds.memoryEyebrow")}
+                {t("seeds.memoryEyebrow")}
               </p>
               <h2 className="mt-3 font-heading-cn text-3xl font-semibold text-slate-950">
-                {hasDigest ? ui.digestHeroTitle : t("seeds.title")}
+                {ui.heroTitle}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-                {hasDigest ? ui.digestHeroBody : t("seeds.subtitle")}
+                {ui.heroBody}
               </p>
             </div>
 
@@ -565,9 +613,9 @@ export default function SeedView({
             </div>
 
             <p className="text-xs text-slate-400">{t("seeds.manualHint")}</p>
-            {searchError && <p className="text-xs text-rose-600">{searchError}</p>}
+            {searchError ? <p className="text-xs text-rose-600">{searchError}</p> : null}
 
-            {searchResults.length > 0 && (
+            {searchResults.length > 0 ? (
               <div className="seed-search-results">
                 {searchResults.map((paper) => {
                   const alreadyAdded = seeds.some((item) => item.paper_id === paper.paper_id);
@@ -578,11 +626,11 @@ export default function SeedView({
                         <p className="seed-search-title" title={paper.title}>
                           {paper.title}
                         </p>
-                        {meta && (
+                        {meta ? (
                           <span className="seed-search-meta" title={meta}>
                             {meta}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       <button
                         onClick={() => {
@@ -606,12 +654,12 @@ export default function SeedView({
                   );
                 })}
               </div>
-            )}
+            ) : null}
           </div>
 
           <aside className="space-y-4">
             <div className="discover-rail-card">
-              <p className="discover-rail-kicker">{ui.calibration}</p>
+              <p className="discover-rail-kicker">{ui.memorySettings}</p>
               <div className="discover-rail-stats">
                 <div>
                   <span>{t("seeds.selected")}</span>
@@ -629,26 +677,20 @@ export default function SeedView({
               >
                 {isGenerating ? t("seeds.generating") : t("seeds.generateProfile")}
               </button>
-              {generationError && <p className="mt-3 text-xs text-rose-600">{generationError}</p>}
+              {generationError ? <p className="mt-3 text-xs text-rose-600">{generationError}</p> : null}
               <button
                 onClick={onOpenDraw}
-                disabled={!hasDigest}
+                disabled={!hasProfile}
                 className="app-outline-button mt-3 w-full rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
               >
                 {t("seeds.openDraw")}
               </button>
-              <button
-                onClick={onOpenSubscriptions}
-                className="app-outline-button mt-3 w-full rounded-2xl px-4 py-3 text-sm font-medium"
-              >
-                {ui.subscriptionsLabel}
-              </button>
-              {syncStatus === "saved" && authStatus === "authenticated" && (
+              {syncStatus === "saved" && authStatus === "authenticated" ? (
                 <p className="mt-3 text-xs text-emerald-700">{t("seeds.profileSynced")}</p>
-              )}
+              ) : null}
             </div>
 
-            {(isLoadingSavedProfile || savedProfile || savedProfileLoadError) && (
+            {(isLoadingSavedProfile || savedProfile || savedProfileLoadError) ? (
               <div className="discover-rail-card">
                 <p className="discover-rail-kicker">{t("seeds.savedProfile")}</p>
                 {isLoadingSavedProfile ? (
@@ -658,7 +700,7 @@ export default function SeedView({
                     <p className="mt-2 text-sm text-slate-500">
                       {savedProfileCount} {t("seeds.savedSeeds")}
                     </p>
-                    {savedProfileTime && <p className="text-xs text-slate-400">{savedProfileTime}</p>}
+                    {savedProfileTime ? <p className="text-xs text-slate-400">{savedProfileTime}</p> : null}
                     <button onClick={restoreSavedProfile} className="app-inline-link mt-2 font-medium hover:underline">
                       {t("seeds.restoreSavedProfile")}
                     </button>
@@ -672,17 +714,20 @@ export default function SeedView({
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </aside>
         </div>
       </section>
 
-      {seeds.length > 0 && (
+      {seeds.length > 0 ? (
         <SectionFrame
-          title={hasDigest ? ui.calibrationSeedsTitle : `${seeds.length} ${t("seeds.selected")}`}
-          subtitle={hasDigest ? ui.calibrationSeedsSubtitle : null}
+          title={ui.selectedSeedsTitle}
+          subtitle={ui.selectedSeedsSubtitle}
           action={
-            <button onClick={() => updateSeeds([])} className="text-xs text-slate-400 transition-colors hover:text-rose-500">
+            <button
+              onClick={() => updateSeeds([])}
+              className="text-xs text-slate-400 transition-colors hover:text-rose-500"
+            >
               {t("seeds.clear")}
             </button>
           }
@@ -705,168 +750,13 @@ export default function SeedView({
             ))}
           </div>
         </SectionFrame>
-      )}
+      ) : null}
 
-      {hasDigest && (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_340px]">
-          <div className="space-y-6">
-            <SectionFrame
-              title={ui.digestTitle}
-              subtitle={ui.digestSubtitle}
-              action={
-                <button onClick={loadDigest} className="app-outline-button rounded-2xl px-4 py-2.5 text-sm font-medium">
-                  {isLoadingDigest ? t("common.loading") : t("recommend.refresh")}
-                </button>
-              }
-            >
-              {digestPapers.length === 0 ? (
-                <p className="text-sm text-slate-500">{isLoadingDigest ? t("recommend.loading") : t("recommend.empty")}</p>
-              ) : (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {digestPapers.map((paper, index) => (
-                    <PaperDigestCard
-                      key={paper.paper_id}
-                      paper={paper}
-                      eyebrow={ui.recommendedEyebrow(index + 1)}
-                      actionLabel={t("recommend.viewCard")}
-                      onAction={() => onViewCard?.(paper)}
-                      secondaryAction={
-                        <button onClick={onOpenDraw} className="app-outline-button rounded-xl px-4 py-2.5 text-sm font-medium">
-                          {ui.drawLabel}
-                        </button>
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </SectionFrame>
-          </div>
+      {hasProfile ? (
+        <CompactMemoryPanel memory={memory} locale={locale} t={t} onOpenDraw={onOpenDraw} />
+      ) : null}
 
-          <aside className="space-y-6">
-            <SectionFrame
-              title={memory.headline || t("seeds.memoryTitle")}
-              subtitle={memory.venues.length > 0
-                ? t("seeds.memorySummary", {
-                    venue: memory.venues[0].name,
-                    years: memory.yearMin && memory.yearMax ? `${memory.yearMin} - ${memory.yearMax}` : t("seeds.memoryYearsFallback"),
-                  })
-                : t("seeds.memorySummaryFallback", {
-                    years: memory.yearMin && memory.yearMax ? `${memory.yearMin} - ${memory.yearMax}` : t("seeds.memoryYearsFallback"),
-                  })}
-            >
-              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-                <div className="discover-metric-card">
-                  <span>{t("seeds.memorySeedCount")}</span>
-                  <strong>{memory.papers.length}</strong>
-                </div>
-                <div className="discover-metric-card">
-                  <span>{t("seeds.memoryYears")}</span>
-                  <strong>{memory.yearMin && memory.yearMax ? `${memory.yearMin} - ${memory.yearMax}` : t("seeds.memoryYearsFallback")}</strong>
-                </div>
-                <div className="discover-metric-card">
-                  <span>{t("seeds.memoryCitations")}</span>
-                  <strong>{memory.avgCitations}</strong>
-                </div>
-              </div>
-              {memory.echoes.length > 0 && (
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {memory.echoes.map((entry) => (
-                    <span key={entry} className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-                      {entry}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {memory.venues.length > 0 && (
-                <div className="mt-5 space-y-2">
-                  {memory.venues.map((venue) => (
-                    <div key={venue.name} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2">
-                      <span className="text-sm text-slate-700">{venue.name}</span>
-                      <span className="text-xs font-medium text-slate-500">{venue.count}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </SectionFrame>
-
-            <SectionFrame
-              title={ui.subscribedTitle}
-              subtitle={ui.subscribedSubtitle}
-              action={
-                <button onClick={onOpenSubscriptions} className="app-outline-button rounded-2xl px-4 py-2.5 text-sm font-medium">
-                  {ui.subscriptionsLabel}
-                </button>
-              }
-            >
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <div className="discover-metric-card">
-                  <span>{ui.sourceCountLabel}</span>
-                  <strong>{subscribedVenues.length}</strong>
-                </div>
-                <div className="discover-metric-card">
-                  <span>{ui.sourceFreshLabel}</span>
-                  <strong>{subscribedDigest.length}</strong>
-                </div>
-              </div>
-
-              {subscribedVenues.length === 0 ? (
-                <p className="mt-5 text-sm text-slate-500">{ui.sourceEmpty}</p>
-              ) : (
-                <>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {subscribedVenues.map((venue) => (
-                      <span
-                        key={venue.id}
-                        className="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                      >
-                        {venue.name}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                      {ui.sourceTeaserLabel}
-                    </p>
-                    <div className="mt-3 space-y-3">
-                      {subscribedPreview.length > 0 ? (
-                        subscribedPreview.map((paper) => (
-                          <button
-                            key={paper.paper_id}
-                            onClick={() => onViewCard?.(paper)}
-                            className="w-full rounded-2xl border border-slate-100 bg-slate-50/70 px-4 py-3 text-left transition-colors hover:bg-slate-100/80"
-                          >
-                            <p className="line-clamp-2 text-sm font-medium text-slate-800">
-                              {paper.title_zh || paper.title}
-                            </p>
-                            {paper.title_zh && paper.title_zh !== paper.title && (
-                              <p className="mt-1 line-clamp-2 text-xs text-slate-500">{paper.title}</p>
-                            )}
-                            {paper.card_content?.plain_summary && (
-                              <p className="mt-2 line-clamp-3 text-xs leading-6 text-slate-600">
-                                {paper.card_content.plain_summary}
-                              </p>
-                            )}
-                            <p className="mt-1 text-xs text-slate-500">
-                              {[paper.venue, paper.year].filter(Boolean).join(" / ")}
-                            </p>
-                          </button>
-                        ))
-                      ) : (
-                        <p className="text-sm text-slate-500">
-                          {isLoadingSubscribedDigest ? t("common.loading") : t("sub.emptyFeed")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </SectionFrame>
-          </aside>
-        </div>
-      )}
-
-      {showImport && (
+      {showImport ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="app-dialog mx-4 max-h-[80vh] w-full max-w-lg overflow-hidden rounded-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
@@ -908,7 +798,7 @@ export default function SeedView({
                 </div>
               )}
             </div>
-            {importSelected.size > 0 && (
+            {importSelected.size > 0 ? (
               <div className="border-t border-slate-100 px-6 py-4">
                 <button
                   onClick={handleImportConfirm}
@@ -917,10 +807,10 @@ export default function SeedView({
                   {t("seeds.importSelected")} ({importSelected.size})
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
