@@ -22,12 +22,9 @@ async def generate_profile(request: Request, body: ProfileGenerateRequest) -> Pr
     journal_zone = request.app.state.journal_zone
 
     paper_ids = body.paper_ids[: settings.max_seeds]
-    resolved_paper_ids = await s2.resolve_paper_ids(paper_ids)
-    if not resolved_paper_ids:
-        raise HTTPException(status_code=503, detail="Seed papers could not be resolved.")
 
     try:
-        papers = await s2.get_papers_with_embeddings(resolved_paper_ids)
+        papers = await s2.get_papers_with_embeddings(paper_ids)
     except SemanticScholarError as exc:
         raise HTTPException(status_code=exc.status_code or 502, detail=str(exc)) from exc
     if paper_ids and not papers:
@@ -46,7 +43,7 @@ async def generate_profile(request: Request, body: ProfileGenerateRequest) -> Pr
     interest_embedding = average_embeddings(embeddings) if embeddings else []
 
     if interest_embedding:
-        cache_key = f"pd:profile:{':'.join(sorted(resolved_paper_ids))}"
+        cache_key = f"pd:profile:{':'.join(sorted(paper_ids))}"
         await cache.set_json(cache_key, interest_embedding, settings.cache_ttl_embedding)
 
     return ProfileResponse(
