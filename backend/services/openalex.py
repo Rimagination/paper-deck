@@ -6,9 +6,18 @@ import httpx
 
 OPENALEX_BASE = "https://api.openalex.org"
 OPENALEX_SELECT = (
-    "id,doi,display_name,publication_year,cited_by_count,"
+    "id,doi,display_name,publication_year,cited_by_count,type,"
     "primary_location,authorships,abstract_inverted_index"
 )
+
+SEED_ELIGIBLE_TYPES = {
+    "article",
+    "preprint",
+    "review",
+    "letter",
+    "report",
+    "peer-review",
+}
 
 
 def _reconstruct_abstract(inverted_index: dict | None) -> str | None:
@@ -206,5 +215,10 @@ class OpenAlexClient:
 
         data = response.json()
         results = data.get("results") or []
-        papers = [openalex_to_s2_dict(work) for work in results]
+        works = [
+            work
+            for work in results
+            if (work.get("type") or "").strip().lower() in SEED_ELIGIBLE_TYPES
+        ]
+        papers = [openalex_to_s2_dict(work) for work in works]
         return [p for p in papers if p.get("paperId")]

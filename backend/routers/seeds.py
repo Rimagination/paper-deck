@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from backend.models.schemas import PaperSummary, SeedSearchRequest
@@ -13,6 +15,33 @@ from backend.services.semantic_scholar import (
 router = APIRouter(prefix="/seeds", tags=["seeds"])
 
 
+async def _resolve_search_candidates(request: Request, raw_papers: list[dict]) -> list[dict]:
+    s2 = request.app.state.s2_client
+
+    async def resolve_candidate(paper: dict) -> str | None:
+        paper_id = str(paper.get("paperId") or "").strip()
+        if not paper_id:
+            return None
+        if ":" not in paper_id or paper_id.upper().startswith("DOI:"):
+            return paper_id
+        try:
+            resolved = await s2.get_paper(paper_id, fields="paperId")
+        except (SemanticScholarError, SemanticScholarNotFoundError):
+            return None
+        canonical_id = str(resolved.get("paperId") or "").strip()
+        return canonical_id or None
+
+    resolved_ids = await asyncio.gather(*(resolve_candidate(paper) for paper in raw_papers))
+    seen: set[str] = set()
+    results: list[dict] = []
+    for paper, canonical_id in zip(raw_papers, resolved_ids):
+        if not canonical_id or canonical_id in seen:
+            continue
+        seen.add(canonical_id)
+        results.append({**paper, "paperId": canonical_id})
+    return results
+
+
 @router.post("/search")
 async def search_seeds(request: Request, body: SeedSearchRequest) -> list[PaperSummary]:
     query = body.query.strip()
@@ -20,7 +49,7 @@ async def search_seeds(request: Request, body: SeedSearchRequest) -> list[PaperS
         return []
 
     cache = request.app.state.cache
-    cache_key = f"pd:search:{query.lower()}"
+    cache_key = f"pd:search:v2:{query.lower()}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         return [PaperSummary(**p) for p in cached]
@@ -28,7 +57,8 @@ async def search_seeds(request: Request, body: SeedSearchRequest) -> list[PaperS
     oa = request.app.state.oa_client
     journal_zone = request.app.state.journal_zone
     raw_papers = await oa.search_papers(query, limit=10)
-    results = [build_paper_summary(paper, journal_zone=journal_zone) for paper in raw_papers]
+    resolved_papers = await _resolve_search_candidates(request, raw_papers)
+    results = [build_paper_summary(paper, journal_zone=journal_zone) for paper in resolved_papers]
 
     await cache.set_json(cache_key, [p.model_dump() for p in results], request.app.state.settings.cache_ttl_search)
     return results
