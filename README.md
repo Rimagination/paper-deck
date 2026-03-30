@@ -38,7 +38,7 @@ Production request flow:
 1. User opens `https://paperdeck.scansci.com`
 2. Cloudflare Worker proxies traffic to the Hugging Face Space
 3. Hugging Face builds the Docker image from this repository
-4. FastAPI serves `/api/*`, `/health`, and the built frontend bundle on port `7860`
+4. FastAPI serves `/api/*`, `/health`, and the checked-in frontend bundle on port `7860`
 
 Relevant files:
 
@@ -97,7 +97,7 @@ Use one source of truth:
 ### Hugging Face
 
 The Hugging Face Space is configured as a Docker Space using this repository layout.
-The Docker image now builds the frontend from `frontend/` during the image build.
+The Docker image serves the checked-in `frontend/dist/` bundle to keep Hugging Face builds fast and predictable.
 
 Recommended runtime env vars:
 
@@ -116,7 +116,7 @@ Recommended runtime env vars:
 PaperDeck follows the same production topology as Paper Atlas.
 It is not a Cloudflare Pages app. It is a Hugging Face Space behind a Cloudflare Worker.
 
-The GitHub Actions workflow in this repository mirrors GitHub to Hugging Face and runs frontend/backend smoke tests before the sync step.
+The GitHub Actions workflow in this repository mirrors GitHub to Hugging Face, runs frontend/backend smoke tests, and fails if the checked-in `frontend/dist/` bundle is stale.
 
 Required GitHub Actions secret:
 
@@ -124,7 +124,7 @@ Required GitHub Actions secret:
 
 Operational notes:
 
-- `frontend/dist/` is now a local build artifact, not a deployment source of truth.
+- `frontend/dist/` is part of the deployment artifact set and must stay in sync with `frontend/src/`.
 - If Hugging Face gets stuck after repeated failed boots, use a normal restart first and a factory reboot only as break-glass recovery.
 - Keep the Hugging Face token in secrets or credentials only; do not store it in local git remotes or paste it into logs.
 

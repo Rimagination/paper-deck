@@ -47,6 +47,9 @@ jobs:
           npm ci
           npm run build
 
+      - name: Ensure checked-in dist is up to date
+        run: git diff --exit-code -- frontend/dist
+
       - name: Backend import smoke test
         run: |
           python -m pip install --upgrade pip

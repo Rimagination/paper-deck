@@ -12,7 +12,6 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 frontend/node_modules/
 frontend/.vite/
-frontend/dist/
 
 .cache/
 .wrangler/
