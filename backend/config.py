@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # Journal metadata
     journal_zone_index_path: str | None = None
 
+    # AI card generation (Qiniu / StepFun)
+    qnaigc_api_key: str | None = None
+    qnaigc_base_url: str = "https://api.qnaigc.com/v1"
+    qnaigc_model: str = "stepfun/step-3.5-flash"
+
     # App
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "*"]
     max_seeds: int = 20

@@ -173,7 +173,12 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
             year=paper.get("year"),
         )
 
-        card_content = await card_gen.generate_card(paper, mode=body.mode, language=body.language)
+        card_content = await card_gen.generate_card(
+            paper,
+            mode=body.mode,
+            language=body.language,
+            ai_provider=body.ai_provider,
+        )
         title_zh = await card_gen.localize_title(paper.get("title") or "Untitled", "zh")
 
         cards.append(CardResponse(

@@ -86,6 +86,18 @@ function ResearchContent({ content, t, theme }) {
           <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.novelty}</p>
         </div>
       )}
+      {content.methods && (
+        <div>
+          <FieldLabel theme={theme}>{t("card.methods")}</FieldLabel>
+          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.methods}</p>
+        </div>
+      )}
+      {content.limitations && content.limitations !== "N/A" && (
+        <div>
+          <FieldLabel theme={theme}>{t("card.limitations")}</FieldLabel>
+          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.limitations}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -118,6 +130,12 @@ function DiscoveryContent({ content, t, theme }) {
         <div>
           <FieldLabel theme={theme}>{t("card.whyItMatters")}</FieldLabel>
           <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.why_it_matters}</p>
+        </div>
+      )}
+      {content.who_should_read && (
+        <div>
+          <FieldLabel theme={theme}>{t("card.whoShouldRead")}</FieldLabel>
+          <p className={`mt-1 text-xs leading-relaxed ${theme.bodyColor}`}>{content.who_should_read}</p>
         </div>
       )}
     </div>

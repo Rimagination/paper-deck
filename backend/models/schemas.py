@@ -5,6 +5,13 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class AIProviderConfig(BaseModel):
+    """User-provided AI provider config sent per request. Never stored server-side."""
+    base_url: str
+    api_key: str
+    model: str
+
+
 class PaperSummary(BaseModel):
     paper_id: str
     title: str
@@ -49,12 +56,14 @@ class GachaRequest(BaseModel):
     mode: str = "research"
     language: str = "zh"
     exclude_paper_ids: list[str] = Field(default_factory=list)
+    ai_provider: Optional[AIProviderConfig] = None
 
 
 class CardGenerateRequest(BaseModel):
     paper_id: str
     mode: str = "research"  # "research" or "discovery"
     language: str = "zh"
+    ai_provider: Optional[AIProviderConfig] = None
 
 
 class ResearchCardContent(BaseModel):

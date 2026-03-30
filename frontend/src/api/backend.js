@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getActiveProviderConfig } from "../aiProviderStore";
 
 function resolveApiBaseUrl() {
   const env = import.meta.env || {};
@@ -72,22 +73,24 @@ export async function getRecommendations(seedPaperIds, limit = 20, yearMin = nul
 }
 
 export async function gachaDraw(seedPaperIds, count = 5, mode = "research", language = "zh", excludePaperIds = []) {
-  const response = await api.post("/recommend/gacha", {
+  const body = {
     seed_paper_ids: seedPaperIds,
     count,
     mode,
     language,
     exclude_paper_ids: excludePaperIds,
-  });
+  };
+  const aiProvider = getActiveProviderConfig();
+  if (aiProvider) body.ai_provider = aiProvider;
+  const response = await api.post("/recommend/gacha", body);
   return response.data;
 }
 
 export async function generateCard(paperId, mode = "research", language = "zh") {
-  const response = await api.post("/cards/generate", {
-    paper_id: paperId,
-    mode,
-    language,
-  });
+  const body = { paper_id: paperId, mode, language };
+  const aiProvider = getActiveProviderConfig();
+  if (aiProvider) body.ai_provider = aiProvider;
+  const response = await api.post("/cards/generate", body);
   return response.data;
 }
 
