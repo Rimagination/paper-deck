@@ -5,8 +5,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ["IBM Plex Sans", "Noto Sans SC", "sans-serif"],
-        heading: ["Space Grotesk", "IBM Plex Sans", "Noto Sans SC", "sans-serif"],
-        "heading-cn": ["Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", "serif"],
+        heading: ["Times New Roman", "Times", "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", "serif"],
+        "heading-cn": ["Times New Roman", "Times", "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", "serif"],
         mono: ["IBM Plex Mono", "monospace"],
       },
       animation: {

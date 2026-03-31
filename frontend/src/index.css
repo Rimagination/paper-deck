@@ -5,6 +5,7 @@
 :root {
   color-scheme: light;
   font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+  --font-title-serif: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", serif;
   --app-bg-top: #faf9fc;
   --app-bg-bottom: #f3f1f7;
   --app-grid-wash: rgba(255, 255, 255, 0.74);
@@ -105,6 +106,16 @@ body {
   transition: background-color 0.35s ease, color 0.35s ease;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-title-serif);
+  font-weight: inherit;
+}
+
 body::before {
   content: "";
   position: fixed;
@@ -158,7 +169,12 @@ body::before {
   }
 
   .app-wordmark {
-    font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+    font-family: var(--font-title-serif);
+  }
+
+  .font-heading,
+  .font-heading-cn {
+    font-family: var(--font-title-serif);
   }
 
   .global-nav-link:hover {
@@ -4372,6 +4388,7 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-title-serif);
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
@@ -4416,6 +4433,7 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 
 .digest-card-title-secondary {
   margin: 0;
+  font-family: var(--font-title-serif);
   font-size: 12px;
   line-height: 1.7;
   color: var(--text-muted);
