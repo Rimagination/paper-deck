@@ -20,6 +20,8 @@ const ORBITAL_BODIES = [
 
 const DRAW_BATCH_SIZE = 1;
 const MEMORY_LIMIT = 20;
+const LOADING_PHRASE_DURATION_MS = 2600;
+const LOADING_PHRASE_FADE_MS = 260;
 
 function formatImpactFactor(value) {
   if (typeof value !== "number" || Number.isNaN(value) || value <= 0) return null;
@@ -82,6 +84,10 @@ function EmptyState({ title, body, actionLabel, onAction, secondaryActionLabel, 
       </div>
     </section>
   );
+}
+
+function getGachaCards(result) {
+  return Array.isArray(result?.cards) ? result.cards : [];
 }
 
 export default function DrawView({
@@ -198,6 +204,24 @@ export default function DrawView({
     effectiveSeedPaperIds.length > 0 &&
     (drawStatus === "idle" || drawStatus === "loading");
 
+  async function requestCards(excludedPaperIds) {
+    const result = await gachaDraw(
+      effectiveSeedPaperIds,
+      DRAW_BATCH_SIZE,
+      cardMode,
+      locale,
+      excludedPaperIds,
+      fallbackSeedPapers
+    );
+    return getGachaCards(result);
+  }
+
+  function acceptDrawnCards(nextCards) {
+    nextCards.forEach((card) => seenIds.current.add(card.paper_id));
+    setCards((prev) => [...prev, ...nextCards]);
+    setDrawStatus("ready");
+  }
+
   async function fetchMore() {
     if (isFetching || !hasInterestMemory || effectiveSeedPaperIds.length === 0) return;
 
@@ -210,38 +234,18 @@ export default function DrawView({
 
     try {
       const excluded = [...new Set([...getCollectedPaperIds(), ...seenIds.current])];
-      const result = await gachaDraw(
-        effectiveSeedPaperIds,
-        DRAW_BATCH_SIZE,
-        cardMode,
-        locale,
-        excluded,
-        fallbackSeedPapers
-      );
-      const nextCards = Array.isArray(result.cards) ? result.cards : [];
+      const nextCards = await requestCards(excluded);
 
       if (nextCards.length > 0) {
-        nextCards.forEach((card) => seenIds.current.add(card.paper_id));
-        setCards((prev) => [...prev, ...nextCards]);
-        setDrawStatus("ready");
+        acceptDrawnCards(nextCards);
         return;
       }
 
       seenIds.current = new Set(getCollectedPaperIds());
-      const retry = await gachaDraw(
-        effectiveSeedPaperIds,
-        DRAW_BATCH_SIZE,
-        cardMode,
-        locale,
-        [...seenIds.current],
-        fallbackSeedPapers
-      );
-      const retryCards = Array.isArray(retry.cards) ? retry.cards : [];
+      const retryCards = await requestCards([...seenIds.current]);
 
       if (retryCards.length > 0) {
-        retryCards.forEach((card) => seenIds.current.add(card.paper_id));
-        setCards((prev) => [...prev, ...retryCards]);
-        setDrawStatus("ready");
+        acceptDrawnCards(retryCards);
         return;
       }
 
@@ -344,8 +348,8 @@ export default function DrawView({
       loadingPhraseTimeoutRef.current = setTimeout(() => {
         setLoadingPhraseIndex((current) => (current + 1) % ui.loadingPhrases.length);
         setLoadingPhraseVisible(true);
-      }, 260);
-    }, 2600);
+      }, LOADING_PHRASE_FADE_MS);
+    }, LOADING_PHRASE_DURATION_MS);
 
     return () => {
       clearInterval(intervalId);

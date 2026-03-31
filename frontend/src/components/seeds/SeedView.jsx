@@ -60,14 +60,100 @@ function getWordCloudMeasureContext() {
   return canvas.getContext("2d");
 }
 
+function getCloudKeywordEntries(keywordEntries) {
+  if (!Array.isArray(keywordEntries)) return [];
+  return keywordEntries.filter((entry) => entry?.word).slice(0, 10);
+}
+
+function measureKeywordWidth(measureContext, word, fontSize) {
+  const fallbackWidth = fontSize * String(word).length * 0.66;
+  if (!measureContext) return fallbackWidth;
+
+  measureContext.font = `500 ${fontSize}px "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
+  return measureContext.measureText(word).width;
+}
+
+function getKeywordBounds(word, fontSize, measureContext) {
+  const measuredWidth = measureKeywordWidth(measureContext, word, fontSize);
+  return {
+    width: Math.max(80, Math.ceil(measuredWidth) + 28),
+    height: Math.ceil(fontSize * 1.34),
+  };
+}
+
+function fitsCloudBounds(x, y, bounds, cloud) {
+  return (
+    x >= cloud.padding &&
+    y >= cloud.padding &&
+    x + bounds.width <= cloud.width - cloud.padding &&
+    y + bounds.height <= cloud.height - cloud.padding
+  );
+}
+
+function hasPlacementCollision(x, y, bounds, placed) {
+  return placed.some((item) => {
+    const horizontalGap = Math.min(x + bounds.width, item.left + item.width) - Math.max(x, item.left);
+    const verticalGap = Math.min(y + bounds.height, item.top + item.height) - Math.max(y, item.top);
+    return horizontalGap > -10 && verticalGap > -8;
+  });
+}
+
+function findPlacementForFontSize(word, fontSize, index, cloud, measureContext, placed) {
+  const bounds = getKeywordBounds(word, fontSize, measureContext);
+
+  for (let step = 0; step < 840; step += 1) {
+    const angle = step * 0.52 + index * 0.26;
+    const radius = 8 + step * 2.35;
+    const left = cloud.centerX + Math.cos(angle) * radius - bounds.width / 2;
+    const top = cloud.centerY + Math.sin(angle) * radius * 0.76 - bounds.height / 2;
+
+    if (!fitsCloudBounds(left, top, bounds, cloud)) continue;
+    if (hasPlacementCollision(left, top, bounds, placed)) continue;
+
+    return {
+      left,
+      top,
+      width: bounds.width,
+      height: bounds.height,
+      fontSize,
+    };
+  }
+
+  return null;
+}
+
+function findKeywordPlacement(entry, index, maxKeywordCount, cloud, measureContext, placed) {
+  const ratio = Math.max(0.2, (entry.count || 0) / maxKeywordCount);
+  const baseFontSize = 17 + ratio * 20;
+
+  for (let shrinkStep = 0; shrinkStep < 5; shrinkStep += 1) {
+    const fontSize = Math.max(15, baseFontSize - shrinkStep * 2.2);
+    const placement = findPlacementForFontSize(entry.word, fontSize, index, cloud, measureContext, placed);
+    if (!placement) continue;
+
+    return {
+      word: entry.word,
+      count: entry.count,
+      left: ((placement.left + placement.width / 2) / cloud.width) * 100,
+      top: ((placement.top + placement.height / 2) / cloud.height) * 100,
+      fontSize: placement.fontSize,
+      opacity: 0.48 + ratio * 0.42,
+      bounds: placement,
+    };
+  }
+
+  return null;
+}
+
 function buildKeywordCloudLayout(keywordEntries) {
-  const width = 1040;
-  const height = 460;
-  const centerX = width / 2;
-  const centerY = height / 2 + 18;
-  const baseEntries = Array.isArray(keywordEntries)
-    ? keywordEntries.filter((entry) => entry?.word).slice(0, 10)
-    : [];
+  const cloud = {
+    width: 1040,
+    height: 460,
+    padding: 20,
+    centerX: 1040 / 2,
+    centerY: 460 / 2 + 18,
+  };
+  const baseEntries = getCloudKeywordEntries(keywordEntries);
 
   if (baseEntries.length === 0) return [];
 
@@ -77,73 +163,21 @@ function buildKeywordCloudLayout(keywordEntries) {
 
   return [...baseEntries]
     .sort((left, right) => (right.count || 0) - (left.count || 0))
-    .flatMap((entry, index) => {
-      const ratio = Math.max(0.2, (entry.count || 0) / maxKeywordCount);
-      const padding = 20;
-      let fontSize = 17 + ratio * 20;
-      let placement = null;
-
-      for (let shrinkStep = 0; shrinkStep < 5 && !placement; shrinkStep += 1) {
-        const currentSize = Math.max(15, fontSize - shrinkStep * 2.2);
-        let measuredWidth = currentSize * String(entry.word).length * 0.66;
-        if (measureContext) {
-          measureContext.font = `500 ${currentSize}px "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
-          measuredWidth = measureContext.measureText(entry.word).width;
-        }
-        const wordWidth = Math.max(80, Math.ceil(measuredWidth) + 28);
-        const wordHeight = Math.ceil(currentSize * 1.34);
-        let candidate = null;
-
-        for (let step = 0; step < 840; step += 1) {
-          const angle = step * 0.52 + index * 0.26;
-          const radius = 8 + step * 2.35;
-          const x = centerX + Math.cos(angle) * radius - wordWidth / 2;
-          const y = centerY + Math.sin(angle) * radius * 0.76 - wordHeight / 2;
-          const fitsBounds =
-            x >= padding &&
-            y >= padding &&
-            x + wordWidth <= width - padding &&
-            y + wordHeight <= height - padding;
-          if (!fitsBounds) continue;
-
-          const overlaps = placed.some((item) => {
-            const horizontalGap = Math.min(x + wordWidth, item.left + item.width) - Math.max(x, item.left);
-            const verticalGap = Math.min(y + wordHeight, item.top + item.height) - Math.max(y, item.top);
-            return horizontalGap > -10 && verticalGap > -8;
-          });
-
-          if (!overlaps) {
-            candidate = { left: x, top: y, width: wordWidth, height: wordHeight, fontSize: currentSize };
-            break;
-          }
-        }
-
-        if (candidate) {
-          placement = candidate;
-        }
-      }
-
-      if (!placement) {
-        return [];
-      }
-
-      const result = {
-        ...entry,
-        left: ((placement.left + placement.width / 2) / width) * 100,
-        top: ((placement.top + placement.height / 2) / height) * 100,
-        fontSize: placement.fontSize,
-        opacity: 0.48 + ratio * 0.42,
-      };
+    .map((entry, index) => {
+      const placement = findKeywordPlacement(entry, index, maxKeywordCount, cloud, measureContext, placed);
+      if (!placement) return null;
 
       placed.push({
-        left: placement.left,
-        top: placement.top,
-        width: placement.width,
-        height: placement.height,
+        left: placement.bounds.left,
+        top: placement.bounds.top,
+        width: placement.bounds.width,
+        height: placement.bounds.height,
       });
 
-      return [result];
-    });
+      const { bounds, ...word } = placement;
+      return word;
+    })
+    .filter(Boolean);
 }
 
 function SectionFrame({ title, subtitle, action, children }) {
