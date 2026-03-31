@@ -4,7 +4,7 @@ import { gachaDraw } from "../../api/backend";
 import { useLanguage } from "../../i18n";
 import { markCardRead } from "../../readingState";
 import { useTheme } from "../../theme";
-import { getTierConfig, getZoneLabel } from "../cards/TierBadge";
+import { getTierConfig } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
 
 const ORBITAL_BODIES = [
@@ -19,6 +19,7 @@ const ORBITAL_BODIES = [
 ];
 
 const DRAW_BATCH_SIZE = 1;
+const MEMORY_LIMIT = 20;
 
 function formatImpactFactor(value) {
   if (typeof value !== "number" || Number.isNaN(value) || value <= 0) return null;
@@ -83,7 +84,15 @@ function EmptyState({ title, body, actionLabel, onAction, secondaryActionLabel, 
   );
 }
 
-export default function DrawView({ profileInfo, profileReady, seedPaperIds, cardMode, onOpenDiscover, onViewCard }) {
+export default function DrawView({
+  profileInfo,
+  profileReady,
+  seedPaperIds,
+  cardMode,
+  onOpenDiscover,
+  onViewCard,
+  onAddToMemory,
+}) {
   const { t, locale } = useLanguage();
   const { theme: appTheme } = useTheme();
   const { getCollectedPaperIds, toggleFavorite } = useScanSciAuth();
@@ -106,28 +115,46 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           errorBody: "Your interest memory is still here, but the next card did not resolve successfully. Try summoning again.",
           exhaustedTitle: "The current deck has gone quiet",
           exhaustedBody: "No new cards are surfacing from the current memory. Add more seeds or rebuild the interest memory to continue.",
-          detailHintIdle: "Flip the card first, then open the full detail view when you want the long read.",
-          detailHintReady: "Open the full detail view for structured reading, data, method, and research gaps.",
+          actionEyebrow: "Actions",
+          actionHintIdle: "Flip the card first. Then you can collect it, add it to memory, or open the full detail view.",
+          actionHintReady: "Use the side rail to collect the card, merge it into memory, or open the full detail view.",
+          addToMemory: "Add to Memory",
+          alreadyInMemory: "Already in Memory",
+          memoryCount: "Memory",
+          memoryAdded: "The current paper has been added to your interest memory.",
+          memoryAddedLocal: "Added to local memory. Sign in if you want it synced to ScanSci.",
+          memoryDuplicate: "This paper is already part of your interest memory.",
+          memoryFull: "Your interest memory is full. Go back to Discover and replace one of the existing seeds first.",
+          memoryFailed: "Unable to add this paper to memory right now.",
         }
       : {
-          discoverLabel: "\u53d1\u73b0",
-          emptyTitle: "\u73b0\u5728\u8fd8\u6ca1\u6709\u53ef\u62bd\u7684\u724c\u7ec4",
-          emptyBody: "\u5148\u5728\u53d1\u73b0\u9875\u641c\u8bba\u6587\u5e76\u751f\u6210\u5174\u8da3\u8bb0\u5fc6\uff0c\u62bd\u5361\u9875\u624d\u4f1a\u4ece\u8fd9\u4efd\u8bb0\u5fc6\u91cc\u7ee7\u7eed\u53ec\u724c\u3002",
-          emptyAction: "\u53bb\u53d1\u73b0",
-          loadingTitle: "\u9b54\u6cd5\u53ec\u724c\u4e2d",
+          discoverLabel: "发现",
+          emptyTitle: "现在还没有可抽的牌组",
+          emptyBody: "先在发现页搜论文并生成兴趣记忆，抽卡页才会从这份记忆里继续召牌。",
+          emptyAction: "去发现",
+          loadingTitle: "魔法召牌中",
           loadingPhrases: [
-            "\u7814\u7a76\u8bb0\u5fc6\u6b63\u6cbf\u7740\u8bcd\u4e0e\u5f15\u6587\u7f13\u7f13\u805a\u6210\u4e0b\u4e00\u5f20\u724c",
-            "\u8bba\u6587\u7684\u4fe1\u53f7\u6b63\u5728\u7ed9\u65b0\u5361\u6ce8\u5165\u5f62\u72b6",
-            "\u5173\u952e\u8bcd\u6b63\u5728\u7f16\u7ec7\u4e0b\u4e00\u9053\u724c\u9762\u7eb9\u8def",
-            "\u4e3b\u9898\u4e0e\u5f15\u6587\u6b63\u5728\u4e3a\u4e0b\u4e00\u6b21\u53ec\u724c\u79ef\u84c4\u80fd\u91cf",
+            "研究记忆正沿着词与引文缓缓聚成下一张牌",
+            "论文的信号正在给新卡注入形状",
+            "关键词正在编织下一道牌面纹路",
+            "主题与引文正在为下一次召牌积蓄能量",
           ],
-          retryAction: "\u91cd\u65b0\u53ec\u724c",
-          errorTitle: "\u53ec\u724c\u6682\u65f6\u5931\u8d25\u4e86",
-          errorBody: "\u4f60\u7684\u5174\u8da3\u8bb0\u5fc6\u4ecd\u7136\u5b58\u5728\uff0c\u53ea\u662f\u8fd9\u6b21\u65b0\u724c\u6ca1\u6709\u987a\u5229\u51dd\u6210\u3002\u53ef\u4ee5\u76f4\u63a5\u91cd\u65b0\u53ec\u724c\u3002",
-          exhaustedTitle: "\u5f53\u524d\u724c\u7ec4\u6682\u65f6\u5b89\u9759\u4e0b\u6765\u4e86",
-          exhaustedBody: "\u73b0\u6709\u5174\u8da3\u8bb0\u5fc6\u91cc\u6ca1\u6709\u66f4\u591a\u65b0\u724c\u6d6e\u73b0\u3002\u53ef\u4ee5\u518d\u52a0\u51e0\u7bc7\u79cd\u5b50\u8bba\u6587\uff0c\u6216\u91cd\u65b0\u751f\u6210\u4e00\u6b21\u5174\u8da3\u8bb0\u5fc6\u3002",
-          detailHintIdle: "\u5148\u7ffb\u724c\uff0c\u5982\u679c\u8981\u770b\u5b8c\u6574\u7814\u7a76\u89e3\u8bfb\uff0c\u518d\u70b9\u300c\u67e5\u770b\u8be6\u60c5\u300d\u3002",
-          detailHintReady: "\u53f3\u4fa7\u53ea\u4fdd\u7559\u5feb\u6377\u5165\u53e3\uff0c\u5b8c\u6574\u7684\u65b9\u6cd5\u3001\u6570\u636e\u3001\u521b\u65b0\u70b9\u548c\u5c40\u9650\u90fd\u653e\u5728\u8be6\u60c5\u91cc\u770b\u3002",
+          retryAction: "重新召牌",
+          errorTitle: "召牌暂时失败了",
+          errorBody: "你的兴趣记忆仍然存在，只是这次新牌没有顺利凝成。可以直接重新召牌。",
+          exhaustedTitle: "当前牌组暂时安静下来了",
+          exhaustedBody: "现有兴趣记忆里没有更多新牌浮现了。可以再加几篇种子论文，或重新生成一次兴趣记忆。",
+          actionEyebrow: "操作",
+          actionHintIdle: "先翻开当前这张牌，才能执行收藏、加入记忆或查看详情。",
+          actionHintReady: "右侧只保留动作入口。收藏、加入记忆、查看详情都在这里。",
+          addToMemory: "加入记忆",
+          alreadyInMemory: "已在记忆中",
+          memoryCount: "记忆",
+          memoryAdded: "这篇论文已加入当前兴趣记忆。",
+          memoryAddedLocal: "这篇论文已加入本地记忆，登录后才会同步到 ScanSci。",
+          memoryDuplicate: "这篇论文已经在当前记忆里了。",
+          memoryFull: "当前兴趣记忆已满 20 篇，需要先回发现页替换或删掉一篇种子。",
+          memoryFailed: "暂时无法把这篇论文加入记忆。",
         };
 
   const [cards, setCards] = useState([]);
@@ -142,6 +169,9 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const [settled, setSettled] = useState({});
   const [stageMotion, setStageMotion] = useState({ x: 0, y: 0 });
   const [flipFlashActive, setFlipFlashActive] = useState(false);
+  const [memoryFeedback, setMemoryFeedback] = useState("");
+  const [memoryFeedbackKind, setMemoryFeedbackKind] = useState("info");
+  const [isAddingToMemory, setIsAddingToMemory] = useState(false);
 
   const isDark = appTheme === "dark";
   const effectiveSeedPaperIds = useMemo(() => {
@@ -159,6 +189,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const fallbackSeedPapers = Array.isArray(profileInfo?.seed_papers) ? profileInfo.seed_papers : [];
   const seenIds = useRef(new Set());
   const flipFlashTimeoutRef = useRef(null);
+  const seedKeyRef = useRef("");
 
   async function fetchMore() {
     if (isFetching || !hasInterestMemory || effectiveSeedPaperIds.length === 0) return;
@@ -218,6 +249,17 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   }
 
   useEffect(() => {
+    const nextKey = effectiveSeedPaperIds.join(",");
+    const previousIds = seedKeyRef.current ? seedKeyRef.current.split(",").filter(Boolean) : [];
+    const nextIds = nextKey ? nextKey.split(",").filter(Boolean) : [];
+    const isAdditiveSeedUpdate =
+      previousIds.length > 0 &&
+      nextIds.length >= previousIds.length &&
+      previousIds.every((paperId) => nextIds.includes(paperId));
+
+    seedKeyRef.current = nextKey;
+    if (isAdditiveSeedUpdate) return;
+
     seenIds.current = new Set(getCollectedPaperIds());
     setCards([]);
     setCurrentIndex(0);
@@ -230,6 +272,8 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
     setStageMotion({ x: 0, y: 0 });
     setFlipFlashActive(false);
+    setMemoryFeedback("");
+    setMemoryFeedbackKind("info");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, effectiveSeedPaperIds.join(","), cardMode]);
 
@@ -258,6 +302,8 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
 
   useEffect(() => {
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
+    setMemoryFeedback("");
+    setMemoryFeedbackKind("info");
   }, [currentIndex]);
 
   useEffect(() => {
@@ -297,20 +343,42 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const isCollected = collected.has(currentIndex);
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
   const loadingSubtitle = ui.loadingPhrases[loadingPhraseIndex];
-  const impactFactor = formatImpactFactor(currentCard?.impact_factor);
+  const memorySeedCount = fallbackSeedPapers.length > 0 ? fallbackSeedPapers.length : effectiveSeedPaperIds.length;
+  const isCurrentInMemory = Boolean(
+    currentCard?.paper_id &&
+      (effectiveSeedPaperIds.includes(currentCard.paper_id) ||
+        fallbackSeedPapers.some((paper) => paper?.paper_id === currentCard.paper_id))
+  );
   const cardStyle = {
     "--gacha-tilt-x": `${cardMotion.tiltX}deg`,
     "--gacha-tilt-y": `${cardMotion.tiltY}deg`,
     "--gacha-glow-x": `${cardMotion.glowX}%`,
     "--gacha-glow-y": `${cardMotion.glowY}%`,
   };
-  const stageStyle = {
+  const layoutStyle = {
     "--draw-parallax-x": `${stageMotion.x}px`,
     "--draw-parallax-y": `${stageMotion.y}px`,
+    "--draw-stage-card-height": "clamp(380px, calc(100svh - 250px), 720px)",
+    "--draw-stage-card-width": "clamp(214px, calc(var(--draw-stage-card-height) * 0.5625), 405px)",
+    "--draw-stage-ring-a-size": "clamp(420px, calc(var(--draw-stage-card-width) + 150px), 620px)",
+    "--draw-stage-ring-b-size": "clamp(560px, calc(var(--draw-stage-card-width) + 320px), 820px)",
+    "--draw-stage-orbit-1-size": "clamp(250px, calc(var(--draw-stage-card-width) + 18px), 300px)",
+    "--draw-stage-orbit-2-size": "clamp(300px, calc(var(--draw-stage-card-width) + 84px), 392px)",
+    "--draw-stage-orbit-3-size": "clamp(360px, calc(var(--draw-stage-card-width) + 160px), 500px)",
+    "--draw-stage-orbit-4-size": "clamp(430px, calc(var(--draw-stage-card-width) + 250px), 620px)",
+    "--draw-stage-orbit-5-size": "clamp(510px, calc(var(--draw-stage-card-width) + 350px), 760px)",
   };
 
   const isSettled = Boolean(settled[currentIndex]);
   const showScrollCard = Boolean(isSettled && currentCard);
+  const feedbackToneStyle =
+    memoryFeedbackKind === "success"
+      ? { color: "#059669" }
+      : memoryFeedbackKind === "warning"
+        ? { color: "#d97706" }
+        : memoryFeedbackKind === "error"
+          ? { color: "#e11d48" }
+          : { color: "var(--text-muted)" };
 
   function handleFlip() {
     if (!isFlipped && currentCard) {
@@ -357,29 +425,46 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     setCollected((prev) => new Set(prev).add(currentIndex));
   }
 
+  async function handleAddToMemory() {
+    if (!currentCard || !isFlipped || !onAddToMemory || isAddingToMemory) return;
+
+    setIsAddingToMemory(true);
+    try {
+      const result = await onAddToMemory(currentCard);
+      if (result?.ok) {
+        setMemoryFeedback(result.reason === "local_only" ? ui.memoryAddedLocal : ui.memoryAdded);
+        setMemoryFeedbackKind("success");
+        return;
+      }
+      if (result?.reason === "duplicate") {
+        setMemoryFeedback(ui.memoryDuplicate);
+        setMemoryFeedbackKind("info");
+        return;
+      }
+      if (result?.reason === "limit") {
+        setMemoryFeedback(ui.memoryFull);
+        setMemoryFeedbackKind("warning");
+        return;
+      }
+      setMemoryFeedback(ui.memoryFailed);
+      setMemoryFeedbackKind("error");
+    } catch {
+      setMemoryFeedback(ui.memoryFailed);
+      setMemoryFeedbackKind("error");
+    } finally {
+      setIsAddingToMemory(false);
+    }
+  }
+
   function handleNext() {
     setCurrentIndex((prev) => prev + 1);
   }
-
-  const metadata = useMemo(() => {
-    const items = [
-      { label: t("draw.deckMode"), value: modeLabel },
-      { label: t("draw.deckCollectedCount"), value: collected.size },
-    ];
-    if (currentCard) {
-      items.push({ label: t("card.citations"), value: currentCard.citation_count || 0 });
-      if (impactFactor) {
-        items.push({ label: "IF", value: impactFactor });
-      }
-    }
-    return items;
-  }, [collected.size, currentCard, impactFactor, modeLabel, t]);
 
   if (drawStatus === "loading" && cards.length === 0) {
     return (
       <div
         className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`}
-        style={stageStyle}
+        style={layoutStyle}
         onMouseMove={handleStageMove}
         onMouseLeave={resetStageMotion}
       >
@@ -411,7 +496,6 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             <div className="draw-loading-sigil-core" />
           </div>
           <div className="draw-loading-copy">
-            <p className="draw-loading-kicker">{`${t("draw.eyebrow")} / ${modeLabel}`}</p>
             <h3 className={`draw-loading-title ${locale === "zh" ? "font-heading-cn is-cn" : "font-heading"}`}>
               {ui.loadingTitle}
             </h3>
@@ -459,7 +543,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   return (
     <div
       className={`gacha-stage-view ${isDark ? "is-dark" : "is-light"}`}
-      style={stageStyle}
+      style={layoutStyle}
       onMouseMove={handleStageMove}
       onMouseLeave={resetStageMotion}
     >
@@ -477,24 +561,12 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
         </>
       ) : null}
 
-      <div className={`gacha-shell ${isDark ? "is-dark" : "is-light"}`}>
-        <header className="gacha-shell-header">
-          <div>
-            <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
-            <h2 className="font-heading-cn text-2xl font-semibold">{t("gacha.title")}</h2>
-          </div>
-          <div className="gacha-shell-progress">
-            <span className="draw-counter">
-              {currentIndex + 1} <span className="draw-counter-inf">∞</span>
-            </span>
-            <div className="gacha-shell-progress-track">
-              <div className="gacha-shell-progress-fill draw-progress-pulse" />
-            </div>
-          </div>
-        </header>
-
-        <div className="draw-stage-grid">
-          <div className="gacha-stage">
+      <div
+        className={`gacha-shell ${isDark ? "is-dark" : "is-light"}`}
+        style={{ width: "min(1280px, 100%)", paddingTop: "24px", paddingBottom: "24px" }}
+      >
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_228px]">
+          <div className="gacha-stage" style={{ minHeight: "clamp(700px, calc(100svh - 180px), 940px)" }}>
             <div className="gacha-stage-cosmos" aria-hidden="true">
               <div className="gacha-stage-aura gacha-stage-aura-a" />
               <div className="gacha-stage-aura gacha-stage-aura-b" />
@@ -573,89 +645,78 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
             </div>
           </div>
 
-          <aside className="gacha-inspector">
-            <div className="gacha-inspector-panel">
-              <p className="gacha-shell-kicker">{t("draw.memorySource")}</p>
-              <div className="mt-4 space-y-3">
-                {metadata.map((item) => (
-                  <div key={item.label} className="gacha-inspector-row">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
+          <aside className="flex flex-col gap-3">
+            <div className="gacha-inspector-panel !p-4">
+              <p className="gacha-shell-kicker">{ui.actionEyebrow}</p>
+              <p className="mt-3 text-[13px] leading-7" style={{ color: "var(--text-muted)" }}>
+                {isFlipped && currentCard ? ui.actionHintReady : ui.actionHintIdle}
+              </p>
+
+              <div className="mt-4 grid gap-3">
+                <button
+                  onClick={handleCollect}
+                  disabled={!isFlipped || isCollected || !currentCard}
+                  className={`app-accent-button rounded-2xl px-4 py-3 text-sm font-semibold disabled:opacity-40`}
+                >
+                  {isCollected ? t("card.collected") : t("card.collect")}
+                </button>
+
+                <button
+                  onClick={handleAddToMemory}
+                  disabled={!isFlipped || !currentCard || isCurrentInMemory || isAddingToMemory}
+                  className="app-outline-button rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                >
+                  {isCurrentInMemory ? ui.alreadyInMemory : isAddingToMemory ? t("common.loading") : ui.addToMemory}
+                </button>
+
+                {onViewCard ? (
+                  <button
+                    onClick={() => currentCard && onViewCard(currentCard)}
+                    disabled={!isFlipped || !currentCard}
+                    className="app-outline-button rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                  >
+                    {t("recommend.viewCard")}
+                  </button>
+                ) : null}
+
+                <button
+                  onClick={handleNext}
+                  disabled={!isFlipped || !currentCard}
+                  className="app-primary-button rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                >
+                  {t("gacha.nextCard")}
+                </button>
+              </div>
+
+              <div className="mt-4 border-t border-slate-200/80 pt-4">
+                <div
+                  className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                  style={{ color: "var(--text-soft)" }}
+                >
+                  <span>{ui.memoryCount}</span>
+                  <span>{memorySeedCount} / {MEMORY_LIMIT}</span>
+                </div>
+                {(memoryFeedback || fetchError) && (
+                  <p
+                    className="mt-3 text-[12px] leading-6"
+                    style={memoryFeedback ? feedbackToneStyle : { color: "#e11d48" }}
+                  >
+                    {memoryFeedback || fetchError}
+                  </p>
+                )}
+                {isFetching ? (
+                  <div className="draw-fetch-row mt-3">
+                    <div className="draw-fetch-dot" />
+                    <span>{t("draw.drawing")}</span>
                   </div>
-                ))}
+                ) : null}
               </div>
             </div>
 
-            <div className="gacha-inspector-panel gacha-inspector-quick">
-              <p className="gacha-shell-kicker">{t("recommend.viewCard")}</p>
-              <p className="draw-inspector-body">
-                {isFlipped && currentCard ? ui.detailHintReady : ui.detailHintIdle}
-              </p>
-              {isFlipped && currentCard ? (
-                <>
-                  <div className="gacha-inspector-chip-row">
-                    {currentCard.zone ? (
-                      <span className="gacha-inspector-chip">{getZoneLabel(currentCard.zone)}</span>
-                    ) : null}
-                    {currentCard.is_ni ? <span className="gacha-inspector-chip is-ni">NI</span> : null}
-                    {impactFactor ? <span className="gacha-inspector-chip">{`IF ${impactFactor}`}</span> : null}
-                  </div>
-                  {onViewCard ? (
-                    <button
-                      onClick={() => onViewCard(currentCard)}
-                      className="app-outline-button rounded-xl px-4 py-2.5 text-sm font-medium"
-                    >
-                      {t("recommend.viewCard")}
-                    </button>
-                  ) : null}
-                </>
-              ) : null}
-            </div>
-
-            <div className="gacha-inspector-panel">
-              <p className="gacha-shell-kicker">{t("draw.filterEyebrow")}</p>
-              <p className="draw-inspector-body">
-                {isCollected ? t("card.collected") : t("draw.filterBody", { count: collected.size })}
-              </p>
-            </div>
-
-            {isFetching ? (
-              <div className="draw-fetch-row">
-                <div className="draw-fetch-dot" />
-                <span>{t("draw.drawing")}</span>
-              </div>
-            ) : null}
-            {fetchError ? <p className="draw-fetch-error">{fetchError}</p> : null}
-          </aside>
-        </div>
-
-        <div className="gacha-actions">
-          <div className="gacha-actions-group">
-            <button
-              onClick={handleCollect}
-              disabled={!isFlipped || isCollected || !currentCard}
-              className={`gacha-action-button is-primary ${!isFlipped || isCollected || !currentCard ? "is-disabled" : ""}`}
-            >
-              {isCollected ? t("card.collected") : t("card.collect")}
-            </button>
-            <button
-              onClick={handleNext}
-              disabled={!isFlipped || !currentCard}
-              className={`gacha-action-button is-accent ${!isFlipped || !currentCard ? "is-disabled" : ""}`}
-            >
-              {t("gacha.nextCard")}
-            </button>
-            {isFlipped && currentCard && onViewCard ? (
-              <button onClick={() => onViewCard(currentCard)} className="gacha-action-button">
-                {t("recommend.viewCard")}
-              </button>
-            ) : null}
-          </div>
-          <div className="gacha-secondary-actions">
-            <button onClick={onOpenDiscover} className="gacha-text-button">
+            <button onClick={onOpenDiscover} className="gacha-text-button self-start px-1 text-sm">
               {ui.discoverLabel}
             </button>
-          </div>
+          </aside>
         </div>
       </div>
     </div>

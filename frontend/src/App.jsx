@@ -123,10 +123,32 @@ function ThemeToggle({ theme, onToggle, t }) {
   );
 }
 
+function normalizeSeedPaperFromCard(card) {
+  if (!card?.paper_id) return null;
+  return {
+    paper_id: String(card.paper_id).trim(),
+    title: card.title || "Untitled",
+    title_zh: card.title_zh || "",
+    abstract: card.abstract || null,
+    authors: Array.isArray(card.authors) ? card.authors : [],
+    year: card.year ?? null,
+    venue: card.venue || null,
+    doi: card.doi || null,
+    url: card.url || null,
+    citation_count: card.citation_count ?? 0,
+    similarity_score: card.similarity_score ?? 0,
+    zone: card.zone || null,
+    impact_factor: card.impact_factor ?? null,
+    is_ni: Boolean(card.is_ni),
+    issn: card.issn || null,
+    eissn: card.eissn || null,
+  };
+}
+
 export default function App() {
   const { t, locale, setLocale } = useLanguage();
   const { theme, toggleTheme } = useTheme();
-  const { status: authStatus, user: authUser, startLogin } = useScanSciAuth();
+  const { status: authStatus, user: authUser, startLogin, saveInterestProfile } = useScanSciAuth();
 
   const [view, setView] = useState("seeds");
   const [seedPapers, setSeedPapers] = useState([]);
@@ -159,6 +181,46 @@ export default function App() {
     setSeedPaperIds(nextSeeds.map((paper) => paper.paper_id));
     setProfileReady(false);
     setInterestProfile(null);
+  }
+
+  async function handleAddCardToMemory(card) {
+    const nextSeed = normalizeSeedPaperFromCard(card);
+    if (!nextSeed) return { ok: false, reason: "invalid" };
+
+    const currentSeeds =
+      Array.isArray(interestProfile?.seed_papers) && interestProfile.seed_papers.length > 0
+        ? interestProfile.seed_papers.filter((paper) => paper?.paper_id)
+        : seedPapers.filter((paper) => paper?.paper_id);
+
+    if (currentSeeds.some((paper) => paper.paper_id === nextSeed.paper_id)) {
+      return { ok: false, reason: "duplicate", count: currentSeeds.length };
+    }
+
+    if (currentSeeds.length >= 20) {
+      return { ok: false, reason: "limit", count: currentSeeds.length };
+    }
+
+    const nextSeeds = [...currentSeeds, nextSeed];
+    const nextProfile = {
+      ...(interestProfile || {}),
+      seed_papers: nextSeeds,
+      seed_count: nextSeeds.length,
+      updated_at: new Date().toISOString(),
+    };
+
+    setSeedPapers(nextSeeds);
+    setSeedPaperIds(nextSeeds.map((paper) => paper.paper_id).filter(Boolean));
+    setInterestProfile(nextProfile);
+    setProfileReady(Boolean(nextProfile.embedding?.length) || profileReady || nextSeeds.length > 0);
+
+    if (authStatus === "authenticated") {
+      const syncResult = await saveInterestProfile(nextProfile);
+      if (!syncResult.ok) {
+        return { ok: true, reason: "local_only", count: nextSeeds.length };
+      }
+    }
+
+    return { ok: true, count: nextSeeds.length };
   }
 
   return (
@@ -235,6 +297,7 @@ export default function App() {
               cardMode={cardMode}
               onOpenDiscover={() => setView("seeds")}
               onViewCard={setDetailCard}
+              onAddToMemory={handleAddCardToMemory}
             />
           )}
           {view === "library" && <LibraryView cardMode={cardMode} onViewCard={setDetailCard} />}
