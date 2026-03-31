@@ -14,7 +14,12 @@ from backend.models.schemas import (
     CardResponse,
 )
 from backend.services.interest import average_embeddings, rank_papers_by_similarity
-from backend.services.paper_metadata import build_digest_summary, enrich_paper_metadata
+from backend.services.paper_metadata import (
+    build_digest_summary,
+    enrich_paper_metadata,
+    hydrate_paper_for_journal_metadata,
+    merge_paper_records,
+)
 from backend.services.semantic_scholar import SemanticScholarError, normalize_authors, resolve_doi, resolve_url
 from backend.services.tier_classifier import classify_tier
 
@@ -26,8 +31,10 @@ async def _build_card_response(
     paper: dict,
     body: GachaRequest,
     card_gen,
+    oa_client,
     journal_zone,
 ) -> CardResponse:
+    paper = await hydrate_paper_for_journal_metadata(paper, oa_client=oa_client)
     metadata = enrich_paper_metadata(paper, journal_zone)
     tier = classify_tier(
         citation_count=paper.get("citationCount") or 0,
@@ -131,7 +138,7 @@ async def rank_recommendations(
     enriched = []
     for paper in raw_papers:
         paper_id = paper.get("paperId")
-        enriched.append({**paper, **embedding_by_id.get(paper_id, {})})
+        enriched.append(merge_paper_records(paper, embedding_by_id.get(paper_id)))
 
     return rank_papers_by_similarity(interest_embedding, enriched)
 
@@ -242,7 +249,8 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
 
     excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
 
-    cache_key = f"pd:rec:v3:{':'.join(sorted(body.seed_paper_ids))}:{body.limit}:{body.language}"
+    cache_key = f"pd:rec:v4:{':'.join(sorted(body.seed_paper_ids))}:{body.limit}:{body.language}"
+    oa = request.app.state.oa_client
     cached = await cache.get_json(cache_key)
     if cached is not None:
         papers = [PaperSummary(**p) for p in cached]
@@ -278,6 +286,7 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
             build_digest_summary(
                 paper,
                 card_generator=card_gen,
+                oa_client=oa,
                 journal_zone=journal_zone,
                 similarity=paper.get("similarity_score") or 0.0,
                 language=body.language,
@@ -295,6 +304,7 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
 async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
     settings = request.app.state.settings
     card_gen = request.app.state.card_generator
+    oa = request.app.state.oa_client
     journal_zone = request.app.state.journal_zone
 
     excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
@@ -331,6 +341,7 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
                 paper=paper,
                 body=body,
                 card_gen=card_gen,
+                oa_client=oa,
                 journal_zone=journal_zone,
             )
             for paper in selected

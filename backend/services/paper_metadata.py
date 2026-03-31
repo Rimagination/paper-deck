@@ -25,6 +25,85 @@ def _contains_cjk(value: Any) -> bool:
     return bool(CJK_RE.search(_clean_text(value)))
 
 
+def _has_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, set, dict)):
+        return bool(value)
+    return True
+
+
+def merge_paper_records(primary: dict[str, Any], fallback: dict[str, Any] | None) -> dict[str, Any]:
+    if not fallback:
+        return dict(primary)
+
+    merged = dict(primary)
+    for key, fallback_value in fallback.items():
+        current_value = merged.get(key)
+
+        if key == "externalIds" and isinstance(fallback_value, dict):
+            current_ids = current_value if isinstance(current_value, dict) else {}
+            merged[key] = {**fallback_value, **current_ids}
+            continue
+
+        if key == "primary_location" and isinstance(fallback_value, dict):
+            current_location = current_value if isinstance(current_value, dict) else {}
+            merged[key] = {**fallback_value, **current_location}
+            fallback_source = fallback_value.get("source") if isinstance(fallback_value.get("source"), dict) else {}
+            current_source = current_location.get("source") if isinstance(current_location.get("source"), dict) else {}
+            if fallback_source or current_source:
+                merged[key]["source"] = {**fallback_source, **current_source}
+            continue
+
+        if not _has_value(current_value) and _has_value(fallback_value):
+            merged[key] = fallback_value
+
+    return merged
+
+
+def needs_journal_metadata_backfill(paper: dict[str, Any]) -> bool:
+    issn, eissn = extract_issn_fields(paper)
+    source = ((paper.get("primary_location") or {}).get("source") or {})
+    venue_title = paper.get("venue") or source.get("display_name")
+    return not (_has_value(venue_title) and (_has_value(issn) or _has_value(eissn)))
+
+
+async def hydrate_paper_for_journal_metadata(
+    paper: dict[str, Any],
+    *,
+    oa_client: Any,
+    lookup_hint: str | None = None,
+) -> dict[str, Any]:
+    if not paper or oa_client is None or not needs_journal_metadata_backfill(paper):
+        return paper
+
+    lookup_candidates: list[str] = []
+    doi = resolve_doi(paper)
+    if doi:
+        lookup_candidates.append(f"DOI:{doi}")
+
+    paper_id = str(paper.get("paperId") or "").strip()
+    if paper_id.startswith(("DOI:", "OA:")):
+        lookup_candidates.append(paper_id)
+
+    if lookup_hint and lookup_hint.startswith(("DOI:", "OA:")):
+        lookup_candidates.append(lookup_hint)
+
+    seen_candidates: set[str] = set()
+    for candidate in lookup_candidates:
+        normalized = candidate.strip()
+        if not normalized or normalized in seen_candidates:
+            continue
+        seen_candidates.add(normalized)
+        fallback = await oa_client.get_paper_by_lookup(normalized)
+        if fallback:
+            return merge_paper_records(paper, fallback)
+
+    return paper
+
+
 def extract_issn_fields(paper: dict[str, Any]) -> tuple[str | None, str | None]:
     issn = paper.get("issn")
     eissn = paper.get("eissn")
@@ -109,10 +188,14 @@ async def build_digest_summary(
     paper: dict[str, Any],
     *,
     card_generator: Any,
+    oa_client: Any | None = None,
     journal_zone: JournalZoneService | None = None,
     similarity: float = 0.0,
     language: str = "zh",
 ) -> PaperSummary | None:
+    if oa_client is not None:
+        paper = await hydrate_paper_for_journal_metadata(paper, oa_client=oa_client)
+
     if not paper_has_digest_quality(paper):
         return None
 

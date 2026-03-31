@@ -22,6 +22,8 @@ _JCR_FALLBACK: dict[str, str] = {
     "Q4": ZONE_4,
 }
 
+_ZONE_TOKEN_RE = re.compile(r"([1-4])")
+
 
 @dataclass(frozen=True)
 class JournalRankMetadata:
@@ -47,6 +49,19 @@ def _coerce_if(value: object) -> float | None:
     return round(number, 1)
 
 
+def _coerce_zone(value: object, jcr_quartile: object) -> str | None:
+    raw = unicodedata.normalize("NFKC", str(value or "")).strip()
+    if raw in {ZONE_1, ZONE_2, ZONE_3, ZONE_4}:
+        return raw
+
+    match = _ZONE_TOKEN_RE.search(raw)
+    if match:
+        return f"{match.group(1)}区"
+
+    fallback = unicodedata.normalize("NFKC", str(jcr_quartile or "")).strip().upper()
+    return _JCR_FALLBACK.get(fallback)
+
+
 class JournalZoneService:
     """In-memory lookup for journal ranking metadata by ISSN or title."""
 
@@ -68,7 +83,7 @@ class JournalZoneService:
             journals: list[dict] = data.get("journals", [])
             for journal in journals:
                 metadata = JournalRankMetadata(
-                    zone=(journal.get("cas_2025") or "").strip() or None,
+                    zone=_coerce_zone(journal.get("cas_2025"), journal.get("jcr_quartile")),
                     impact_factor=_coerce_if(journal.get("if_2023")),
                     is_ni=bool(journal.get("ni_journal")),
                 )

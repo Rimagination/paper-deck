@@ -7,7 +7,11 @@ from fastapi import APIRouter, HTTPException, Request
 
 from backend.models.schemas import PaperSummary, ProfileGenerateRequest, ProfileResponse
 from backend.services.interest import average_embeddings
-from backend.services.paper_metadata import build_paper_summary
+from backend.services.paper_metadata import (
+    build_paper_summary,
+    hydrate_paper_for_journal_metadata,
+    merge_paper_records,
+)
 from backend.services.semantic_scholar import SemanticScholarError, SemanticScholarNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -100,6 +104,7 @@ async def _resolve_seed_papers(
 @router.post("/generate")
 async def generate_profile(request: Request, body: ProfileGenerateRequest) -> ProfileResponse:
     s2 = request.app.state.s2_client
+    oa = request.app.state.oa_client
     cache = request.app.state.cache
     settings = request.app.state.settings
     journal_zone = request.app.state.journal_zone
@@ -131,10 +136,12 @@ async def generate_profile(request: Request, body: ProfileGenerateRequest) -> Pr
     seed_papers = []
     for paper in resolved_seed_papers:
         paper_id = str(paper.get("paperId") or "").strip()
-        source_paper = {
-            **paper,
-            **papers_with_embeddings_by_id.get(paper_id, {}),
-        }
+        source_paper = merge_paper_records(paper, papers_with_embeddings_by_id.get(paper_id))
+        source_paper = await hydrate_paper_for_journal_metadata(
+            source_paper,
+            oa_client=oa,
+            lookup_hint=paper_id,
+        )
         embedding_data = source_paper.get("embedding") or {}
         vector = embedding_data.get("vector") if isinstance(embedding_data, dict) else None
         if vector:

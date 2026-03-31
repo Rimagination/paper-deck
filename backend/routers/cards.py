@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from backend.models.schemas import CardGenerateRequest, CardResponse
-from backend.services.paper_metadata import enrich_paper_metadata
+from backend.services.paper_metadata import enrich_paper_metadata, hydrate_paper_for_journal_metadata
 from backend.services.semantic_scholar import SemanticScholarError, normalize_authors, resolve_doi, resolve_url
 from backend.services.tier_classifier import classify_tier
 
@@ -19,7 +19,7 @@ async def generate_card(request: Request, body: CardGenerateRequest) -> CardResp
     settings = request.app.state.settings
     journal_zone = request.app.state.journal_zone
 
-    cache_key = f"pd:card:v5:{body.paper_id}:{body.mode}:{body.language}"
+    cache_key = f"pd:card:v6:{body.paper_id}:{body.mode}:{body.language}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         return CardResponse(**cached)
@@ -30,6 +30,12 @@ async def generate_card(request: Request, body: CardGenerateRequest) -> CardResp
         paper = await oa.get_paper_by_lookup(body.paper_id)
         if not paper:
             raise HTTPException(status_code=503, detail="Paper details unavailable.")
+
+    paper = await hydrate_paper_for_journal_metadata(
+        paper,
+        oa_client=oa,
+        lookup_hint=body.paper_id,
+    )
 
     card_content = await card_gen.generate_card(
         paper,

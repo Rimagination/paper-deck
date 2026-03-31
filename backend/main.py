@@ -34,8 +34,8 @@ def _resolve_journal_zone_index_path(settings: Settings) -> Path | None:
 
     here = Path(__file__).resolve()
     candidates.extend([
+        here.parent / "data" / "search_index.json",
         here.parents[2] / "journal-scout-tmp" / "data" / "search_index.json",
-        here.parents[1] / "data" / "search_index.json",
     ])
 
     for path in candidates:
