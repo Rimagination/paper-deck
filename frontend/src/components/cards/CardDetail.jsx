@@ -7,6 +7,13 @@ import PaperCard from "./PaperCard";
 import ReadingPanel from "./ReadingPanel";
 import { getZoneLabel } from "./TierBadge";
 
+function getSerifClass(value, locale) {
+  if (locale === "zh" || /[\u3400-\u9fff]/.test(String(value || ""))) {
+    return "font-heading-cn";
+  }
+  return "font-heading";
+}
+
 function MetaPill({ label, value }) {
   if (!value && value !== 0) return null;
   return (
@@ -150,6 +157,9 @@ export default function CardDetail({ card, mode, onClose }) {
           quickTitle: "\u8bba\u6587\u901f\u89c8\u7b80\u62a5",
           fallbackNotice: "\u5f53\u524d\u5185\u5bb9\u6b63\u5728\u57fa\u4e8e\u5df2\u6709\u5361\u9762\u4fe1\u606f\u505a\u517c\u5bb9\u63a8\u5bfc\u3002",
         };
+  const detailTitleFont = getSerifClass(cardData?.title, locale);
+  const readingTitleText = currentMode === "research" ? ui.readingTitle : ui.quickTitle;
+  const readingTitleFont = getSerifClass(readingTitleText, locale);
 
   return (
     <div className="detail-backdrop" onClick={onClose}>
@@ -157,7 +167,7 @@ export default function CardDetail({ card, mode, onClose }) {
         <div className="detail-header">
           <div>
             <p className="detail-kicker">{currentMode === "research" ? t("card.researchMode") : t("card.discoveryMode")}</p>
-            <h2 className="detail-title">{cardData?.title || "PaperDeck"}</h2>
+            <h2 className={`detail-title ${detailTitleFont}`}>{cardData?.title || "PaperDeck"}</h2>
             <p className="detail-subtitle">{authorLine}</p>
           </div>
           <div className="detail-header-actions">
@@ -225,7 +235,7 @@ export default function CardDetail({ card, mode, onClose }) {
             <div className="detail-reading-header">
               <div>
                 <p className="detail-kicker">{currentMode === "research" ? ui.readingEyebrow : ui.quickEyebrow}</p>
-                <h3 className="detail-reading-title">{currentMode === "research" ? ui.readingTitle : ui.quickTitle}</h3>
+                <h3 className={`detail-reading-title ${readingTitleFont}`}>{readingTitleText}</h3>
                 {modeError && <p className="detail-reading-note">{modeError}</p>}
                 {!cachedCard?.card_content && !isLoadingMode && modeError ? (
                   <p className="detail-reading-note">{ui.fallbackNotice}</p>

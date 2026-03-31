@@ -5,11 +5,18 @@ import {
   normalizeResearchContent,
 } from "./cardContent";
 
-function SectionBlock({ label, value, accent = false }) {
+function getSerifClass(value, locale) {
+  if (locale === "zh" || /[\u3400-\u9fff]/.test(String(value || ""))) {
+    return "font-heading-cn";
+  }
+  return "font-heading";
+}
+
+function SectionBlock({ label, value, accent = false, locale = "zh" }) {
   if (!isMeaningfulText(value)) return null;
   return (
     <section className="reading-section">
-      <p className="reading-section-label">{label}</p>
+      <p className={`reading-section-label ${getSerifClass(label, locale)}`}>{label}</p>
       <div className={`reading-section-body ${accent ? "is-accent" : ""}`}>{value}</div>
     </section>
   );
@@ -61,26 +68,26 @@ function ResearchReadingPanel({ card }) {
 
   return (
     <div className="space-y-5">
-      <SectionBlock label={labels.question} value={content.researchQuestion} accent />
-      <SectionBlock label={labels.gap} value={content.researchGap} />
-      <SectionBlock label={labels.method} value={content.methodSnapshot} />
-      <SectionBlock label={labels.data} value={content.dataAndEvaluation} />
-      <SectionBlock label={labels.findings} value={content.keyFindings} />
-      <SectionBlock label={labels.innovation} value={content.innovation} />
+      <SectionBlock label={labels.question} value={content.researchQuestion} accent locale={locale} />
+      <SectionBlock label={labels.gap} value={content.researchGap} locale={locale} />
+      <SectionBlock label={labels.method} value={content.methodSnapshot} locale={locale} />
+      <SectionBlock label={labels.data} value={content.dataAndEvaluation} locale={locale} />
+      <SectionBlock label={labels.findings} value={content.keyFindings} locale={locale} />
+      <SectionBlock label={labels.innovation} value={content.innovation} locale={locale} />
       {content.evidenceSignals.length > 0 && (
         <section className="reading-section">
-          <p className="reading-section-label">{labels.signals}</p>
+          <p className={`reading-section-label ${getSerifClass(labels.signals, locale)}`}>{labels.signals}</p>
           <TagList values={content.evidenceSignals} prefix="" />
         </section>
       )}
       {content.techStack.length > 0 && (
         <section className="reading-section">
-          <p className="reading-section-label">{labels.stack}</p>
+          <p className={`reading-section-label ${getSerifClass(labels.stack, locale)}`}>{labels.stack}</p>
           <TagList values={content.techStack} prefix="" />
         </section>
       )}
-      <SectionBlock label={labels.limitations} value={content.limitations} />
-      <SectionBlock label={labels.next} value={content.nextStep} />
+      <SectionBlock label={labels.limitations} value={content.limitations} locale={locale} />
+      <SectionBlock label={labels.next} value={content.nextStep} locale={locale} />
     </div>
   );
 }
@@ -113,17 +120,19 @@ function DiscoveryReadingPanel({ card }) {
 
   return (
     <div className="space-y-5">
-      {isMeaningfulText(content.headline) && <p className="reading-headline">{content.headline}</p>}
-      <SectionBlock label={labels.summary} value={content.summary} accent />
-      <SectionBlock label={labels.insight} value={content.insight} />
-      <SectionBlock label={labels.matters} value={content.whyItMatters} />
-      <SectionBlock label={labels.methodCue} value={content.methodCue} />
-      <SectionBlock label={labels.resultSignal} value={content.resultSignal} />
-      <SectionBlock label={labels.readIf} value={content.readIf} />
-      <SectionBlock label={labels.audience} value={content.audience} />
+      {isMeaningfulText(content.headline) && (
+        <p className={`reading-headline ${getSerifClass(content.headline, locale)}`}>{content.headline}</p>
+      )}
+      <SectionBlock label={labels.summary} value={content.summary} accent locale={locale} />
+      <SectionBlock label={labels.insight} value={content.insight} locale={locale} />
+      <SectionBlock label={labels.matters} value={content.whyItMatters} locale={locale} />
+      <SectionBlock label={labels.methodCue} value={content.methodCue} locale={locale} />
+      <SectionBlock label={labels.resultSignal} value={content.resultSignal} locale={locale} />
+      <SectionBlock label={labels.readIf} value={content.readIf} locale={locale} />
+      <SectionBlock label={labels.audience} value={content.audience} locale={locale} />
       {content.quickTakeaways.length > 0 && (
         <section className="reading-section">
-          <p className="reading-section-label">{labels.takeaways}</p>
+          <p className={`reading-section-label ${getSerifClass(labels.takeaways, locale)}`}>{labels.takeaways}</p>
           <TagList values={content.quickTakeaways} prefix="" />
         </section>
       )}

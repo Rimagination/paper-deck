@@ -190,6 +190,11 @@ export default function DrawView({
   const seenIds = useRef(new Set());
   const flipFlashTimeoutRef = useRef(null);
   const seedKeyRef = useRef("");
+  const shouldShowLoadingStage =
+    cards.length === 0 &&
+    hasInterestMemory &&
+    effectiveSeedPaperIds.length > 0 &&
+    (drawStatus === "idle" || drawStatus === "loading");
 
   async function fetchMore() {
     if (isFetching || !hasInterestMemory || effectiveSeedPaperIds.length === 0) return;
@@ -460,7 +465,7 @@ export default function DrawView({
     setCurrentIndex((prev) => prev + 1);
   }
 
-  if (drawStatus === "loading" && cards.length === 0) {
+  if (shouldShowLoadingStage) {
     return (
       <div
         className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`}
