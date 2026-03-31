@@ -61,13 +61,21 @@ def lookup_zone_for_paper(
 def enrich_paper_metadata(
     paper: dict[str, Any],
     journal_zone: JournalZoneService | None,
-) -> dict[str, str | None]:
+) -> dict[str, str | float | bool | None]:
     issn, eissn = extract_issn_fields(paper)
-    zone = lookup_zone_for_paper(paper, journal_zone)
+    source = ((paper.get("primary_location") or {}).get("source") or {})
+    venue_title = paper.get("venue") or source.get("display_name")
+    rank = (
+        journal_zone.lookup_metadata(issn=issn, eissn=eissn, title=venue_title)
+        if journal_zone is not None
+        else None
+    )
     return {
         "issn": issn,
         "eissn": eissn,
-        "zone": zone,
+        "zone": rank.zone if rank else None,
+        "impact_factor": rank.impact_factor if rank else None,
+        "is_ni": rank.is_ni if rank else False,
     }
 
 
@@ -92,6 +100,8 @@ def build_paper_summary(
         issn=metadata["issn"],
         eissn=metadata["eissn"],
         zone=metadata["zone"],
+        impact_factor=metadata["impact_factor"],
+        is_ni=bool(metadata["is_ni"]),
     )
 
 
@@ -133,6 +143,8 @@ async def build_digest_summary(
         issn=metadata["issn"],
         eissn=metadata["eissn"],
         zone=metadata["zone"],
+        impact_factor=metadata["impact_factor"],
+        is_ni=bool(metadata["is_ni"]),
         language=language,
         card_content=card_content,
     )

@@ -406,6 +406,54 @@ body::before {
     z-index: 0;
   }
 
+  .card-zone-ni {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 16%, rgba(255, 241, 181, 0.28), transparent 24%),
+      radial-gradient(circle at 82% 18%, rgba(255, 214, 102, 0.26), transparent 26%),
+      linear-gradient(155deg, #211100 0%, #4a2400 34%, #8c5100 58%, #3a1d00 82%, #211100 100%);
+    border: 2px solid #f3c84a;
+    box-shadow:
+      0 0 34px rgba(243, 200, 74, 0.72),
+      0 0 72px rgba(255, 190, 11, 0.28),
+      0 16px 56px rgba(0, 0, 0, 0.72),
+      inset 0 1px 0 rgba(255, 250, 220, 0.4);
+  }
+
+  .card-zone-ni::before {
+    content: "";
+    position: absolute;
+    inset: -12%;
+    background:
+      conic-gradient(
+        from 0deg,
+        rgba(255, 214, 102, 0) 0deg,
+        rgba(255, 235, 153, 0.18) 48deg,
+        rgba(255, 214, 102, 0) 96deg,
+        rgba(255, 246, 196, 0.12) 144deg,
+        rgba(255, 214, 102, 0) 210deg,
+        rgba(255, 235, 153, 0.18) 288deg,
+        rgba(255, 214, 102, 0) 360deg
+      );
+    animation: card-ni-halo 9s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card-zone-ni::after {
+    content: "";
+    position: absolute;
+    top: -12%;
+    left: -35%;
+    width: 48%;
+    height: 135%;
+    background: linear-gradient(105deg, transparent, rgba(255, 252, 214, 0.34) 48%, transparent);
+    animation: card-shimmer 3.2s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
   .card-zone-2,
   .card-sr {
     position: relative;
@@ -1811,6 +1859,48 @@ body::before {
     opacity: 0.68;
   }
   .gacha-shell.is-light .draw-inspector-body { color: #475569; opacity: 1; }
+
+  .gacha-inspector-quick {
+    display: grid;
+    gap: 12px;
+  }
+
+  .gacha-inspector-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .gacha-inspector-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .gacha-shell.is-light .gacha-inspector-chip {
+    border-color: rgba(99, 102, 241, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    color: #4338ca;
+  }
+
+  .gacha-inspector-chip.is-ni {
+    background: linear-gradient(135deg, rgba(255, 239, 173, 0.28), rgba(255, 186, 48, 0.28));
+    color: #fff7d8;
+    border-color: rgba(255, 220, 118, 0.34);
+  }
+
+  .gacha-shell.is-light .gacha-inspector-chip.is-ni {
+    background: linear-gradient(135deg, rgba(254, 243, 199, 0.86), rgba(253, 224, 71, 0.76));
+    color: #92400e;
+    border-color: rgba(251, 191, 36, 0.44);
+  }
 
   /* fetch in-progress row */
   .draw-fetch-row {
@@ -3569,6 +3659,16 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   }
 }
 
+@keyframes card-ni-halo {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes deck-float {
   0%,
   100% {
@@ -3970,6 +4070,22 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
     radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.24), transparent 30%),
     radial-gradient(circle at 82% 88%, rgba(255, 255, 255, 0.12), transparent 26%);
   opacity: 0.9;
+}
+
+.paper-card-ni-chip,
+.paper-card-if-chip {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.paper-card-ni-chip {
+  background: linear-gradient(135deg, rgba(255, 247, 205, 0.24), rgba(248, 179, 0, 0.28));
+  color: #fff7cf;
+}
+
+.paper-card-if-chip {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .paper-card-lead,

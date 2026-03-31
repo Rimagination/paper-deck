@@ -5,9 +5,9 @@ import { useTheme } from "../../theme";
 import PaperCard from "../cards/PaperCard";
 import TierBadge, { getTierConfig } from "../cards/TierBadge";
 
-function CardBack({ zone, tier, modeLabel }) {
+function CardBack({ zone, tier, modeLabel, isNi = false }) {
   const { t } = useLanguage();
-  const theme = getTierConfig(zone || tier);
+  const theme = getTierConfig(zone || tier, { isNi });
 
   return (
     <div className={`gacha-card-back ${theme.cardClass}`}>
@@ -15,7 +15,7 @@ function CardBack({ zone, tier, modeLabel }) {
       <div className="gacha-card-back-foil" />
       <div className="relative z-[1] flex h-full w-full flex-col justify-between p-6">
         <div className="flex items-start justify-between gap-3">
-          <TierBadge zone={zone} tier={tier} />
+          <TierBadge zone={zone} tier={tier} isNi={isNi} />
           <span className={`text-[10px] font-semibold uppercase tracking-[0.26em] ${theme.authorColor}`}>
             {modeLabel}
           </span>
@@ -52,7 +52,7 @@ function RemainingStack({ cards, currentIndex, cardMode }) {
       <div className="gacha-side-stack-shell">
         {previewCards.length > 0 ? (
           previewCards.map((card, index) => {
-            const theme = getTierConfig(card.zone || card.tier);
+            const theme = getTierConfig(card.zone || card.tier, { isNi: card.is_ni });
             return (
               <div
                 key={`${card.paper_id}-${index}`}
@@ -99,7 +99,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
   const isCollected = collected.has(currentIndex);
   const isLast = currentIndex >= cards.length - 1;
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
-  const currentTheme = getTierConfig(currentCard.zone || currentCard.tier);
+  const currentTheme = getTierConfig(currentCard.zone || currentCard.tier, { isNi: currentCard.is_ni });
   const authorLine = (currentCard.authors || []).slice(0, 2).join(", ");
   const metaLine = [authorLine, currentCard.venue, currentCard.year].filter(Boolean).join(" / ");
   const progress = ((currentIndex + (isFlipped ? 1 : 0)) / cards.length) * 100;
@@ -201,7 +201,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
             <div className="gacha-stage-pedestal" />
 
             <div className="gacha-stage-topline">
-              <TierBadge zone={currentCard.zone} tier={currentCard.tier} />
+              <TierBadge zone={currentCard.zone} tier={currentCard.tier} isNi={currentCard.is_ni} />
               {currentCard.similarity_score > 0 && (
                 <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${currentTheme.matchClass}`}>
                   {Math.round(currentCard.similarity_score * 100)}% {t("recommend.matchScore")}
@@ -221,7 +221,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
               >
                 <div className="backface-hidden absolute inset-0 cursor-pointer">
                   <div className="gacha-card-face gacha-card-face-back">
-                    <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
+                    <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} isNi={currentCard.is_ni} />
                   </div>
                 </div>
 

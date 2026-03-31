@@ -49,7 +49,7 @@ async def search_seeds(request: Request, body: SeedSearchRequest) -> list[PaperS
         return []
 
     cache = request.app.state.cache
-    cache_key = f"pd:search:v3:{query.lower()}"
+    cache_key = f"pd:search:v4:{query.lower()}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         return [PaperSummary(**p) for p in cached]

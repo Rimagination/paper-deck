@@ -1,12 +1,19 @@
+const CAS_ZONE_MAP = {
+  "\u0031\u533a": "SSR",
+  "\u0032\u533a": "SR",
+  "\u0033\u533a": "R",
+  "\u0034\u533a": "N",
+};
+
 const LEGACY_ZONE_MAP = {
-  SSR: "1区",
-  SR: "2区",
-  R: "3区",
-  N: "4区",
+  SSR: "\u0031\u533a",
+  SR: "\u0032\u533a",
+  R: "\u0033\u533a",
+  N: "\u0034\u533a",
 };
 
 export const ZONE_CONFIG = {
-  "1区": {
+  "\u0031\u533a": {
     cardClass: "card-zone-1",
     badgeClass:
       "bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 shadow-lg shadow-amber-500/50",
@@ -23,7 +30,7 @@ export const ZONE_CONFIG = {
     loaderRingClass: "border-amber-300/70",
     loaderCoreClass: "bg-amber-200",
   },
-  "2区": {
+  "\u0032\u533a": {
     cardClass: "card-zone-2",
     badgeClass:
       "bg-gradient-to-br from-violet-200 to-fuchsia-300 text-violet-950 shadow-lg shadow-violet-400/40",
@@ -40,7 +47,7 @@ export const ZONE_CONFIG = {
     loaderRingClass: "border-violet-200/70",
     loaderCoreClass: "bg-violet-100",
   },
-  "3区": {
+  "\u0033\u533a": {
     cardClass: "card-zone-3",
     badgeClass:
       "bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-lg shadow-blue-500/40",
@@ -57,7 +64,7 @@ export const ZONE_CONFIG = {
     loaderRingClass: "border-sky-200/70",
     loaderCoreClass: "bg-sky-100",
   },
-  "4区": {
+  "\u0034\u533a": {
     cardClass: "card-zone-4",
     badgeClass:
       "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 shadow-lg shadow-slate-500/35",
@@ -92,6 +99,24 @@ export const ZONE_CONFIG = {
   },
 };
 
+const NI_THEME_OVERRIDES = {
+  cardClass: "card-zone-ni",
+  badgeClass:
+    "bg-gradient-to-br from-amber-200 via-yellow-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-500/60",
+  titleColor: "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.55)]",
+  authorColor: "text-amber-50/88",
+  labelColor: "text-yellow-100/80",
+  bodyColor: "text-amber-50/95",
+  tagClass: "bg-amber-950/76 text-amber-50 border border-amber-400/38",
+  insightClass: "bg-amber-950/82 text-amber-50 border border-amber-300/32",
+  dividerClass: "border-amber-100/18",
+  citationClass: "text-amber-50/82",
+  matchClass: "bg-amber-950/78 text-amber-50 border border-amber-300/38",
+  doiClass: "text-amber-50/94 hover:text-white",
+  loaderRingClass: "border-amber-200/78",
+  loaderCoreClass: "bg-yellow-200",
+};
+
 export function normalizeZone(value) {
   const raw = typeof value === "string" ? value.trim() : "";
   if (!raw) return null;
@@ -100,21 +125,27 @@ export function normalizeZone(value) {
 }
 
 export function getZoneLabel(value) {
-  return normalizeZone(value) || "Unrated";
+  const zone = normalizeZone(value);
+  return zone ? CAS_ZONE_MAP[zone] : "Unrated";
 }
 
-export function getTierConfig(value) {
-  return ZONE_CONFIG[normalizeZone(value)] || ZONE_CONFIG.default;
+export function getTierConfig(value, options = {}) {
+  const zone = normalizeZone(value);
+  const base = ZONE_CONFIG[zone] || ZONE_CONFIG.default;
+  if (options.isNi) {
+    return { ...base, ...NI_THEME_OVERRIDES };
+  }
+  return base;
 }
 
-export function getTierStyles(value) {
-  const config = getTierConfig(value);
+export function getTierStyles(value, options = {}) {
+  const config = getTierConfig(value, options);
   return { border: config.cardClass, bg: "", badge: config.badgeClass };
 }
 
-export default function TierBadge({ zone, tier, size = "md" }) {
+export default function TierBadge({ zone, tier, size = "md", isNi = false }) {
   const value = zone ?? tier;
-  const config = getTierConfig(value);
+  const config = getTierConfig(value, { isNi });
   const label = getZoneLabel(value);
   const sizeClass = size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs";
 

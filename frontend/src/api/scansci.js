@@ -42,6 +42,8 @@ export function buildCardFavoritePayload(paper, tier, mode) {
     similarity_score: paper?.similarity_score ?? 0,
     tier: tier || "N",
     zone: paper?.zone || null,
+    impact_factor: paper?.impact_factor ?? null,
+    is_ni: Boolean(paper?.is_ni),
     issn: paper?.issn || null,
     eissn: paper?.eissn || null,
     mode: mode || "research",

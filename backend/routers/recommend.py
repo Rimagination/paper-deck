@@ -62,6 +62,8 @@ async def _build_card_response(
         tier=tier,
         similarity_score=paper.get("similarity_score") or 0.0,
         zone=metadata["zone"],
+        impact_factor=metadata["impact_factor"],
+        is_ni=bool(metadata["is_ni"]),
         issn=metadata["issn"],
         eissn=metadata["eissn"],
     )
@@ -240,7 +242,7 @@ async def recommend_papers(request: Request, body: RecommendRequest) -> Recommen
 
     excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
 
-    cache_key = f"pd:rec:v2:{':'.join(sorted(body.seed_paper_ids))}:{body.limit}:{body.language}"
+    cache_key = f"pd:rec:v3:{':'.join(sorted(body.seed_paper_ids))}:{body.limit}:{body.language}"
     cached = await cache.get_json(cache_key)
     if cached is not None:
         papers = [PaperSummary(**p) for p in cached]

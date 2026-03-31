@@ -4,9 +4,8 @@ import { gachaDraw } from "../../api/backend";
 import { useLanguage } from "../../i18n";
 import { markCardRead } from "../../readingState";
 import { useTheme } from "../../theme";
-import { getTierConfig } from "../cards/TierBadge";
+import { getTierConfig, getZoneLabel } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
-import ReadingPanel from "../cards/ReadingPanel";
 
 const ORBITAL_BODIES = [
   { size: "var(--draw-stage-orbit-1-size)", duration: "18s", delay: "-2s", direction: "normal", dotClass: "is-mercury" },
@@ -18,11 +17,18 @@ const ORBITAL_BODIES = [
   { size: "var(--draw-stage-orbit-5-size)", duration: "62s", delay: "-18s", direction: "reverse", dotClass: "is-uranus" },
   { size: "var(--draw-stage-orbit-5-size)", duration: "74s", delay: "-46s", direction: "normal", dotClass: "is-neptune" },
 ];
+
 const DRAW_BATCH_SIZE = 1;
 
-function CardBack({ zone, tier, modeLabel }) {
+function formatImpactFactor(value) {
+  if (typeof value !== "number" || Number.isNaN(value) || value <= 0) return null;
+  const fixed = value.toFixed(1);
+  return fixed.endsWith(".0") ? fixed.slice(0, -2) : fixed;
+}
+
+function CardBack({ zone, tier, modeLabel, isNi = false }) {
   const { t } = useLanguage();
-  const theme = getTierConfig(zone || tier);
+  const theme = getTierConfig(zone || tier, { isNi });
 
   return (
     <div className={`gacha-card-back ${theme.cardClass}`}>
@@ -84,10 +90,6 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   const ui =
     locale === "en"
       ? {
-          readingLayer: "Reading Layer",
-          quickRead: "Quick Read",
-          readingBody: "Flip decides what to inspect next. The panel now holds the structured interpretation.",
-          quickBody: "Use the quick brief to decide whether this paper deserves a deeper read.",
           discoverLabel: "Discover",
           emptyTitle: "Nothing to draw yet",
           emptyBody: "Generate your interest memory in Discover first. The draw deck is built directly from that memory.",
@@ -104,12 +106,10 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           errorBody: "Your interest memory is still here, but the next card did not resolve successfully. Try summoning again.",
           exhaustedTitle: "The current deck has gone quiet",
           exhaustedBody: "No new cards are surfacing from the current memory. Add more seeds or rebuild the interest memory to continue.",
+          detailHintIdle: "Flip the card first, then open the full detail view when you want the long read.",
+          detailHintReady: "Open the full detail view for structured reading, data, method, and research gaps.",
         }
       : {
-          readingLayer: "\u7814\u7a76\u9605\u8bfb",
-          quickRead: "\u5feb\u901f\u901f\u89c8",
-          readingBody: "\u7ffb\u724c\u51b3\u5b9a\u4e0b\u4e00\u6b65\u770b\u4ec0\u4e48\uff0c\u8fd9\u91cc\u627f\u63a5\u7ed3\u6784\u5316\u7684\u7814\u7a76\u89e3\u8bfb\u3002",
-          quickBody: "\u5148\u7528\u901f\u89c8\u5224\u65ad\u8fd9\u7bc7\u8bba\u6587\u662f\u5426\u503c\u5f97\u7ee7\u7eed\u7ec6\u8bfb\u3002",
           discoverLabel: "\u53d1\u73b0",
           emptyTitle: "\u73b0\u5728\u8fd8\u6ca1\u6709\u53ef\u62bd\u7684\u724c\u7ec4",
           emptyBody: "\u5148\u5728\u53d1\u73b0\u9875\u641c\u8bba\u6587\u5e76\u751f\u6210\u5174\u8da3\u8bb0\u5fc6\uff0c\u62bd\u5361\u9875\u624d\u4f1a\u4ece\u8fd9\u4efd\u8bb0\u5fc6\u91cc\u7ee7\u7eed\u53ec\u724c\u3002",
@@ -117,15 +117,17 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
           loadingTitle: "\u9b54\u6cd5\u53ec\u724c\u4e2d",
           loadingPhrases: [
             "\u7814\u7a76\u8bb0\u5fc6\u6b63\u6cbf\u7740\u8bcd\u4e0e\u5f15\u6587\u7f13\u7f13\u805a\u6210\u4e0b\u4e00\u5f20\u724c",
+            "\u8bba\u6587\u7684\u4fe1\u53f7\u6b63\u5728\u7ed9\u65b0\u5361\u6ce8\u5165\u5f62\u72b6",
             "\u5173\u952e\u8bcd\u6b63\u5728\u7f16\u7ec7\u4e0b\u4e00\u9053\u724c\u9762\u7eb9\u8def",
-            "\u79cd\u5b50\u8bba\u6587\u7684\u4fe1\u53f7\u6b63\u5728\u7ed9\u65b0\u5361\u6ce8\u5165\u5f62\u72b6",
-            "\u5f15\u6587\u4e0e\u4e3b\u9898\u6b63\u5728\u4e3a\u4e0b\u4e00\u6b21\u53ec\u724c\u79ef\u84c4\u80fd\u91cf",
+            "\u4e3b\u9898\u4e0e\u5f15\u6587\u6b63\u5728\u4e3a\u4e0b\u4e00\u6b21\u53ec\u724c\u79ef\u84c4\u80fd\u91cf",
           ],
           retryAction: "\u91cd\u65b0\u53ec\u724c",
           errorTitle: "\u53ec\u724c\u6682\u65f6\u5931\u8d25\u4e86",
           errorBody: "\u4f60\u7684\u5174\u8da3\u8bb0\u5fc6\u4ecd\u7136\u5b58\u5728\uff0c\u53ea\u662f\u8fd9\u6b21\u65b0\u724c\u6ca1\u6709\u987a\u5229\u51dd\u6210\u3002\u53ef\u4ee5\u76f4\u63a5\u91cd\u65b0\u53ec\u724c\u3002",
           exhaustedTitle: "\u5f53\u524d\u724c\u7ec4\u6682\u65f6\u5b89\u9759\u4e0b\u6765\u4e86",
           exhaustedBody: "\u73b0\u6709\u5174\u8da3\u8bb0\u5fc6\u91cc\u6ca1\u6709\u66f4\u591a\u65b0\u724c\u6d6e\u73b0\u3002\u53ef\u4ee5\u518d\u52a0\u51e0\u7bc7\u79cd\u5b50\u8bba\u6587\uff0c\u6216\u91cd\u65b0\u751f\u6210\u4e00\u6b21\u5174\u8da3\u8bb0\u5fc6\u3002",
+          detailHintIdle: "\u5148\u7ffb\u724c\uff0c\u5982\u679c\u8981\u770b\u5b8c\u6574\u7814\u7a76\u89e3\u8bfb\uff0c\u518d\u70b9\u300c\u67e5\u770b\u8be6\u60c5\u300d\u3002",
+          detailHintReady: "\u53f3\u4fa7\u53ea\u4fdd\u7559\u5feb\u6377\u5165\u53e3\uff0c\u5b8c\u6574\u7684\u65b9\u6cd5\u3001\u6570\u636e\u3001\u521b\u65b0\u70b9\u548c\u5c40\u9650\u90fd\u653e\u5728\u8be6\u60c5\u91cc\u770b\u3002",
         };
 
   const [cards, setCards] = useState([]);
@@ -228,14 +230,14 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
     setStageMotion({ x: 0, y: 0 });
     setFlipFlashActive(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileReady, effectiveSeedPaperIds.join(","), cardMode]);
 
   useEffect(() => {
     if (hasInterestMemory && effectiveSeedPaperIds.length > 0) {
       fetchMore();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasInterestMemory, effectiveSeedPaperIds.join(","), cardMode]);
 
   useEffect(() => {
@@ -251,7 +253,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     ) {
       fetchMore();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, cards.length, isFetching, drawStatus]);
 
   useEffect(() => {
@@ -291,10 +293,11 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
   }
 
   const currentCard = cards[currentIndex] || null;
-  const isFlipped = !!flipped[currentIndex];
+  const isFlipped = Boolean(flipped[currentIndex]);
   const isCollected = collected.has(currentIndex);
   const modeLabel = cardMode === "research" ? t("card.researchMode") : t("card.discoveryMode");
   const loadingSubtitle = ui.loadingPhrases[loadingPhraseIndex];
+  const impactFactor = formatImpactFactor(currentCard?.impact_factor);
   const cardStyle = {
     "--gacha-tilt-x": `${cardMotion.tiltX}deg`,
     "--gacha-tilt-y": `${cardMotion.tiltY}deg`,
@@ -306,7 +309,7 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     "--draw-parallax-y": `${stageMotion.y}px`,
   };
 
-  const isSettled = !!settled[currentIndex];
+  const isSettled = Boolean(settled[currentIndex]);
   const showScrollCard = Boolean(isSettled && currentCard);
 
   function handleFlip() {
@@ -358,14 +361,19 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
     setCurrentIndex((prev) => prev + 1);
   }
 
-  const metadata = useMemo(
-    () => [
+  const metadata = useMemo(() => {
+    const items = [
       { label: t("draw.deckMode"), value: modeLabel },
       { label: t("draw.deckCollectedCount"), value: collected.size },
-      ...(currentCard ? [{ label: t("card.citations"), value: currentCard.citation_count || 0 }] : []),
-    ],
-    [collected.size, currentCard, modeLabel, t]
-  );
+    ];
+    if (currentCard) {
+      items.push({ label: t("card.citations"), value: currentCard.citation_count || 0 });
+      if (impactFactor) {
+        items.push({ label: "IF", value: impactFactor });
+      }
+    }
+    return items;
+  }, [collected.size, currentCard, impactFactor, modeLabel, t]);
 
   if (drawStatus === "loading" && cards.length === 0) {
     return (
@@ -526,7 +534,12 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
                 <div className={`preserve-3d gacha-card-rotator ${isFlipped ? "is-flipped" : ""}`} style={cardStyle}>
                   <div className="backface-hidden absolute inset-0 cursor-pointer">
                     <div className="gacha-card-face gacha-card-face-back">
-                      <CardBack zone={currentCard.zone} tier={currentCard.tier} modeLabel={modeLabel} />
+                      <CardBack
+                        zone={currentCard.zone}
+                        tier={currentCard.tier}
+                        modeLabel={modeLabel}
+                        isNi={currentCard.is_ni}
+                      />
                     </div>
                   </div>
                   <div className="backface-hidden rotate-y-180 absolute inset-0">
@@ -573,34 +586,38 @@ export default function DrawView({ profileInfo, profileReady, seedPaperIds, card
               </div>
             </div>
 
-            {isFlipped && currentCard ? (
-              <div className="gacha-inspector-panel gacha-inspector-reading">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="gacha-shell-kicker">{cardMode === "research" ? ui.readingLayer : ui.quickRead}</p>
-                    <p className="draw-inspector-body">{cardMode === "research" ? ui.readingBody : ui.quickBody}</p>
+            <div className="gacha-inspector-panel gacha-inspector-quick">
+              <p className="gacha-shell-kicker">{t("recommend.viewCard")}</p>
+              <p className="draw-inspector-body">
+                {isFlipped && currentCard ? ui.detailHintReady : ui.detailHintIdle}
+              </p>
+              {isFlipped && currentCard ? (
+                <>
+                  <div className="gacha-inspector-chip-row">
+                    {currentCard.zone ? (
+                      <span className="gacha-inspector-chip">{getZoneLabel(currentCard.zone)}</span>
+                    ) : null}
+                    {currentCard.is_ni ? <span className="gacha-inspector-chip is-ni">NI</span> : null}
+                    {impactFactor ? <span className="gacha-inspector-chip">{`IF ${impactFactor}`}</span> : null}
                   </div>
                   {onViewCard ? (
                     <button
                       onClick={() => onViewCard(currentCard)}
-                      className="app-outline-button rounded-xl px-3 py-2 text-xs font-medium"
+                      className="app-outline-button rounded-xl px-4 py-2.5 text-sm font-medium"
                     >
                       {t("recommend.viewCard")}
                     </button>
                   ) : null}
-                </div>
-                <div className="mt-4">
-                  <ReadingPanel card={currentCard} mode={cardMode} />
-                </div>
-              </div>
-            ) : (
-              <div className="gacha-inspector-panel">
-                <p className="gacha-shell-kicker">{t("draw.filterEyebrow")}</p>
-                <p className="draw-inspector-body">
-                  {isCollected ? t("card.collected") : t("draw.filterBody", { count: collected.size })}
-                </p>
-              </div>
-            )}
+                </>
+              ) : null}
+            </div>
+
+            <div className="gacha-inspector-panel">
+              <p className="gacha-shell-kicker">{t("draw.filterEyebrow")}</p>
+              <p className="draw-inspector-body">
+                {isCollected ? t("card.collected") : t("draw.filterBody", { count: collected.size })}
+              </p>
+            </div>
 
             {isFetching ? (
               <div className="draw-fetch-row">

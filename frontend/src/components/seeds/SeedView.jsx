@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useScanSciAuth } from "../../auth";
 import { generateProfile, resolveSeedInput, searchSeeds } from "../../api/backend";
 import { useLanguage } from "../../i18n";
+import { getZoneLabel } from "../cards/TierBadge";
 import { buildInterestMemory } from "./interestMemory";
 
 const DOI_PATTERN = /10\.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
@@ -77,19 +78,20 @@ function SectionFrame({ title, subtitle, action, children }) {
 function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
   const maxKeywordCount = Math.max(...memory.keywordEntries.map((entry) => entry.count), 1);
   const timeSpan = buildTimeSpan(memory, t);
+  const dominantZoneLabel = memory.dominantZone ? getZoneLabel(memory.dominantZone) : null;
   const stats =
     locale === "en"
       ? [
           { label: "Seeds", value: memory.papers.length },
           { label: "Years", value: timeSpan },
           { label: "Cites", value: memory.avgCitations },
-          { label: "Zone", value: memory.dominantZone || "Unrated" },
+          { label: "Zone", value: dominantZoneLabel || "Unrated" },
         ]
       : [
           { label: "\u79cd\u5b50", value: memory.papers.length },
           { label: "\u65f6\u95f4", value: timeSpan },
           { label: "\u5f15\u6587", value: memory.avgCitations },
-          { label: "\u5206\u533a", value: memory.dominantZone || "\u5f85\u5b9a" },
+          { label: "\u5206\u533a", value: dominantZoneLabel || "\u5f85\u5b9a" },
         ];
 
   const heading = locale === "en" ? "Interest memory is now in shape" : "\u5174\u8da3\u8bb0\u5fc6\u5df2\u7ecf\u6210\u5f62";

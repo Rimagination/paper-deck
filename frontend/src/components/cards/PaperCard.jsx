@@ -56,6 +56,20 @@ function MetricBox({ label, value, theme }) {
   );
 }
 
+function MetaChip({ children, className = "" }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function formatImpactFactor(value) {
+  if (typeof value !== "number" || Number.isNaN(value) || value <= 0) return null;
+  const fixed = value.toFixed(1);
+  return fixed.endsWith(".0") ? fixed.slice(0, -2) : fixed;
+}
+
 function ResearchSurface({ card, compact, theme, t, signalsLabel }) {
   const content = normalizeResearchContent(card.card_content);
 
@@ -93,7 +107,7 @@ function ResearchSurface({ card, compact, theme, t, signalsLabel }) {
       {content.evidenceSignals.length > 0 && (
         <div className="space-y-2">
           <FieldCaption theme={theme}>{signalsLabel}</FieldCaption>
-          <SignalChips values={content.evidenceSignals.slice(0, 3)} theme={theme} prefix="" />
+          <SignalChips values={content.evidenceSignals.slice(0, 3)} theme={theme} />
         </div>
       )}
     </div>
@@ -123,7 +137,7 @@ function DiscoverySurface({ card, compact, theme, t }) {
           {content.plainSummary || content.keyInsight}
         </p>
       </div>
-      {content.quickTakeaways.length > 0 && <SignalChips values={content.quickTakeaways.slice(0, 3)} theme={theme} prefix="" />}
+      {content.quickTakeaways.length > 0 && <SignalChips values={content.quickTakeaways.slice(0, 3)} theme={theme} />}
       <MetricBox label={t("card.keyInsight")} value={content.keyInsight} theme={theme} />
       <MetricBox label={t("card.whyItMatters")} value={content.whyItMatters} theme={theme} />
       <MetricBox label={t("card.whoShouldRead")} value={content.readIf || content.whoShouldRead} theme={theme} />
@@ -162,10 +176,11 @@ function getBilingualTitle(card) {
 
 export default function PaperCard({ card, mode = "research", compact = false, onClick }) {
   const { t, locale } = useLanguage();
-  const theme = getTierConfig(card.zone || card.tier);
+  const theme = getTierConfig(card.zone || card.tier, { isNi: card.is_ni });
   const { title, titleZh } = getBilingualTitle(card);
   const isInteractive = Boolean(onClick);
-  const signalsLabel = locale === "en" ? "Signals" : "证据信号";
+  const signalsLabel = locale === "en" ? "Signals" : "\u8bc1\u636e\u4fe1\u53f7";
+  const impactFactor = formatImpactFactor(card.impact_factor);
 
   return (
     <div
@@ -178,7 +193,11 @@ export default function PaperCard({ card, mode = "research", compact = false, on
       <div className="relative z-[1] flex h-full flex-col">
         <div className="shrink-0 px-5 pb-4 pt-5">
           <div className="flex items-start justify-between gap-3">
-            <TierBadge zone={card.zone} tier={card.tier} />
+            <div className="flex flex-wrap items-center gap-2">
+              <TierBadge zone={card.zone} tier={card.tier} isNi={card.is_ni} />
+              {card.is_ni ? <MetaChip className="paper-card-ni-chip">NI</MetaChip> : null}
+              {impactFactor ? <MetaChip className="paper-card-if-chip">{`IF ${impactFactor}`}</MetaChip> : null}
+            </div>
             <div className="flex items-center gap-1">
               {card.similarity_score > 0 && (
                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${theme.matchClass}`}>
@@ -227,7 +246,9 @@ export default function PaperCard({ card, mode = "research", compact = false, on
         <div className={`mx-5 mt-auto border-t ${theme.dividerClass}`} />
         <div className="flex shrink-0 items-center justify-between gap-3 px-5 py-3">
           <div className="space-y-1">
-            <p className={`text-[10px] uppercase tracking-[0.24em] ${theme.labelColor}`}>{mode === "research" ? t("card.researchMode") : t("card.discoveryMode")}</p>
+            <p className={`text-[10px] uppercase tracking-[0.24em] ${theme.labelColor}`}>
+              {mode === "research" ? t("card.researchMode") : t("card.discoveryMode")}
+            </p>
             <span className={`text-[11px] ${theme.citationClass}`}>
               {t("card.citations")}: {card.citation_count?.toLocaleString?.() ?? card.citation_count ?? 0}
             </span>

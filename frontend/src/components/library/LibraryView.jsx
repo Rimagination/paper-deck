@@ -58,6 +58,8 @@ export default function LibraryView({ cardMode, onViewCard }) {
         url: payload.url,
         tier: payload.tier || "N",
         zone: payload.zone || null,
+        impact_factor: payload.impact_factor ?? null,
+        is_ni: Boolean(payload.is_ni),
         issn: payload.issn || null,
         eissn: payload.eissn || null,
         mode: payload.mode || "research",

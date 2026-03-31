@@ -2,6 +2,12 @@ import { useLanguage } from "../../i18n";
 import { getCardThemeGroup } from "./cardContent";
 import TierBadge from "./TierBadge";
 
+function formatImpactFactor(value) {
+  if (typeof value !== "number" || Number.isNaN(value) || value <= 0) return null;
+  const fixed = value.toFixed(1);
+  return fixed.endsWith(".0") ? fixed.slice(0, -2) : fixed;
+}
+
 function deriveSummary(paper) {
   if (paper?.card_content?.plain_summary) return paper.card_content.plain_summary;
   if (paper?.card_content?.key_insight) return paper.card_content.key_insight;
@@ -41,6 +47,7 @@ export default function PaperDigestCard({
   const titleLines = getTitleLines(paper, locale);
   const themeGroup = getCardThemeGroup({ ...paper, mode: paper?.mode || "research" });
   const matchPct = paper?.similarity_score > 0 ? Math.round(paper.similarity_score * 100) : null;
+  const impactFactor = formatImpactFactor(paper?.impact_factor);
   const citesLabel = locale === "en" ? "cites" : "引用";
   const briefLabel = locale === "en" ? "Brief" : "中文简报";
 
@@ -54,7 +61,7 @@ export default function PaperDigestCard({
         </div>
         <div className="flex items-center gap-2">
           {matchPct !== null && <span className="digest-card-match">{matchPct}% {t("recommend.matchScore")}</span>}
-          <TierBadge zone={paper?.zone} size="sm" />
+          <TierBadge zone={paper?.zone} size="sm" isNi={paper?.is_ni} />
         </div>
       </div>
 
@@ -73,6 +80,8 @@ export default function PaperDigestCard({
         <div className="flex flex-wrap gap-2">
           {themeGroup && <span className="digest-card-chip">{themeGroup}</span>}
           {paper?.doi && <span className="digest-card-chip">DOI</span>}
+          {impactFactor && <span className="digest-card-chip">{`IF ${impactFactor}`}</span>}
+          {paper?.is_ni && <span className="digest-card-chip">NI</span>}
           <span className="digest-card-chip">{paper?.citation_count || 0} {citesLabel}</span>
         </div>
       </div>

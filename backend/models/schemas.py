@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class AIProviderConfig(BaseModel):
     """User-provided AI provider config sent per request. Never stored server-side."""
+
     base_url: str
     api_key: str
     model: str
@@ -28,7 +29,9 @@ class PaperSummary(BaseModel):
     eissn: Optional[str] = None
     language: str = "zh"
     card_content: Optional[dict] = None
-    zone: Optional[str] = None  # CAS zone: "1区"/"2区"/"3区"/"4区"
+    zone: Optional[str] = None
+    impact_factor: Optional[float] = None
+    is_ni: bool = False
 
 
 class SeedSearchRequest(BaseModel):
@@ -66,7 +69,7 @@ class GachaRequest(BaseModel):
 
 class CardGenerateRequest(BaseModel):
     paper_id: str
-    mode: str = "research"  # "research" or "discovery"
+    mode: str = "research"
     language: str = "zh"
     ai_provider: Optional[AIProviderConfig] = None
 
@@ -118,6 +121,8 @@ class CardResponse(BaseModel):
     tier: str
     similarity_score: float = 0.0
     zone: Optional[str] = None
+    impact_factor: Optional[float] = None
+    is_ni: bool = False
     issn: Optional[str] = None
     eissn: Optional[str] = None
 
