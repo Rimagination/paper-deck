@@ -433,33 +433,31 @@ body::before {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(circle at 18% 16%, rgba(255, 241, 181, 0.28), transparent 24%),
-      radial-gradient(circle at 82% 18%, rgba(255, 214, 102, 0.26), transparent 26%),
-      linear-gradient(155deg, #211100 0%, #4a2400 34%, #8c5100 58%, #3a1d00 82%, #211100 100%);
+      radial-gradient(circle at 22% 18%, rgba(255, 245, 191, 0.34), transparent 26%),
+      radial-gradient(circle at 78% 16%, rgba(255, 211, 107, 0.28), transparent 28%),
+      radial-gradient(circle at 50% 88%, rgba(255, 200, 94, 0.18), transparent 24%),
+      linear-gradient(155deg, #241300 0%, #5a2d00 36%, #9a5c08 58%, #4a2400 78%, #241300 100%);
     border: 2px solid #f3c84a;
     box-shadow:
-      0 0 34px rgba(243, 200, 74, 0.72),
-      0 0 72px rgba(255, 190, 11, 0.28),
+      0 0 30px rgba(243, 200, 74, 0.52),
+      0 0 84px rgba(255, 200, 94, 0.26),
       0 16px 56px rgba(0, 0, 0, 0.72),
       inset 0 1px 0 rgba(255, 250, 220, 0.4);
+    animation: card-ni-breathe 8.8s ease-in-out infinite;
   }
 
   .card-zone-ni::before {
     content: "";
     position: absolute;
-    inset: -12%;
+    inset: -18%;
+    border-radius: 34px;
     background:
-      conic-gradient(
-        from 0deg,
-        rgba(255, 214, 102, 0) 0deg,
-        rgba(255, 235, 153, 0.18) 48deg,
-        rgba(255, 214, 102, 0) 96deg,
-        rgba(255, 246, 196, 0.12) 144deg,
-        rgba(255, 214, 102, 0) 210deg,
-        rgba(255, 235, 153, 0.18) 288deg,
-        rgba(255, 214, 102, 0) 360deg
-      );
-    animation: card-ni-halo 9s linear infinite;
+      radial-gradient(circle at 28% 24%, rgba(255, 248, 221, 0.46), transparent 24%),
+      radial-gradient(circle at 74% 22%, rgba(255, 223, 134, 0.32), transparent 26%),
+      radial-gradient(circle at 50% 82%, rgba(255, 214, 102, 0.18), transparent 28%);
+    filter: blur(30px);
+    opacity: 0.82;
+    animation: card-ni-cloud 11.5s ease-in-out infinite;
     pointer-events: none;
     z-index: 0;
   }
@@ -467,12 +465,13 @@ body::before {
   .card-zone-ni::after {
     content: "";
     position: absolute;
-    top: -12%;
-    left: -35%;
-    width: 48%;
-    height: 135%;
-    background: linear-gradient(105deg, transparent, rgba(255, 252, 214, 0.34) 48%, transparent);
-    animation: card-shimmer 3.2s ease-in-out infinite;
+    inset: 12%;
+    border-radius: 28px;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255, 245, 203, 0.18) 0%, rgba(255, 245, 203, 0.08) 34%, rgba(255, 245, 203, 0) 72%);
+    filter: blur(18px);
+    opacity: 0.72;
+    animation: card-ni-haze 6.8s ease-in-out infinite reverse;
     pointer-events: none;
     z-index: 0;
   }
@@ -2977,6 +2976,11 @@ body::before {
     background-size: 22px 22px;
   }
 
+  .card-zone-ni .gacha-card-back-grid {
+    opacity: 0.12;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 250, 230, 0.08), transparent 56%);
+  }
+
   .gacha-card-back-foil {
     position: absolute;
     inset: -10%;
@@ -2985,6 +2989,18 @@ body::before {
       linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.12) 45%, transparent 70%);
     mix-blend-mode: screen;
     animation: gacha-foil-drift 8.5s ease-in-out infinite;
+  }
+
+  .card-zone-ni .gacha-card-back-foil {
+    inset: -14%;
+    background:
+      radial-gradient(circle at 28% 20%, rgba(255, 249, 229, 0.28), transparent 24%),
+      radial-gradient(circle at 76% 26%, rgba(255, 219, 128, 0.22), transparent 28%),
+      radial-gradient(circle at 50% 76%, rgba(255, 205, 96, 0.16), transparent 32%);
+    opacity: 0.9;
+    mix-blend-mode: screen;
+    filter: blur(14px);
+    animation: card-ni-cloud 10.5s ease-in-out infinite;
   }
 
   .gacha-card-back-sheen {
@@ -3005,6 +3021,17 @@ body::before {
     animation: gacha-sheen-sweep 5.8s linear infinite;
   }
 
+  .card-zone-ni .gacha-card-back-sheen {
+    inset: 10%;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255, 248, 219, 0.18) 0%, rgba(255, 248, 219, 0.08) 36%, rgba(255, 248, 219, 0) 74%);
+    mix-blend-mode: screen;
+    filter: blur(18px);
+    opacity: 0.66;
+    animation: card-ni-haze 6.6s ease-in-out infinite;
+  }
+
   .gacha-card-back-sigil {
     display: flex;
     align-items: center;
@@ -3018,6 +3045,13 @@ body::before {
       0 18px 36px rgba(15, 23, 42, 0.18);
   }
 
+  .card-zone-ni .gacha-card-back-sigil {
+    background: radial-gradient(circle at 50% 50%, rgba(255, 244, 196, 0.16), rgba(255, 220, 125, 0.08) 52%, rgba(255, 220, 125, 0) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 0 28px rgba(255, 220, 125, 0.2);
+  }
+
   .gacha-card-back-sigil-core {
     width: 24px;
     height: 24px;
@@ -3025,6 +3059,13 @@ body::before {
     box-shadow:
       0 0 0 10px rgba(255, 255, 255, 0.08),
       0 0 26px rgba(255, 255, 255, 0.22);
+  }
+
+  .card-zone-ni .gacha-card-back-sigil-core {
+    background: radial-gradient(circle, rgba(255, 250, 234, 0.96) 0%, rgba(255, 234, 168, 0.86) 52%, rgba(255, 214, 102, 0.24) 100%);
+    box-shadow:
+      0 0 0 12px rgba(255, 247, 216, 0.08),
+      0 0 32px rgba(255, 232, 154, 0.42);
   }
 
   .gacha-stage-caption {
@@ -3682,13 +3723,50 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   }
 }
 
-@keyframes card-ni-halo {
-  from {
-    transform: rotate(0deg);
+@keyframes card-ni-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 30px rgba(243, 200, 74, 0.46),
+      0 0 74px rgba(255, 200, 94, 0.2),
+      0 16px 56px rgba(0, 0, 0, 0.72),
+      inset 0 1px 0 rgba(255, 250, 220, 0.34);
+    filter: saturate(1) brightness(1);
   }
 
-  to {
-    transform: rotate(360deg);
+  50% {
+    box-shadow:
+      0 0 38px rgba(255, 222, 133, 0.64),
+      0 0 96px rgba(255, 230, 156, 0.34),
+      0 16px 56px rgba(0, 0, 0, 0.72),
+      inset 0 1px 0 rgba(255, 250, 220, 0.42);
+    filter: saturate(1.06) brightness(1.03);
+  }
+}
+
+@keyframes card-ni-cloud {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: translate3d(-1%, -1%, 0) scale(0.98);
+  }
+
+  50% {
+    opacity: 0.96;
+    transform: translate3d(1.5%, 1.5%, 0) scale(1.04);
+  }
+}
+
+@keyframes card-ni-haze {
+  0%,
+  100% {
+    opacity: 0.54;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.84;
+    transform: scale(1.04);
   }
 }
 
@@ -4095,6 +4173,14 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   opacity: 0.9;
 }
 
+.paper-card-shell.card-zone-ni .paper-card-overlay {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 248, 222, 0.24), transparent 24%),
+    radial-gradient(circle at 84% 82%, rgba(255, 224, 145, 0.16), transparent 26%),
+    linear-gradient(180deg, rgba(255, 247, 218, 0.1), transparent 32%, rgba(88, 44, 0, 0.12) 100%);
+  opacity: 0.92;
+}
+
 .paper-card-ni-chip,
 .paper-card-if-chip {
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -4109,6 +4195,16 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 .paper-card-if-chip {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.92);
+}
+
+.card-zone-ni .paper-card-ni-chip {
+  background: linear-gradient(135deg, rgba(255, 247, 205, 0.32), rgba(248, 179, 0, 0.22));
+  color: #fff9df;
+}
+
+.card-zone-ni .paper-card-if-chip {
+  background: rgba(255, 248, 219, 0.14);
+  color: rgba(255, 248, 219, 0.94);
 }
 
 .paper-card-lead,

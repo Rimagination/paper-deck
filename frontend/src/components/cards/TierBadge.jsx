@@ -103,18 +103,18 @@ const NI_THEME_OVERRIDES = {
   cardClass: "card-zone-ni",
   badgeClass:
     "bg-gradient-to-br from-amber-200 via-yellow-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-500/60",
-  titleColor: "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.55)]",
-  authorColor: "text-amber-50/88",
-  labelColor: "text-yellow-100/80",
-  bodyColor: "text-amber-50/95",
+  titleColor: "text-yellow-50",
+  authorColor: "text-amber-50/92",
+  labelColor: "text-yellow-50/78",
+  bodyColor: "text-amber-50/96",
   tagClass: "bg-amber-950/76 text-amber-50 border border-amber-400/38",
   insightClass: "bg-amber-950/82 text-amber-50 border border-amber-300/32",
   dividerClass: "border-amber-100/18",
-  citationClass: "text-amber-50/82",
+  citationClass: "text-amber-50/86",
   matchClass: "bg-amber-950/78 text-amber-50 border border-amber-300/38",
-  doiClass: "text-amber-50/94 hover:text-white",
-  loaderRingClass: "border-amber-200/78",
-  loaderCoreClass: "bg-yellow-200",
+  doiClass: "text-yellow-50/92 hover:text-yellow-50",
+  loaderRingClass: "border-yellow-100/78",
+  loaderCoreClass: "bg-yellow-50",
 };
 
 export function normalizeZone(value) {
