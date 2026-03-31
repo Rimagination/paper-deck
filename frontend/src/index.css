@@ -2014,6 +2014,9 @@ body::before {
   }
 
   .draw-loading-title.is-cn {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 600;
+    font-synthesis: none;
     letter-spacing: 0.2em;
   }
 
