@@ -5,6 +5,8 @@
 :root {
   color-scheme: light;
   font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+  --font-title-en: "Times New Roman", Times, Georgia, serif;
+  --font-title-cn: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", serif;
   --font-title-serif: "Times New Roman", Times, "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", serif;
   --app-bg-top: #faf9fc;
   --app-bg-bottom: #f3f1f7;
@@ -172,9 +174,14 @@ body::before {
     font-family: var(--font-title-serif);
   }
 
-  .font-heading,
+  .font-heading {
+    font-family: var(--font-title-en);
+  }
+
   .font-heading-cn {
-    font-family: var(--font-title-serif);
+    font-family: var(--font-title-cn);
+    font-synthesis: none;
+    letter-spacing: 0.01em;
   }
 
   .global-nav-link:hover {
