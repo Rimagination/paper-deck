@@ -233,7 +233,7 @@ function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
             {t("seeds.memoryEyebrow")}
           </p>
-          <h3 className="mt-3 font-heading-cn text-2xl font-semibold sm:text-3xl" style={{ color: "var(--text-main)" }}>
+          <h3 className="mt-3 font-heading-cn text-2xl font-bold sm:text-3xl" style={{ color: "var(--text-main)" }}>
             {heading}
           </h3>
           <p className="mt-3 max-w-3xl text-sm leading-7" style={{ color: "var(--text-muted)" }}>
@@ -392,7 +392,7 @@ export default function SeedView({
           selectedSeedsSubtitle: "These papers define the current interest memory.",
         }
       : {
-          heroTitle: "\u6821\u51c6\u4f60\u7684\u7814\u7a76\u504f\u597d",
+          heroTitle: "\u951a\u5b9a\u4f60\u7684\u7814\u7a76\u504f\u597d",
           heroBody:
             "\u5148\u7528\u51e0\u7bc7\u5173\u952e\u8bba\u6587\u6821\u51c6\u4f60\u7684\u5174\u8da3\u8bb0\u5fc6\uff0cPaperDeck \u4f1a\u628a\u5b83\u4eec\u5171\u540c\u7684\u4e3b\u9898\u3001\u6765\u6e90\u548c\u5f15\u6587\u8d28\u611f\u63d0\u70bc\u6210\u4e00\u5f20\u7d27\u51d1\u7684\u8bb0\u5fc6\u56fe\u8c31",
           searchResultEyebrow: "\u79cd\u5b50\u5019\u9009",
@@ -699,7 +699,7 @@ export default function SeedView({
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
                 {t("seeds.memoryEyebrow")}
               </p>
-              <h2 className="mt-3 font-heading-cn text-3xl font-semibold text-slate-950">
+              <h2 className="mt-3 font-heading-cn text-3xl font-bold text-slate-950">
                 {ui.heroTitle}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
