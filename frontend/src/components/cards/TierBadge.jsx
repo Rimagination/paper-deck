@@ -18,6 +18,7 @@ export const ZONE_CONFIG = {
     badgeClass:
       "bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 shadow-lg shadow-amber-500/50",
     titleColor: "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]",
+    titleSecondaryColor: "text-amber-50/86",
     authorColor: "text-amber-50/80",
     labelColor: "text-amber-100/70",
     bodyColor: "text-white/95",
@@ -35,6 +36,7 @@ export const ZONE_CONFIG = {
     badgeClass:
       "bg-gradient-to-br from-violet-200 to-fuchsia-300 text-violet-950 shadow-lg shadow-violet-400/40",
     titleColor: "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]",
+    titleSecondaryColor: "text-violet-50/86",
     authorColor: "text-violet-50/80",
     labelColor: "text-violet-100/70",
     bodyColor: "text-white/95",
@@ -52,6 +54,7 @@ export const ZONE_CONFIG = {
     badgeClass:
       "bg-gradient-to-br from-sky-300 to-blue-500 text-blue-950 shadow-lg shadow-blue-500/40",
     titleColor: "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]",
+    titleSecondaryColor: "text-sky-50/86",
     authorColor: "text-sky-50/80",
     labelColor: "text-sky-100/70",
     bodyColor: "text-white/95",
@@ -69,6 +72,7 @@ export const ZONE_CONFIG = {
     badgeClass:
       "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-900 shadow-lg shadow-slate-500/35",
     titleColor: "text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]",
+    titleSecondaryColor: "text-slate-100/88",
     authorColor: "text-slate-100/80",
     labelColor: "text-slate-100/70",
     bodyColor: "text-white/95",
@@ -85,6 +89,7 @@ export const ZONE_CONFIG = {
     cardClass: "card-zone-default",
     badgeClass: "bg-slate-100 text-slate-700 border border-slate-200",
     titleColor: "text-slate-900",
+    titleSecondaryColor: "text-slate-700",
     authorColor: "text-slate-500",
     labelColor: "text-slate-400",
     bodyColor: "text-slate-600",
@@ -103,16 +108,17 @@ const NI_THEME_OVERRIDES = {
   cardClass: "card-zone-ni",
   badgeClass:
     "bg-gradient-to-br from-amber-200 via-yellow-300 to-amber-500 text-amber-950 shadow-lg shadow-amber-500/60",
-  titleColor: "text-yellow-50",
-  authorColor: "text-amber-50/92",
-  labelColor: "text-yellow-50/78",
-  bodyColor: "text-amber-50/96",
+  titleColor: "text-[#f6d46d]",
+  titleSecondaryColor: "text-[#f4dc95]",
+  authorColor: "text-[#f4e8ca]/88",
+  labelColor: "text-[#f5e6bf]/78",
+  bodyColor: "text-[#f4e8ca]/96",
   tagClass: "bg-amber-950/76 text-amber-50 border border-amber-400/38",
   insightClass: "bg-amber-950/82 text-amber-50 border border-amber-300/32",
   dividerClass: "border-amber-100/18",
-  citationClass: "text-amber-50/86",
+  citationClass: "text-[#f4e8ca]/88",
   matchClass: "bg-amber-950/78 text-amber-50 border border-amber-300/38",
-  doiClass: "text-yellow-50/92 hover:text-yellow-50",
+  doiClass: "text-[#f6d46d] hover:text-[#ffe9a6]",
   loaderRingClass: "border-yellow-100/78",
   loaderCoreClass: "bg-yellow-50",
 };

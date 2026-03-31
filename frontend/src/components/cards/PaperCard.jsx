@@ -213,7 +213,7 @@ export default function PaperCard({ card, mode = "research", compact = false, on
               {title}
             </h3>
             {titleZh && (
-              <p className={`font-heading-cn leading-snug ${theme.authorColor} ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-[12px]"}`}>
+              <p className={`font-heading-cn leading-snug ${theme.titleSecondaryColor || theme.authorColor} ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-[12px]"}`}>
                 {titleZh}
               </p>
             )}
