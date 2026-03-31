@@ -54,91 +54,95 @@ function buildTimeSpan(memory, t) {
     : t("seeds.memoryYearsFallback");
 }
 
-function estimateKeywordVisualUnits(word) {
-  return Array.from(String(word || "")).reduce((total, char) => {
-    if (/[\u3400-\u9fff\uf900-\ufaff]/u.test(char)) return total + 1;
-    if (/[A-Z]/.test(char)) return total + 0.72;
-    if (/[a-z0-9]/.test(char)) return total + 0.62;
-    if (/[\s/+-]/.test(char)) return total + 0.3;
-    return total + 0.56;
-  }, 0);
+function getWordCloudMeasureContext() {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  return canvas.getContext("2d");
 }
 
 function buildKeywordCloudLayout(keywordEntries) {
-  const width = 1000;
-  const height = 420;
+  const width = 1040;
+  const height = 460;
   const centerX = width / 2;
-  const centerY = height / 2 + 10;
-  const baseEntries = Array.isArray(keywordEntries) ? keywordEntries.filter((entry) => entry?.word) : [];
+  const centerY = height / 2 + 18;
+  const baseEntries = Array.isArray(keywordEntries)
+    ? keywordEntries.filter((entry) => entry?.word).slice(0, 10)
+    : [];
 
   if (baseEntries.length === 0) return [];
 
   const maxKeywordCount = Math.max(...baseEntries.map((entry) => entry.count || 0), 1);
+  const measureContext = getWordCloudMeasureContext();
   const placed = [];
 
   return [...baseEntries]
     .sort((left, right) => (right.count || 0) - (left.count || 0))
-    .map((entry, index) => {
+    .flatMap((entry, index) => {
       const ratio = Math.max(0.2, (entry.count || 0) / maxKeywordCount);
-      const fontSize = 16 + ratio * 22;
-      const units = estimateKeywordVisualUnits(entry.word);
-      const wordWidth = Math.max(72, units * fontSize * 0.68 + 18);
-      const wordHeight = fontSize * 1.18;
-      const padding = 12;
+      const padding = 20;
+      let fontSize = 17 + ratio * 20;
+      let placement = null;
 
-      let candidate = {
-        left: centerX - wordWidth / 2,
-        top: centerY - wordHeight / 2,
-      };
-      let found = false;
+      for (let shrinkStep = 0; shrinkStep < 5 && !placement; shrinkStep += 1) {
+        const currentSize = Math.max(15, fontSize - shrinkStep * 2.2);
+        let measuredWidth = currentSize * String(entry.word).length * 0.66;
+        if (measureContext) {
+          measureContext.font = `500 ${currentSize}px "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
+          measuredWidth = measureContext.measureText(entry.word).width;
+        }
+        const wordWidth = Math.max(80, Math.ceil(measuredWidth) + 28);
+        const wordHeight = Math.ceil(currentSize * 1.34);
+        let candidate = null;
 
-      for (let step = 0; step < 520; step += 1) {
-        const angle = step * 0.58 + index * 0.3;
-        const radius = 10 + step * 2.6;
-        const x = centerX + Math.cos(angle) * radius - wordWidth / 2;
-        const y = centerY + Math.sin(angle) * radius * 0.72 - wordHeight / 2;
-        const fitsBounds =
-          x >= padding &&
-          y >= padding &&
-          x + wordWidth <= width - padding &&
-          y + wordHeight <= height - padding;
-        if (!fitsBounds) continue;
+        for (let step = 0; step < 840; step += 1) {
+          const angle = step * 0.52 + index * 0.26;
+          const radius = 8 + step * 2.35;
+          const x = centerX + Math.cos(angle) * radius - wordWidth / 2;
+          const y = centerY + Math.sin(angle) * radius * 0.76 - wordHeight / 2;
+          const fitsBounds =
+            x >= padding &&
+            y >= padding &&
+            x + wordWidth <= width - padding &&
+            y + wordHeight <= height - padding;
+          if (!fitsBounds) continue;
 
-        const overlaps = placed.some((item) => {
-          const horizontalGap = Math.min(x + wordWidth, item.left + item.width) - Math.max(x, item.left);
-          const verticalGap = Math.min(y + wordHeight, item.top + item.height) - Math.max(y, item.top);
-          return horizontalGap > 8 && verticalGap > 6;
-        });
+          const overlaps = placed.some((item) => {
+            const horizontalGap = Math.min(x + wordWidth, item.left + item.width) - Math.max(x, item.left);
+            const verticalGap = Math.min(y + wordHeight, item.top + item.height) - Math.max(y, item.top);
+            return horizontalGap > -10 && verticalGap > -8;
+          });
 
-        if (!overlaps) {
-          candidate = { left: x, top: y };
-          found = true;
-          break;
+          if (!overlaps) {
+            candidate = { left: x, top: y, width: wordWidth, height: wordHeight, fontSize: currentSize };
+            break;
+          }
+        }
+
+        if (candidate) {
+          placement = candidate;
         }
       }
 
-      if (!found) {
-        candidate.left = Math.max(padding, Math.min(candidate.left, width - wordWidth - padding));
-        candidate.top = Math.max(padding, Math.min(candidate.top, height - wordHeight - padding));
+      if (!placement) {
+        return [];
       }
 
-      const placement = {
+      const result = {
         ...entry,
-        left: ((candidate.left + wordWidth / 2) / width) * 100,
-        top: ((candidate.top + wordHeight / 2) / height) * 100,
-        fontSize,
+        left: ((placement.left + placement.width / 2) / width) * 100,
+        top: ((placement.top + placement.height / 2) / height) * 100,
+        fontSize: placement.fontSize,
         opacity: 0.48 + ratio * 0.42,
-        rotate: index % 5 === 0 ? -8 : index % 4 === 0 ? 7 : index % 3 === 0 ? -4 : 0,
       };
 
       placed.push({
-        left: candidate.left,
-        top: candidate.top,
-        width: wordWidth,
-        height: wordHeight,
+        left: placement.left,
+        top: placement.top,
+        width: placement.width,
+        height: placement.height,
       });
 
-      return placement;
+      return [result];
     });
 }
 
@@ -655,8 +659,8 @@ export default function SeedView({
   return (
     <div className="space-y-6">
       <section className="paper-surface rounded-[32px] p-6 sm:p-7">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_320px]">
-          <div className="space-y-5">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(272px,320px)] 2xl:grid-cols-[minmax(0,1.45fr)_320px]">
+          <div className="min-w-0 space-y-5">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
                 {t("seeds.memoryEyebrow")}
@@ -747,7 +751,7 @@ export default function SeedView({
             ) : null}
           </div>
 
-          <aside className="space-y-4">
+          <aside className="min-w-0 space-y-4">
             <div className="discover-rail-card">
               <p className="discover-rail-kicker">{ui.memorySettings}</p>
               <div className="discover-rail-stats">

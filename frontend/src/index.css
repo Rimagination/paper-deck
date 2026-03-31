@@ -2008,6 +2008,7 @@ body::before {
     line-height: 1.04;
     letter-spacing: 0.12em;
     font-weight: 500;
+    font-synthesis: none;
     color: rgba(15, 23, 42, 0.92);
     text-shadow: 0 16px 48px rgba(161, 118, 46, 0.12);
   }
@@ -2018,13 +2019,23 @@ body::before {
 
   .draw-loading-subtitle {
     max-width: 34rem;
+    min-height: 3.8em;
     font-size: 14px;
     line-height: 1.9;
     color: rgba(90, 72, 45, 0.82);
+    transition:
+      opacity 0.26s ease,
+      transform 0.26s ease;
   }
 
-  .draw-loading-subtitle-cycle {
-    animation: draw-loading-subtitle-cycle 1.8s ease both;
+  .draw-loading-subtitle.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .draw-loading-subtitle.is-hidden {
+    opacity: 0;
+    transform: translateY(5px);
   }
 
   .draw-loading-runeline {
@@ -4480,7 +4491,9 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   display: flex;
   align-items: center;
   gap: 14px;
+  min-width: 0;
   min-height: 56px;
+  overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.82);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.76);
@@ -4496,9 +4509,11 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   gap: 10px;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .seed-search-title {
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -4511,7 +4526,9 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 }
 
 .seed-search-meta {
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 38%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4919,8 +4936,8 @@ html[data-theme="dark"] .reading-headline {
 }
 
 .discover-memory-word-cloud {
-  min-height: 258px;
-  padding: 14px 18px 22px;
+  min-height: 292px;
+  padding: 16px 22px 24px;
 }
 
 .discover-memory-word {
@@ -4939,9 +4956,9 @@ html[data-theme="dark"] .reading-headline {
     sans-serif;
   font-synthesis: none;
   letter-spacing: 0;
-  line-height: 1;
+  line-height: 1.12;
   text-shadow: 0 6px 14px rgba(255, 255, 255, 0.38);
-  transform: translate(-50%, -50%) rotate(var(--cloud-rotate, 0deg));
+  transform: translate(-50%, -50%);
   white-space: nowrap;
   user-select: none;
 }
@@ -5136,7 +5153,7 @@ html[data-theme="dark"] .discover-memory-chip {
   }
 
   .discover-memory-word-cloud {
-    min-height: 220px;
+    min-height: 236px;
     padding: 12px 14px 16px;
   }
 

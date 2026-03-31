@@ -165,6 +165,7 @@ export default function DrawView({
   const [fetchError, setFetchError] = useState("");
   const [drawStatus, setDrawStatus] = useState("idle");
   const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+  const [loadingPhraseVisible, setLoadingPhraseVisible] = useState(true);
   const [cardMotion, setCardMotion] = useState({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
   const [settled, setSettled] = useState({});
   const [stageMotion, setStageMotion] = useState({ x: 0, y: 0 });
@@ -189,6 +190,7 @@ export default function DrawView({
   const fallbackSeedPapers = Array.isArray(profileInfo?.seed_papers) ? profileInfo.seed_papers : [];
   const seenIds = useRef(new Set());
   const flipFlashTimeoutRef = useRef(null);
+  const loadingPhraseTimeoutRef = useRef(null);
   const seedKeyRef = useRef("");
   const shouldShowLoadingStage =
     cards.length === 0 &&
@@ -273,6 +275,7 @@ export default function DrawView({
     setFetchError("");
     setDrawStatus("idle");
     setLoadingPhraseIndex(0);
+    setLoadingPhraseVisible(true);
     setSettled({});
     setCardMotion({ tiltX: 0, tiltY: 0, glowX: 50, glowY: 50 });
     setStageMotion({ x: 0, y: 0 });
@@ -316,20 +319,41 @@ export default function DrawView({
       if (flipFlashTimeoutRef.current) {
         clearTimeout(flipFlashTimeoutRef.current);
       }
+      if (loadingPhraseTimeoutRef.current) {
+        clearTimeout(loadingPhraseTimeoutRef.current);
+      }
     };
   }, []);
 
   useEffect(() => {
     if (drawStatus !== "loading") {
       setLoadingPhraseIndex(0);
+      setLoadingPhraseVisible(true);
+      if (loadingPhraseTimeoutRef.current) {
+        clearTimeout(loadingPhraseTimeoutRef.current);
+        loadingPhraseTimeoutRef.current = null;
+      }
       return undefined;
     }
 
     const intervalId = setInterval(() => {
-      setLoadingPhraseIndex((current) => (current + 1) % ui.loadingPhrases.length);
-    }, 1800);
+      setLoadingPhraseVisible(false);
+      if (loadingPhraseTimeoutRef.current) {
+        clearTimeout(loadingPhraseTimeoutRef.current);
+      }
+      loadingPhraseTimeoutRef.current = setTimeout(() => {
+        setLoadingPhraseIndex((current) => (current + 1) % ui.loadingPhrases.length);
+        setLoadingPhraseVisible(true);
+      }, 260);
+    }, 2600);
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      if (loadingPhraseTimeoutRef.current) {
+        clearTimeout(loadingPhraseTimeoutRef.current);
+        loadingPhraseTimeoutRef.current = null;
+      }
+    };
   }, [drawStatus, ui.loadingPhrases]);
 
   if (!hasInterestMemory || effectiveSeedPaperIds.length === 0) {
@@ -504,7 +528,7 @@ export default function DrawView({
             <h3 className={`draw-loading-title ${locale === "zh" ? "font-heading-cn is-cn" : "font-heading"}`}>
               {ui.loadingTitle}
             </h3>
-            <p key={loadingSubtitle} className="draw-loading-subtitle draw-loading-subtitle-cycle">
+            <p className={`draw-loading-subtitle ${loadingPhraseVisible ? "is-visible" : "is-hidden"}`}>
               {loadingSubtitle}
             </p>
             <div className="draw-loading-runeline" aria-hidden="true">
