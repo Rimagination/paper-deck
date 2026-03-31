@@ -4919,36 +4919,48 @@ html[data-theme="dark"] .reading-headline {
 }
 
 .discover-memory-word-cloud {
-  display: flex;
-  min-height: 236px;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  gap: 10px 16px;
-  padding: 18px 24px 26px;
+  min-height: 258px;
+  padding: 14px 18px 22px;
 }
 
 .discover-memory-word {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  display: inline-block;
+  left: 50%;
+  top: 50%;
   color: rgba(15, 23, 42, var(--cloud-opacity, 0.82));
-  font-size: calc(14px * var(--cloud-scale, 1));
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.05;
-  text-transform: lowercase;
-  text-shadow: 0 8px 18px rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  font-family:
+    "Source Han Sans SC",
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    sans-serif;
+  font-synthesis: none;
+  letter-spacing: 0;
+  line-height: 1;
+  text-shadow: 0 6px 14px rgba(255, 255, 255, 0.38);
+  transform: translate(-50%, -50%) rotate(var(--cloud-rotate, 0deg));
   white-space: nowrap;
+  user-select: none;
 }
 
 .discover-memory-word.is-empty {
+  position: relative;
+  left: auto;
+  top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  width: 100%;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.7;
   color: var(--text-muted);
-  text-transform: none;
   text-shadow: none;
+  transform: none;
 }
 
 .discover-memory-inspector {
@@ -5070,7 +5082,7 @@ html[data-theme="dark"] .discover-memory-cloud-kicker {
 
 html[data-theme="dark"] .discover-memory-word {
   color: rgba(248, 250, 252, var(--cloud-opacity, 0.84));
-  text-shadow: 0 8px 18px rgba(15, 23, 42, 0.4);
+  text-shadow: 0 8px 18px rgba(15, 23, 42, 0.28);
 }
 
 html[data-theme="dark"] .discover-memory-word.is-empty {
@@ -5124,13 +5136,12 @@ html[data-theme="dark"] .discover-memory-chip {
   }
 
   .discover-memory-word-cloud {
-    min-height: 206px;
-    padding: 14px 18px 20px;
-    gap: 9px 12px;
+    min-height: 220px;
+    padding: 12px 14px 16px;
   }
 
   .discover-memory-word {
-    font-size: calc(13px * var(--cloud-scale, 1));
+    max-width: 72vw;
   }
 
   .discover-memory-stat-grid {

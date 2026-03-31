@@ -54,6 +54,94 @@ function buildTimeSpan(memory, t) {
     : t("seeds.memoryYearsFallback");
 }
 
+function estimateKeywordVisualUnits(word) {
+  return Array.from(String(word || "")).reduce((total, char) => {
+    if (/[\u3400-\u9fff\uf900-\ufaff]/u.test(char)) return total + 1;
+    if (/[A-Z]/.test(char)) return total + 0.72;
+    if (/[a-z0-9]/.test(char)) return total + 0.62;
+    if (/[\s/+-]/.test(char)) return total + 0.3;
+    return total + 0.56;
+  }, 0);
+}
+
+function buildKeywordCloudLayout(keywordEntries) {
+  const width = 1000;
+  const height = 420;
+  const centerX = width / 2;
+  const centerY = height / 2 + 10;
+  const baseEntries = Array.isArray(keywordEntries) ? keywordEntries.filter((entry) => entry?.word) : [];
+
+  if (baseEntries.length === 0) return [];
+
+  const maxKeywordCount = Math.max(...baseEntries.map((entry) => entry.count || 0), 1);
+  const placed = [];
+
+  return [...baseEntries]
+    .sort((left, right) => (right.count || 0) - (left.count || 0))
+    .map((entry, index) => {
+      const ratio = Math.max(0.2, (entry.count || 0) / maxKeywordCount);
+      const fontSize = 16 + ratio * 22;
+      const units = estimateKeywordVisualUnits(entry.word);
+      const wordWidth = Math.max(72, units * fontSize * 0.68 + 18);
+      const wordHeight = fontSize * 1.18;
+      const padding = 12;
+
+      let candidate = {
+        left: centerX - wordWidth / 2,
+        top: centerY - wordHeight / 2,
+      };
+      let found = false;
+
+      for (let step = 0; step < 520; step += 1) {
+        const angle = step * 0.58 + index * 0.3;
+        const radius = 10 + step * 2.6;
+        const x = centerX + Math.cos(angle) * radius - wordWidth / 2;
+        const y = centerY + Math.sin(angle) * radius * 0.72 - wordHeight / 2;
+        const fitsBounds =
+          x >= padding &&
+          y >= padding &&
+          x + wordWidth <= width - padding &&
+          y + wordHeight <= height - padding;
+        if (!fitsBounds) continue;
+
+        const overlaps = placed.some((item) => {
+          const horizontalGap = Math.min(x + wordWidth, item.left + item.width) - Math.max(x, item.left);
+          const verticalGap = Math.min(y + wordHeight, item.top + item.height) - Math.max(y, item.top);
+          return horizontalGap > 8 && verticalGap > 6;
+        });
+
+        if (!overlaps) {
+          candidate = { left: x, top: y };
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        candidate.left = Math.max(padding, Math.min(candidate.left, width - wordWidth - padding));
+        candidate.top = Math.max(padding, Math.min(candidate.top, height - wordHeight - padding));
+      }
+
+      const placement = {
+        ...entry,
+        left: ((candidate.left + wordWidth / 2) / width) * 100,
+        top: ((candidate.top + wordHeight / 2) / height) * 100,
+        fontSize,
+        opacity: 0.48 + ratio * 0.42,
+        rotate: index % 5 === 0 ? -8 : index % 4 === 0 ? 7 : index % 3 === 0 ? -4 : 0,
+      };
+
+      placed.push({
+        left: candidate.left,
+        top: candidate.top,
+        width: wordWidth,
+        height: wordHeight,
+      });
+
+      return placement;
+    });
+}
+
 function SectionFrame({ title, subtitle, action, children }) {
   return (
     <section className="paper-surface rounded-[28px] p-6 sm:p-7">
@@ -76,9 +164,9 @@ function SectionFrame({ title, subtitle, action, children }) {
 }
 
 function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
-  const maxKeywordCount = Math.max(...memory.keywordEntries.map((entry) => entry.count), 1);
   const timeSpan = buildTimeSpan(memory, t);
   const dominantZoneLabel = memory.dominantZone ? getZoneLabel(memory.dominantZone) : null;
+  const cloudWords = useMemo(() => buildKeywordCloudLayout(memory.keywordEntries), [memory.keywordEntries]);
   const stats =
     locale === "en"
       ? [
@@ -133,22 +221,22 @@ function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
             <p className="discover-memory-cloud-headline">{memory.headline}</p>
           </div>
           <div className="discover-memory-word-cloud">
-            {memory.keywordEntries.length > 0 ? (
-              memory.keywordEntries.map((entry) => {
-                const ratio = maxKeywordCount > 0 ? entry.count / maxKeywordCount : 1;
-                return (
-                  <span
-                    key={entry.word}
-                    className="discover-memory-word"
-                    style={{
-                      "--cloud-scale": (0.86 + ratio * 0.6).toFixed(2),
-                      "--cloud-opacity": (0.56 + ratio * 0.34).toFixed(2),
-                    }}
-                  >
-                    {entry.word}
-                  </span>
-                );
-              })
+            {cloudWords.length > 0 ? (
+              cloudWords.map((entry) => (
+                <span
+                  key={entry.word}
+                  className="discover-memory-word"
+                  style={{
+                    "--cloud-opacity": entry.opacity.toFixed(2),
+                    "--cloud-rotate": `${entry.rotate}deg`,
+                    left: `${entry.left.toFixed(2)}%`,
+                    top: `${entry.top.toFixed(2)}%`,
+                    fontSize: `${entry.fontSize.toFixed(1)}px`,
+                  }}
+                >
+                  {entry.word}
+                </span>
+              ))
             ) : (
               <span className="discover-memory-word is-empty">
                 {locale === "en" ? "Keywords will appear once papers carry enough metadata." : "\u5173\u952e\u8bcd\u4f1a\u5728\u8bba\u6587\u4fe1\u606f\u8db3\u591f\u540e\u51fa\u73b0"}
