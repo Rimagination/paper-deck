@@ -26,6 +26,39 @@ from backend.services.tier_classifier import classify_tier
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
 
+def _normalize_match_key(value: str | None) -> str:
+    return " ".join(str(value or "").split()).strip().casefold()
+
+
+def _normalize_issn(value: str | None) -> str:
+    return str(value or "").strip().upper()
+
+
+def _paper_source_fields(paper: dict | PaperSummary) -> tuple[str | None, str | None, str | None]:
+    if isinstance(paper, PaperSummary):
+        return paper.venue, paper.issn, paper.eissn
+    return paper.get("venue"), paper.get("issn"), paper.get("eissn")
+
+
+def _choose_related_venue_source(venue_matches: list[dict], venue_name: str | None, issn: str | None, eissn: str | None) -> dict | None:
+    if not venue_matches:
+        return None
+
+    issn_candidates = {_normalize_issn(issn), _normalize_issn(eissn)} - {""}
+    if issn_candidates:
+        for match in venue_matches:
+            if _normalize_issn(match.get("issn")) in issn_candidates:
+                return match
+
+    target_name = _normalize_match_key(venue_name)
+    if target_name:
+        for match in venue_matches:
+            if _normalize_match_key(match.get("name")) == target_name:
+                return match
+
+    return venue_matches[0]
+
+
 async def _build_card_response(
     *,
     paper: dict,
@@ -227,14 +260,31 @@ async def _build_seed_echo_pool(
             if paper.paper_id
         ]
 
+    venue_queries: list[tuple[str, str | None, str | None]] = []
+    seen_venues: set[str] = set()
+    for paper in seed_papers:
+        venue_name, issn, eissn = _paper_source_fields(paper)
+        normalized_name = _normalize_match_key(venue_name)
+        if not normalized_name or normalized_name in seen_venues:
+            continue
+        seen_venues.add(normalized_name)
+        venue_queries.append((venue_name, issn, eissn))
+
     fallback_pool = []
     seen_ids: set[str] = set()
-    for paper in seed_papers:
-        paper_id = str(paper.get("paperId") or "").strip()
-        if not paper_id or paper_id in excluded_ids or paper_id in seen_ids:
+    for venue_name, issn, eissn in venue_queries[:6]:
+        venue_matches = await oa.search_venues(venue_name, limit=5)
+        selected_source = _choose_related_venue_source(venue_matches, venue_name, issn, eissn)
+        if not selected_source:
             continue
-        seen_ids.add(paper_id)
-        fallback_pool.append({**paper, "similarity_score": 1.0})
+
+        related_papers = await oa.get_recent_papers_by_venue(selected_source["id"], days_back=365, limit=25)
+        for paper in related_papers:
+            paper_id = str(paper.get("paperId") or "").strip()
+            if not paper_id or paper_id in excluded_ids or paper_id in seen_ids:
+                continue
+            seen_ids.add(paper_id)
+            fallback_pool.append({**paper, "similarity_score": paper.get("similarity_score") or 0.0})
 
     return fallback_pool
 
@@ -321,6 +371,16 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
         ranked_papers = [paper for paper in ranked_papers if paper.get("paperId") not in excluded_ids]
 
     draw_pool = ranked_papers[: max(body.count * 8, body.count)]
+    if not draw_pool:
+        draw_pool = await _build_seed_echo_pool(
+            request,
+            body.seed_paper_ids,
+            s2_ids,
+            excluded_ids,
+            body.seed_papers,
+        )
+        if excluded_ids:
+            draw_pool = [paper for paper in draw_pool if paper.get("paperId") not in excluded_ids]
 
     random.shuffle(draw_pool)
     selected = draw_pool[: body.count]
