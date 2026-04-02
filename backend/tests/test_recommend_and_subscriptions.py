@@ -7,9 +7,89 @@ from unittest.mock import AsyncMock, patch
 from backend.models.schemas import CardResponse, GachaRequest, PaperSummary
 from backend.routers.recommend import gacha_draw
 from backend.routers.subscriptions import get_subscription_feed
+from backend.services.semantic_scholar import SemanticScholarError
 
 
 class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
+    async def test_gacha_draw_does_not_error_when_fallback_similarity_ranking_is_unavailable(self) -> None:
+        related_paper = {
+            "paperId": "rec-1",
+            "title": "Fallback Paper",
+            "authors": [{"name": "B. Author"}],
+            "abstract": "B" * 120,
+            "venue": "Seed Venue",
+            "year": 2025,
+            "citationCount": 3,
+            "issn": "1111-1111",
+        }
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    settings=SimpleNamespace(max_recommendations=100),
+                    card_generator=object(),
+                    s2_client=SimpleNamespace(
+                        get_papers_batch=AsyncMock(
+                            return_value=[
+                                {
+                                    "paperId": "seed-1",
+                                    "title": "Seed Paper",
+                                    "authors": [{"name": "A. Author"}],
+                                    "abstract": "A" * 120,
+                                    "venue": "Seed Venue",
+                                    "year": 2024,
+                                    "citationCount": 1,
+                                    "issn": "1111-1111",
+                                }
+                            ]
+                        )
+                    ),
+                    oa_client=SimpleNamespace(
+                        get_paper_by_lookup=AsyncMock(return_value=None),
+                        search_venues=AsyncMock(
+                            return_value=[{"id": "S-seed-venue", "name": "Seed Venue", "issn": "1111-1111"}]
+                        ),
+                        get_recent_papers_by_venue=AsyncMock(return_value=[related_paper]),
+                    ),
+                    journal_zone=None,
+                )
+            )
+        )
+        body = GachaRequest(
+            seed_paper_ids=["seed-1"],
+            seed_papers=[
+                PaperSummary(
+                    paper_id="seed-1",
+                    title="Seed Paper",
+                    authors=["A. Author"],
+                    abstract="A" * 120,
+                    venue="Seed Venue",
+                    year=2024,
+                    issn="1111-1111",
+                )
+            ],
+            count=1,
+            mode="research",
+            language="zh",
+        )
+
+        with (
+            patch(
+                "backend.routers.recommend._get_ranked_recommendation_pool",
+                new=AsyncMock(return_value=(["seed-1"], [])),
+            ),
+            patch(
+                "backend.routers.recommend.rank_recommendations",
+                new=AsyncMock(side_effect=SemanticScholarError("S2 unavailable", status_code=503)),
+            ),
+        ):
+            response = await gacha_draw(request, body)
+
+        self.assertEqual(
+            response.cards,
+            [],
+            "Fallback similarity ranking failures should degrade to an empty draw instead of turning the whole gacha request into an error.",
+        )
+
     async def test_gacha_draw_filters_out_low_similarity_ranked_papers(self) -> None:
         request = SimpleNamespace(
             app=SimpleNamespace(

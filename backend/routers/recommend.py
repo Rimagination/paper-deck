@@ -300,7 +300,10 @@ async def _build_seed_echo_pool(
     if not fallback_pool:
         return []
 
-    return await rank_recommendations(request, fallback_pool, original_seed_ids)
+    try:
+        return await rank_recommendations(request, fallback_pool, original_seed_ids)
+    except SemanticScholarError:
+        return []
 
 
 @router.post("")
