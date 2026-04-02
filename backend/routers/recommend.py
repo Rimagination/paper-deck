@@ -13,7 +13,7 @@ from backend.models.schemas import (
     RecommendResponse,
     CardResponse,
 )
-from backend.services.interest import average_embeddings, rank_papers_by_similarity
+from backend.services.interest import average_embeddings, rank_papers_by_similarity, rank_papers_by_text_similarity
 from backend.services.paper_metadata import (
     build_digest_summary,
     enrich_paper_metadata,
@@ -40,6 +40,32 @@ def _paper_source_fields(paper: dict | PaperSummary) -> tuple[str | None, str | 
     if isinstance(paper, PaperSummary):
         return paper.venue, paper.issn, paper.eissn
     return paper.get("venue"), paper.get("issn"), paper.get("eissn")
+
+
+def _paper_summary_to_similarity_dict(paper: PaperSummary) -> dict:
+    return {
+        "paperId": paper.paper_id,
+        "title": paper.title,
+        "authors": [{"name": author} for author in paper.authors if author],
+        "year": paper.year,
+        "citationCount": paper.citation_count or 0,
+        "abstract": paper.abstract,
+        "venue": paper.venue,
+        "externalIds": {"DOI": paper.doi} if paper.doi else {},
+        "url": paper.url,
+        "issn": paper.issn,
+        "eissn": paper.eissn,
+    }
+
+
+def _similarity_paper_key(paper: dict) -> str:
+    paper_id = str(paper.get("paperId") or "").strip()
+    if paper_id:
+        return paper_id
+    title_key = _normalize_match_key(paper.get("title"))
+    if title_key:
+        return f"title:{title_key}"
+    return ""
 
 
 def _choose_related_venue_source(venue_matches: list[dict], venue_name: str | None, issn: str | None, eissn: str | None) -> dict | None:
@@ -158,10 +184,56 @@ async def get_interest_embedding(request: Request, seed_paper_ids: list[str]) ->
     return interest_embedding
 
 
+async def _resolve_similarity_seed_papers(
+    request: Request,
+    seed_paper_ids: list[str],
+    fallback_seed_papers: list[PaperSummary] | None = None,
+) -> list[dict]:
+    s2 = request.app.state.s2_client
+    oa = request.app.state.oa_client
+
+    resolved: dict[str, dict] = {}
+    if fallback_seed_papers:
+        for paper in fallback_seed_papers:
+            if not paper.paper_id:
+                continue
+            resolved[paper.paper_id] = _paper_summary_to_similarity_dict(paper)
+
+    resolved_seed_ids = await resolve_to_s2_ids(request, seed_paper_ids)
+    if resolved_seed_ids:
+        try:
+            fetched_seed_papers = await s2.get_papers_batch(resolved_seed_ids)
+        except SemanticScholarError:
+            fetched_seed_papers = []
+        for paper in fetched_seed_papers:
+            paper_id = str(paper.get("paperId") or "").strip()
+            if not paper_id:
+                continue
+            existing = resolved.get(paper_id)
+            resolved[paper_id] = merge_paper_records(existing, paper) if existing else paper
+
+    external_seed_ids = [paper_id for paper_id in seed_paper_ids if ":" in str(paper_id or "")]
+    if external_seed_ids:
+        lookups = await asyncio.gather(
+            *(oa.get_paper_by_lookup(paper_id) for paper_id in external_seed_ids),
+            return_exceptions=True,
+        )
+        for original_id, paper in zip(external_seed_ids, lookups):
+            if not isinstance(paper, dict):
+                continue
+            paper_id = str(paper.get("paperId") or original_id).strip() or original_id
+            existing = resolved.get(paper_id) or resolved.get(original_id)
+            resolved.pop(original_id, None)
+            resolved[paper_id] = merge_paper_records(existing, {**paper, "paperId": paper_id}) if existing else {**paper, "paperId": paper_id}
+
+    return [paper for paper in resolved.values() if paper.get("title") or paper.get("abstract")]
+
+
 async def rank_recommendations(
     request: Request,
     raw_papers: list[dict],
     seed_paper_ids: list[str],
+    fallback_seed_papers: list[PaperSummary] | None = None,
 ) -> list[dict]:
     if not raw_papers:
         return []
@@ -169,7 +241,10 @@ async def rank_recommendations(
     s2 = request.app.state.s2_client
     interest_embedding = await get_interest_embedding(request, seed_paper_ids)
     if not interest_embedding:
-        return [{**paper, "similarity_score": 0.0} for paper in raw_papers]
+        seed_papers = await _resolve_similarity_seed_papers(request, seed_paper_ids, fallback_seed_papers)
+        if not seed_papers:
+            return [{**paper, "similarity_score": 0.0} for paper in raw_papers]
+        return rank_papers_by_text_similarity(seed_papers, raw_papers)
 
     recommendation_ids = [paper.get("paperId") for paper in raw_papers if paper.get("paperId")]
     papers_with_embeddings = await s2.get_papers_with_embeddings(recommendation_ids)
@@ -184,7 +259,32 @@ async def rank_recommendations(
         paper_id = paper.get("paperId")
         enriched.append(merge_paper_records(paper, embedding_by_id.get(paper_id)))
 
-    return rank_papers_by_similarity(interest_embedding, enriched)
+    ranked = rank_papers_by_similarity(interest_embedding, enriched)
+    if not any((paper.get("similarity_score") or 0.0) <= 0.0 for paper in ranked):
+        return ranked
+
+    seed_papers = await _resolve_similarity_seed_papers(request, seed_paper_ids, fallback_seed_papers)
+    if not seed_papers:
+        return ranked
+
+    text_ranked = rank_papers_by_text_similarity(seed_papers, enriched)
+    text_scores = {}
+    for paper in text_ranked:
+        key = _similarity_paper_key(paper)
+        if key:
+            text_scores[key] = paper.get("similarity_score") or 0.0
+
+    backfilled = []
+    for paper in ranked:
+        score = paper.get("similarity_score") or 0.0
+        if score > 0.0:
+            backfilled.append(paper)
+            continue
+        key = _similarity_paper_key(paper)
+        backfilled.append({**paper, "similarity_score": text_scores.get(key, 0.0)})
+
+    backfilled.sort(key=lambda paper: paper.get("similarity_score") or 0.0, reverse=True)
+    return backfilled
 
 
 def _ranked_pool_cache_key(seed_paper_ids: list[str], limit: int) -> str:
@@ -198,6 +298,7 @@ async def _get_ranked_recommendation_pool(
     *,
     limit: int,
     fail_open: bool = False,
+    fallback_seed_papers: list[PaperSummary] | None = None,
 ) -> tuple[list[str], list[dict]]:
     cache = request.app.state.cache
     settings = request.app.state.settings
@@ -214,7 +315,7 @@ async def _get_ranked_recommendation_pool(
 
     try:
         raw_papers = await s2.get_recommendations(s2_ids, limit=limit)
-        ranked_papers = await rank_recommendations(request, raw_papers, seed_paper_ids)
+        ranked_papers = await rank_recommendations(request, raw_papers, seed_paper_ids, fallback_seed_papers)
     except SemanticScholarError as exc:
         if cached is not None:
             return s2_ids, cached
@@ -301,7 +402,7 @@ async def _build_seed_echo_pool(
         return []
 
     try:
-        return await rank_recommendations(request, fallback_pool, original_seed_ids)
+        return await rank_recommendations(request, fallback_pool, original_seed_ids, fallback_seed_papers)
     except SemanticScholarError:
         return []
 
@@ -383,6 +484,7 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
         body.seed_paper_ids,
         limit=pool_limit,
         fail_open=True,
+        fallback_seed_papers=body.seed_papers,
     )
     if excluded_ids:
         ranked_papers = [paper for paper in ranked_papers if paper.get("paperId") not in excluded_ids]

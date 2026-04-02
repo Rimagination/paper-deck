@@ -5,12 +5,70 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from backend.models.schemas import CardResponse, GachaRequest, PaperSummary
-from backend.routers.recommend import gacha_draw
+from backend.routers.recommend import gacha_draw, rank_recommendations
 from backend.routers.subscriptions import get_subscription_feed
 from backend.services.semantic_scholar import SemanticScholarError
 
 
 class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
+    async def test_rank_recommendations_uses_text_similarity_when_seed_embedding_is_missing(self) -> None:
+        seed_paper = {
+            "paperId": "seed-1",
+            "title": "Biodiversity hotspots for conservation priorities",
+            "authors": [{"name": "N. Myers"}],
+            "abstract": "Habitat fragmentation and biodiversity loss reshape conservation priorities across ecosystems.",
+            "venue": "Nature",
+            "year": 2000,
+        }
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    cache=SimpleNamespace(
+                        get_json=AsyncMock(return_value=None),
+                        set_json=AsyncMock(),
+                    ),
+                    settings=SimpleNamespace(cache_ttl_embedding=3600),
+                    s2_client=SimpleNamespace(
+                        get_papers_with_embeddings=AsyncMock(return_value=[seed_paper]),
+                        get_papers_batch=AsyncMock(return_value=[seed_paper]),
+                    ),
+                    oa_client=SimpleNamespace(get_paper_by_lookup=AsyncMock(return_value=None)),
+                )
+            )
+        )
+        raw_papers = [
+            {
+                "paperId": "off-topic-1",
+                "title": "Compiler scheduling for distributed GPU kernels",
+                "abstract": "This systems paper studies kernel fusion, distributed compilers, and runtime scheduling.",
+                "venue": "Systems Journal",
+            },
+            {
+                "paperId": "match-1",
+                "title": "Biodiversity conservation under habitat fragmentation",
+                "abstract": "Conservation priorities shift as biodiversity declines across fragmented habitats.",
+                "venue": "Ecology Letters",
+            },
+        ]
+
+        ranked = await rank_recommendations(request, raw_papers, ["seed-1"])
+
+        self.assertEqual(
+            ranked[0]["paperId"],
+            "match-1",
+            "When seed embeddings are unavailable, recommendation ranking should still prefer textually similar papers over unrelated ones.",
+        )
+        self.assertGreater(
+            ranked[0]["similarity_score"],
+            0.2,
+            "The text-similarity fallback should produce a real similarity score high enough for gacha filtering.",
+        )
+        self.assertLess(
+            ranked[1]["similarity_score"],
+            ranked[0]["similarity_score"],
+            "Unrelated papers should stay below the text-similar candidate.",
+        )
+
     async def test_gacha_draw_does_not_error_when_fallback_similarity_ranking_is_unavailable(self) -> None:
         related_paper = {
             "paperId": "rec-1",
