@@ -25,6 +25,8 @@ from backend.services.tier_classifier import classify_tier
 
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
+GACHA_MIN_SIMILARITY = 0.2
+
 
 def _normalize_match_key(value: str | None) -> str:
     return " ".join(str(value or "").split()).strip().casefold()
@@ -57,6 +59,15 @@ def _choose_related_venue_source(venue_matches: list[dict], venue_name: str | No
                 return match
 
     return venue_matches[0]
+
+
+def _filter_gacha_candidates(papers: list[dict]) -> list[dict]:
+    filtered: list[dict] = []
+    for paper in papers:
+        score = paper.get("similarity_score")
+        if isinstance(score, (int, float)) and score >= GACHA_MIN_SIMILARITY:
+            filtered.append(paper)
+    return filtered
 
 
 async def _build_card_response(
@@ -286,7 +297,10 @@ async def _build_seed_echo_pool(
             seen_ids.add(paper_id)
             fallback_pool.append({**paper, "similarity_score": paper.get("similarity_score") or 0.0})
 
-    return fallback_pool
+    if not fallback_pool:
+        return []
+
+    return await rank_recommendations(request, fallback_pool, original_seed_ids)
 
 
 @router.post("")
@@ -369,6 +383,7 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
     )
     if excluded_ids:
         ranked_papers = [paper for paper in ranked_papers if paper.get("paperId") not in excluded_ids]
+    ranked_papers = _filter_gacha_candidates(ranked_papers)
 
     draw_pool = ranked_papers[: max(body.count * 8, body.count)]
     if not draw_pool:
@@ -381,6 +396,7 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
         )
         if excluded_ids:
             draw_pool = [paper for paper in draw_pool if paper.get("paperId") not in excluded_ids]
+        draw_pool = _filter_gacha_candidates(draw_pool)
 
     random.shuffle(draw_pool)
     selected = draw_pool[: body.count]

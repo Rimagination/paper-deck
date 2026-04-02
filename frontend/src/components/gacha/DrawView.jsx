@@ -102,7 +102,7 @@ export default function DrawView({
   const { t, locale } = useLanguage();
   const { theme: appTheme } = useTheme();
   const { getCollectedPaperIds, toggleFavorite } = useScanSciAuth();
-  const ui =
+  const baseUi =
     locale === "en"
       ? {
           discoverLabel: "Discover",
@@ -116,11 +116,11 @@ export default function DrawView({
             "Citations are feeding the next summon.",
             "Signals from your seed papers are stabilizing the deck.",
           ],
-          retryAction: "Try again",
+          retryAction: "Draw",
           errorTitle: "The summon faltered",
           errorBody: "Your interest memory is still here, but the next card did not resolve successfully. Try summoning again.",
           exhaustedTitle: "The current deck has gone quiet",
-          exhaustedBody: "No new cards are surfacing from the current memory. Add more seeds or rebuild the interest memory to continue.",
+          exhaustedBody: "No paper close enough to your current memory surfaced this round. Draw again to retry, or sharpen the memory with stronger seed papers.",
           actionEyebrow: "Actions",
           actionHintIdle: "Flip the card first. Then you can collect it, add it to memory, or open the full detail view.",
           actionHintReady: "Use the side rail to collect the card, merge it into memory, or open the full detail view.",
@@ -163,6 +163,21 @@ export default function DrawView({
           memoryFailed: "暂时无法把这篇论文加入记忆。",
         };
 
+  const ui =
+    locale === "zh"
+      ? {
+          ...baseUi,
+          retryAction: "抽卡",
+          exhaustedBody: "这一轮暂时没有找到足够相似的新论文。可以继续抽卡重试，或补充更明确的种子论文。",
+          errorBody: "兴趣记忆还在，但这次没能顺利抓到合适的论文。可以直接继续抽卡重试。",
+        }
+      : {
+          ...baseUi,
+          retryAction: "Draw",
+          exhaustedBody:
+            "No paper close enough to your current memory surfaced this round. Draw again to retry, or sharpen the memory with stronger seed papers.",
+        };
+
   const [cards, setCards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState({});
@@ -199,10 +214,10 @@ export default function DrawView({
   const loadingPhraseTimeoutRef = useRef(null);
   const seedKeyRef = useRef("");
   const shouldShowLoadingStage =
-    cards.length === 0 &&
     hasInterestMemory &&
     effectiveSeedPaperIds.length > 0 &&
-    (drawStatus === "idle" || drawStatus === "loading");
+    (drawStatus === "loading" || (drawStatus === "idle" && cards.length === 0)) &&
+    (cards.length === 0 || currentIndex >= cards.length);
 
   async function requestCards(excludedPaperIds) {
     const result = await gachaDraw(
@@ -222,13 +237,14 @@ export default function DrawView({
     setDrawStatus("ready");
   }
 
-  async function fetchMore() {
+  async function fetchMore(options = {}) {
     if (isFetching || !hasInterestMemory || effectiveSeedPaperIds.length === 0) return;
 
+    const { forceLoadingStage = false } = options;
     const hadCards = cards.length > 0;
     setIsFetching(true);
     setFetchError("");
-    if (!hadCards) {
+    if (!hadCards || forceLoadingStage) {
       setDrawStatus("loading");
     }
 
@@ -249,10 +265,10 @@ export default function DrawView({
         return;
       }
 
-      setFetchError(t("draw.emptyPool"));
+      setFetchError(ui.exhaustedBody);
       setDrawStatus(hadCards ? "ready" : "empty");
     } catch {
-      setFetchError(t("draw.error"));
+      setFetchError(ui.errorBody);
       setDrawStatus(hadCards ? "ready" : "error");
     } finally {
       setIsFetching(false);
@@ -555,9 +571,7 @@ export default function DrawView({
         title={drawStatus === "empty" ? ui.exhaustedTitle : ui.errorTitle}
         body={fetchError || (drawStatus === "empty" ? ui.exhaustedBody : ui.errorBody)}
         actionLabel={ui.retryAction}
-        onAction={fetchMore}
-        secondaryActionLabel={ui.discoverLabel}
-        onSecondaryAction={onOpenDiscover}
+        onAction={() => fetchMore({ forceLoadingStage: true })}
       />
     );
   }
@@ -567,8 +581,8 @@ export default function DrawView({
       <EmptyState
         title={ui.exhaustedTitle}
         body={fetchError || ui.exhaustedBody}
-        actionLabel={ui.discoverLabel}
-        onAction={onOpenDiscover}
+        actionLabel={ui.retryAction}
+        onAction={() => fetchMore({ forceLoadingStage: true })}
       />
     );
   }

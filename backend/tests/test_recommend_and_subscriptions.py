@@ -10,6 +10,66 @@ from backend.routers.subscriptions import get_subscription_feed
 
 
 class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
+    async def test_gacha_draw_filters_out_low_similarity_ranked_papers(self) -> None:
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    settings=SimpleNamespace(max_recommendations=100),
+                    card_generator=object(),
+                    s2_client=SimpleNamespace(get_papers_batch=AsyncMock(return_value=[])),
+                    oa_client=SimpleNamespace(get_paper_by_lookup=AsyncMock(return_value=None)),
+                    journal_zone=None,
+                )
+            )
+        )
+        body = GachaRequest(
+            seed_paper_ids=["seed-1"],
+            count=1,
+            mode="research",
+            language="zh",
+        )
+
+        ranked_papers = [
+            {"paperId": "weak-1", "title": "Weak Match", "similarity_score": 0.08},
+            {"paperId": "strong-1", "title": "Strong Match", "similarity_score": 0.47},
+        ]
+
+        with (
+            patch(
+                "backend.routers.recommend._get_ranked_recommendation_pool",
+                new=AsyncMock(return_value=(["seed-1"], ranked_papers)),
+            ),
+            patch(
+                "backend.routers.recommend._build_card_response",
+                new=AsyncMock(
+                    return_value=CardResponse(
+                        paper_id="strong-1",
+                        title="Strong Match",
+                        authors=["S. Author"],
+                        abstract="S" * 120,
+                        year=2025,
+                        venue="Match Venue",
+                        citation_count=12,
+                        doi=None,
+                        url=None,
+                        mode="research",
+                        language="zh",
+                        card_content={"headline": "strong"},
+                        tier="N",
+                        similarity_score=0.47,
+                    )
+                ),
+            ),
+        ):
+            response = await gacha_draw(request, body)
+
+        self.assertEqual(len(response.cards), 1)
+        self.assertEqual(
+            response.cards[0].paper_id,
+            "strong-1",
+            "Gacha should exclude low-similarity candidates before drawing a card.",
+        )
+
     async def test_gacha_draw_falls_back_to_related_venue_papers_when_ranked_pool_is_empty(self) -> None:
         related_paper = {
             "paperId": "rec-1",
@@ -77,6 +137,10 @@ class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
                 new=AsyncMock(return_value=(["seed-1"], [])),
             ),
             patch(
+                "backend.routers.recommend.rank_recommendations",
+                new=AsyncMock(return_value=[{**related_paper, "similarity_score": 0.41}]),
+            ),
+            patch(
                 "backend.routers.recommend._build_card_response",
                 new=AsyncMock(
                     return_value=CardResponse(
@@ -105,6 +169,106 @@ class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
             response.cards[0].paper_id,
             "rec-1",
             "When the ranked recommendation pool is empty, gacha should fall back to related venue papers instead of going empty immediately.",
+        )
+
+    async def test_gacha_draw_rejects_low_similarity_venue_fallback_papers(self) -> None:
+        related_paper = {
+            "paperId": "rec-1",
+            "title": "Weak Venue Match",
+            "authors": [{"name": "B. Author"}],
+            "abstract": "B" * 120,
+            "venue": "Seed Venue",
+            "year": 2025,
+            "citationCount": 3,
+            "issn": "1111-1111",
+        }
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    settings=SimpleNamespace(max_recommendations=100),
+                    card_generator=object(),
+                    s2_client=SimpleNamespace(
+                        get_papers_batch=AsyncMock(
+                            return_value=[
+                                {
+                                    "paperId": "seed-1",
+                                    "title": "Seed Paper",
+                                    "authors": [{"name": "A. Author"}],
+                                    "abstract": "A" * 120,
+                                    "venue": "Seed Venue",
+                                    "year": 2024,
+                                    "citationCount": 1,
+                                    "issn": "1111-1111",
+                                }
+                            ]
+                        )
+                    ),
+                    oa_client=SimpleNamespace(
+                        get_paper_by_lookup=AsyncMock(return_value=None),
+                        search_venues=AsyncMock(
+                            return_value=[{"id": "S-seed-venue", "name": "Seed Venue", "issn": "1111-1111"}]
+                        ),
+                        get_recent_papers_by_venue=AsyncMock(return_value=[related_paper]),
+                    ),
+                    journal_zone=None,
+                )
+            )
+        )
+        body = GachaRequest(
+            seed_paper_ids=["seed-1"],
+            seed_papers=[
+                PaperSummary(
+                    paper_id="seed-1",
+                    title="Seed Paper",
+                    authors=["A. Author"],
+                    abstract="A" * 120,
+                    venue="Seed Venue",
+                    year=2024,
+                    issn="1111-1111",
+                )
+            ],
+            count=1,
+            mode="research",
+            language="zh",
+        )
+
+        with (
+            patch(
+                "backend.routers.recommend._get_ranked_recommendation_pool",
+                new=AsyncMock(return_value=(["seed-1"], [])),
+            ),
+            patch(
+                "backend.routers.recommend.rank_recommendations",
+                new=AsyncMock(return_value=[{**related_paper, "similarity_score": 0.06}]),
+            ),
+            patch(
+                "backend.routers.recommend._build_card_response",
+                new=AsyncMock(
+                    return_value=CardResponse(
+                        paper_id="rec-1",
+                        title="Weak Venue Match",
+                        authors=["B. Author"],
+                        abstract="B" * 120,
+                        year=2025,
+                        venue="Seed Venue",
+                        citation_count=3,
+                        doi=None,
+                        url=None,
+                        mode="research",
+                        language="zh",
+                        card_content={"headline": "weak"},
+                        tier="N",
+                        similarity_score=0.06,
+                    )
+                ),
+            ),
+        ):
+            response = await gacha_draw(request, body)
+
+        self.assertEqual(
+            response.cards,
+            [],
+            "Venue fallback papers should still be filtered out if they do not reach the similarity threshold.",
         )
 
     async def test_gacha_draw_does_not_recycle_seed_papers_when_ranked_pool_is_empty(self) -> None:

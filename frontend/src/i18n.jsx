@@ -154,7 +154,7 @@ const messages = {
           ? `${count} collected papers are excluded from recommendations and future draws.`
           : "Collected papers will be excluded from recommendations and future draws once you save them.",
       error: "Unable to draw cards right now. Please try again.",
-      emptyPool: "No new cards left in the current pool. Add more papers or clear some favorites.",
+      emptyPool: "No sufficiently similar papers surfaced in this round. Draw again to retry, or add clearer seed papers.",
     },
     gacha: {
       title: "Card Draw",
