@@ -7,6 +7,7 @@ import { useTheme } from "../../theme";
 import { getTierConfig } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
 import { fetchNextDrawBatch } from "./drawSession";
+import { shouldShowExhaustedState, shouldShowLoadingStage } from "./drawViewState";
 
 const ORBITAL_BODIES = [
   { size: "var(--draw-stage-orbit-1-size)", duration: "18s", delay: "-2s", direction: "normal", dotClass: "is-mercury" },
@@ -214,11 +215,19 @@ export default function DrawView({
   const flipFlashTimeoutRef = useRef(null);
   const loadingPhraseTimeoutRef = useRef(null);
   const seedKeyRef = useRef("");
-  const shouldShowLoadingStage =
-    hasInterestMemory &&
-    effectiveSeedPaperIds.length > 0 &&
-    (drawStatus === "loading" || (drawStatus === "idle" && cards.length === 0)) &&
-    (cards.length === 0 || currentIndex >= cards.length);
+  const showLoadingStage = shouldShowLoadingStage({
+    hasInterestMemory,
+    seedPaperCount: effectiveSeedPaperIds.length,
+    drawStatus,
+    cardCount: cards.length,
+    currentIndex,
+    isFetching,
+  });
+  const showExhaustedState = shouldShowExhaustedState({
+    cardCount: cards.length,
+    currentIndex,
+    isFetching,
+  });
 
   async function requestCards(excludedPaperIds) {
     const result = await gachaDraw(
@@ -514,7 +523,7 @@ export default function DrawView({
     setCurrentIndex((prev) => prev + 1);
   }
 
-  if (shouldShowLoadingStage) {
+  if (showLoadingStage) {
     return (
       <div
         className={`gacha-stage-view is-loading ${isDark ? "is-dark" : "is-light"}`}
@@ -581,7 +590,7 @@ export default function DrawView({
     );
   }
 
-  if (currentIndex >= cards.length && cards.length > 0) {
+  if (showExhaustedState) {
     return (
       <EmptyState
         title={ui.exhaustedTitle}

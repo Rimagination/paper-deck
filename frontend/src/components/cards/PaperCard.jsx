@@ -209,11 +209,19 @@ export default function PaperCard({ card, mode = "research", compact = false, on
           </div>
 
           <div className="mt-3 space-y-1.5">
-            <h3 className={`type-card-title leading-snug ${theme.titleColor} ${compact ? "line-clamp-2" : "line-clamp-3"}`}>
+            <h3
+              className={`paper-card-title type-card-title leading-snug ${theme.titleColor} ${
+                compact ? "line-clamp-2" : "line-clamp-3"
+              }`}
+            >
               {title}
             </h3>
             {titleZh && (
-              <p className={`font-heading-cn leading-snug ${theme.titleSecondaryColor || theme.authorColor} ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-[12px]"}`}>
+              <p
+                className={`paper-card-title-secondary font-heading-cn leading-snug ${
+                  theme.titleSecondaryColor || theme.authorColor
+                } ${compact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-[12px]"}`}
+              >
                 {titleZh}
               </p>
             )}

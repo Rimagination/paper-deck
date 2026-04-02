@@ -4240,6 +4240,9 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 }
 
 .paper-card-shell {
+  --paper-card-title-color: rgba(255, 255, 255, 0.96);
+  --paper-card-title-secondary-color: rgba(255, 255, 255, 0.84);
+  --paper-card-title-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
   isolation: isolate;
   box-shadow:
     0 26px 60px rgba(15, 23, 42, 0.26),
@@ -4259,6 +4262,26 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
     radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.24), transparent 30%),
     radial-gradient(circle at 82% 88%, rgba(255, 255, 255, 0.12), transparent 26%);
   opacity: 0.9;
+}
+
+.paper-card-shell.card-zone-ni {
+  --paper-card-title-color: #f6d46d;
+  --paper-card-title-secondary-color: rgba(244, 220, 149, 0.92);
+}
+
+.paper-card-shell.card-zone-default {
+  --paper-card-title-color: var(--text-main);
+  --paper-card-title-secondary-color: var(--text-muted);
+  --paper-card-title-shadow: none;
+}
+
+.paper-card-title {
+  color: var(--paper-card-title-color);
+  text-shadow: var(--paper-card-title-shadow);
+}
+
+.paper-card-title-secondary {
+  color: var(--paper-card-title-secondary-color);
 }
 
 .paper-card-ni-chip,
