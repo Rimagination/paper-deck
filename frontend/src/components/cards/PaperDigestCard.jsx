@@ -87,7 +87,7 @@ export default function PaperDigestCard({
       </div>
 
       <div className="digest-card-actions">
-        <button onClick={onAction} className="app-accent-button rounded-xl px-4 py-2.5 text-sm font-medium">
+        <button onClick={onAction} className="app-accent-button rounded-xl px-4 py-2.5">
           {actionLabel}
         </button>
         {secondaryAction}

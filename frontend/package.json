@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "check:typography": "node scripts/check-typography.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },

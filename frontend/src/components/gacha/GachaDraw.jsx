@@ -16,7 +16,7 @@ function CardBack({ zone, tier, modeLabel, isNi = false }) {
       <div className="relative z-[1] flex h-full w-full flex-col justify-between p-6">
         <div className="flex items-start justify-between gap-3">
           <TierBadge zone={zone} tier={tier} isNi={isNi} />
-          <span className={`text-[10px] font-semibold uppercase tracking-[0.26em] ${theme.authorColor}`}>
+          <span className={`type-eyebrow ${theme.authorColor}`}>
             {modeLabel}
           </span>
         </div>
@@ -26,14 +26,14 @@ function CardBack({ zone, tier, modeLabel, isNi = false }) {
             <div className="gacha-card-back-sigil-core" />
           </div>
           <div>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.36em] ${theme.authorColor}`}>PaperDeck</p>
-            <p className={`mt-3 text-sm font-semibold ${theme.bodyColor}`}>{t("gacha.tapToReveal")}</p>
+            <p className={`type-eyebrow ${theme.authorColor}`}>PaperDeck</p>
+            <p className={`type-card-title mt-3 ${theme.bodyColor}`}>{t("gacha.tapToReveal")}</p>
           </div>
         </div>
 
         <div className="flex items-end justify-between">
           <div className={`deck-preview-orb ${theme.loaderCoreClass}`} />
-          <div className={`text-[10px] font-medium ${theme.authorColor}`}>{t("draw.previewEyebrow")}</div>
+          <div className={`type-eyebrow ${theme.authorColor}`}>{t("draw.previewEyebrow")}</div>
         </div>
       </div>
     </div>
@@ -180,7 +180,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
         <header className="gacha-shell-header">
           <div>
             <p className="gacha-shell-kicker">{t("draw.eyebrow")}</p>
-            <h2 className="font-heading-cn text-2xl font-semibold text-white">{t("gacha.title")}</h2>
+            <h2 className="font-heading-cn type-page-title text-white">{t("gacha.title")}</h2>
           </div>
           <div className="gacha-shell-progress">
             <span>
@@ -203,7 +203,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
             <div className="gacha-stage-topline">
               <TierBadge zone={currentCard.zone} tier={currentCard.tier} isNi={currentCard.is_ni} />
               {currentCard.similarity_score > 0 && (
-                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${currentTheme.matchClass}`}>
+                <span className={`type-button rounded-full border px-2.5 py-1 ${currentTheme.matchClass}`}>
                   {Math.round(currentCard.similarity_score * 100)}% {t("recommend.matchScore")}
                 </span>
               )}
@@ -246,7 +246,7 @@ export default function GachaDraw({ cards, cardMode, onClose }) {
                 {metadata.map((item) => (
                   <div key={item.label} className="gacha-inspector-row">
                     <span>{item.label}</span>
-                    <strong>{item.value}</strong>
+                    <span className="type-data">{item.value}</span>
                   </div>
                 ))}
               </div>

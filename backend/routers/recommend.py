@@ -307,7 +307,8 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
     oa = request.app.state.oa_client
     journal_zone = request.app.state.journal_zone
 
-    excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id}
+    seed_ids = {paper_id for paper_id in body.seed_paper_ids if paper_id}
+    excluded_ids = {paper_id for paper_id in body.exclude_paper_ids if paper_id} | seed_ids
 
     pool_limit = min(max(body.count * 10, 40), settings.max_recommendations)
     s2_ids, ranked_papers = await _get_ranked_recommendation_pool(
@@ -320,14 +321,6 @@ async def gacha_draw(request: Request, body: GachaRequest) -> GachaResponse:
         ranked_papers = [paper for paper in ranked_papers if paper.get("paperId") not in excluded_ids]
 
     draw_pool = ranked_papers[: max(body.count * 8, body.count)]
-    if not draw_pool:
-        draw_pool = await _build_seed_echo_pool(
-            request,
-            body.seed_paper_ids,
-            s2_ids,
-            excluded_ids,
-            body.seed_papers,
-        )
 
     random.shuffle(draw_pool)
     selected = draw_pool[: body.count]

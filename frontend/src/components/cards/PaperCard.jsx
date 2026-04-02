@@ -15,7 +15,7 @@ function DoiLink({ doi, url, theme }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${theme.doiClass}`}
+      className={`type-button flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${theme.doiClass}`}
       title="Open paper"
       onClick={(event) => event.stopPropagation()}
     >
@@ -29,7 +29,7 @@ function DoiLink({ doi, url, theme }) {
 }
 
 function FieldCaption({ children, theme }) {
-  return <p className={`text-[9px] font-bold uppercase tracking-[0.28em] ${theme.labelColor}`}>{children}</p>;
+  return <p className={`type-eyebrow ${theme.labelColor}`}>{children}</p>;
 }
 
 function SignalChips({ values, theme, prefix = "" }) {
@@ -37,7 +37,7 @@ function SignalChips({ values, theme, prefix = "" }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {values.map((value) => (
-        <span key={value} className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${theme.tagClass}`}>
+        <span key={value} className={`type-button rounded-full px-2.5 py-1 ${theme.tagClass}`}>
           {prefix}
           {value}
         </span>
@@ -58,7 +58,7 @@ function MetricBox({ label, value, theme }) {
 
 function MetaChip({ children, className = "" }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${className}`}>
+    <span className={`type-button inline-flex items-center rounded-full px-2.5 py-1 ${className}`}>
       {children}
     </span>
   );
@@ -120,7 +120,7 @@ function DiscoverySurface({ card, compact, theme, t }) {
   if (compact) {
     return (
       <div className="space-y-3">
-        {content.headline && <p className={`line-clamp-2 text-sm font-bold leading-5 ${theme.titleColor}`}>{content.headline}</p>}
+        {content.headline && <p className={`type-card-title line-clamp-2 ${theme.titleColor}`}>{content.headline}</p>}
         <p className={`line-clamp-4 text-[11px] leading-5 ${theme.bodyColor}`}>
           {getCardSynopsis(card, "discovery")}
         </p>
@@ -130,7 +130,7 @@ function DiscoverySurface({ card, compact, theme, t }) {
 
   return (
     <div className="space-y-4">
-      {content.headline && <p className={`text-base font-bold leading-6 ${theme.titleColor}`}>{content.headline}</p>}
+      {content.headline && <p className={`type-section-title ${theme.titleColor}`}>{content.headline}</p>}
       <div className="paper-card-lead">
         <FieldCaption theme={theme}>{t("card.headline")}</FieldCaption>
         <p className={`mt-2 line-clamp-4 text-[12px] leading-6 ${theme.bodyColor}`}>
@@ -155,7 +155,7 @@ function CardGeneratingState({ title, theme, t }) {
         <div className={`absolute inset-[22px] animate-pulse rounded-full ${theme.loaderCoreClass}`} />
       </div>
       <div>
-        <p className={`text-sm font-semibold ${theme.titleColor}`}>{t("card.generating")}</p>
+        <p className={`type-card-title ${theme.titleColor}`}>{t("card.generating")}</p>
         {title && <p className={`mt-1 text-xs ${theme.bodyColor}`}>{title}</p>}
       </div>
     </div>
@@ -200,7 +200,7 @@ export default function PaperCard({ card, mode = "research", compact = false, on
             </div>
             <div className="flex items-center gap-1">
               {card.similarity_score > 0 && (
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${theme.matchClass}`}>
+                <span className={`type-button rounded-full border px-2 py-0.5 ${theme.matchClass}`}>
                   {Math.round(card.similarity_score * 100)}% {t("recommend.matchScore")}
                 </span>
               )}
@@ -209,7 +209,7 @@ export default function PaperCard({ card, mode = "research", compact = false, on
           </div>
 
           <div className="mt-3 space-y-1.5">
-            <h3 className={`font-bold leading-snug ${theme.titleColor} ${compact ? "line-clamp-2 text-sm" : "line-clamp-3 text-[15px]"}`}>
+            <h3 className={`type-card-title leading-snug ${theme.titleColor} ${compact ? "line-clamp-2" : "line-clamp-3"}`}>
               {title}
             </h3>
             {titleZh && (
@@ -246,15 +246,15 @@ export default function PaperCard({ card, mode = "research", compact = false, on
         <div className={`mx-5 mt-auto border-t ${theme.dividerClass}`} />
         <div className="flex shrink-0 items-center justify-between gap-3 px-5 py-3">
           <div className="space-y-1">
-            <p className={`text-[10px] uppercase tracking-[0.24em] ${theme.labelColor}`}>
+            <p className={`type-eyebrow ${theme.labelColor}`}>
               {mode === "research" ? t("card.researchMode") : t("card.discoveryMode")}
             </p>
-            <span className={`text-[11px] ${theme.citationClass}`}>
+            <span className={`type-meta ${theme.citationClass}`}>
               {t("card.citations")}: {card.citation_count?.toLocaleString?.() ?? card.citation_count ?? 0}
             </span>
           </div>
           {isInteractive && (
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${theme.tagClass}`}>
+            <span className={`type-button rounded-full px-2.5 py-1 ${theme.tagClass}`}>
               {t("recommend.viewCard")}
             </span>
           )}

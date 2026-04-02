@@ -40,7 +40,7 @@ function CardBack({ zone, tier, modeLabel, isNi = false }) {
       <div className="gacha-card-back-sheen" />
       <div className="relative z-[1] flex h-full w-full flex-col justify-between p-6">
         <div className="flex items-start justify-end gap-3">
-          <span className={`text-[10px] font-semibold uppercase tracking-[0.26em] ${theme.authorColor}`}>
+          <span className={`type-eyebrow ${theme.authorColor}`}>
             {modeLabel}
           </span>
         </div>
@@ -49,8 +49,8 @@ function CardBack({ zone, tier, modeLabel, isNi = false }) {
             <div className="gacha-card-back-sigil-core" />
           </div>
           <div>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.36em] ${theme.authorColor}`}>PaperDeck</p>
-            <p className={`mt-3 text-sm font-semibold ${theme.bodyColor}`}>{t("gacha.tapToReveal")}</p>
+            <p className={`type-eyebrow ${theme.authorColor}`}>PaperDeck</p>
+            <p className={`type-card-title mt-3 ${theme.bodyColor}`}>{t("gacha.tapToReveal")}</p>
           </div>
         </div>
         <div className="flex items-end justify-between">
@@ -65,19 +65,19 @@ function EmptyState({ title, body, actionLabel, onAction, secondaryActionLabel, 
   return (
     <section className="paper-surface flex min-h-[360px] flex-col items-center justify-center rounded-[30px] px-6 py-14 text-center">
       <div className="max-w-lg">
-        <h2 className="font-heading-cn text-3xl font-semibold" style={{ color: "var(--text-main)" }}>
+        <h2 className="type-page-title font-heading-cn" style={{ color: "var(--text-main)" }}>
           {title}
         </h2>
-        <p className="mt-3 text-sm leading-7" style={{ color: "var(--text-muted)" }}>
+        <p className="type-body mt-3" style={{ color: "var(--text-muted)" }}>
           {body}
         </p>
       </div>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <button onClick={onAction} className="app-primary-button rounded-2xl px-5 py-3 text-sm font-medium">
+        <button onClick={onAction} className="app-primary-button type-button rounded-2xl px-5 py-3">
           {actionLabel}
         </button>
         {secondaryActionLabel && onSecondaryAction ? (
-          <button onClick={onSecondaryAction} className="app-outline-button rounded-2xl px-5 py-3 text-sm font-medium">
+          <button onClick={onSecondaryAction} className="app-outline-button type-button rounded-2xl px-5 py-3">
             {secondaryActionLabel}
           </button>
         ) : null}
@@ -689,7 +689,7 @@ export default function DrawView({
                 <button
                   onClick={handleCollect}
                   disabled={!isFlipped || isCollected || !currentCard}
-                  className={`app-accent-button rounded-2xl px-4 py-3 text-sm font-semibold disabled:opacity-40`}
+                  className="app-accent-button type-button rounded-2xl px-4 py-3 disabled:opacity-40"
                 >
                   {isCollected ? t("card.collected") : t("card.collect")}
                 </button>
@@ -697,7 +697,7 @@ export default function DrawView({
                 <button
                   onClick={handleAddToMemory}
                   disabled={!isFlipped || !currentCard || isCurrentInMemory || isAddingToMemory}
-                  className="app-outline-button rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                  className="app-outline-button type-button rounded-2xl px-4 py-3 disabled:opacity-40"
                 >
                   {isCurrentInMemory ? ui.alreadyInMemory : isAddingToMemory ? t("common.loading") : ui.addToMemory}
                 </button>
@@ -706,7 +706,7 @@ export default function DrawView({
                   <button
                     onClick={() => currentCard && onViewCard(currentCard)}
                     disabled={!isFlipped || !currentCard}
-                    className="app-outline-button rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                    className="app-outline-button type-button rounded-2xl px-4 py-3 disabled:opacity-40"
                   >
                     {t("recommend.viewCard")}
                   </button>
@@ -715,7 +715,7 @@ export default function DrawView({
                 <button
                   onClick={handleNext}
                   disabled={!isFlipped || !currentCard}
-                  className="app-primary-button rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                  className="app-primary-button type-button rounded-2xl px-4 py-3 disabled:opacity-40"
                 >
                   {t("gacha.nextCard")}
                 </button>
@@ -723,7 +723,7 @@ export default function DrawView({
 
               <div className="mt-4 border-t border-slate-200/80 pt-4">
                 <div
-                  className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                  className="type-eyebrow flex items-center justify-between gap-3"
                   style={{ color: "var(--text-soft)" }}
                 >
                   <span>{ui.memoryCount}</span>

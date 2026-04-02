@@ -61,14 +61,14 @@ function ProviderForm({ provider, onSave, onCancel, t }) {
             <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 0 1-.02 1.06L8.832 10l3.938 3.71a.75.75 0 1 1-1.04 1.08l-4.5-4.25a.75.75 0 0 1 0-1.08l4.5-4.25a.75.75 0 0 1 1.06.02Z" clipRule="evenodd" />
           </svg>
         </button>
-        <h3 className="ai-settings-subtitle font-semibold text-sm">
+        <h3 className="ai-settings-subtitle type-section-title">
           {isEdit ? t("ai.editProvider") : t("ai.addProvider")}
         </h3>
       </div>
 
       {!isEdit && (
         <div>
-          <label className="ai-settings-label block text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+          <label className="ai-settings-label type-eyebrow block mb-1.5">
             {t("ai.preset")}
           </label>
           <select
@@ -84,7 +84,7 @@ function ProviderForm({ provider, onSave, onCancel, t }) {
       )}
 
       <div>
-        <label className="ai-settings-label block text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+        <label className="ai-settings-label type-eyebrow block mb-1.5">
           {t("ai.providerName")}
         </label>
         <input
@@ -97,7 +97,7 @@ function ProviderForm({ provider, onSave, onCancel, t }) {
       </div>
 
       <div>
-        <label className="ai-settings-label block text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+        <label className="ai-settings-label type-eyebrow block mb-1.5">
           {t("ai.baseUrl")}
         </label>
         <input
@@ -110,7 +110,7 @@ function ProviderForm({ provider, onSave, onCancel, t }) {
       </div>
 
       <div>
-        <label className="ai-settings-label block text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+        <label className="ai-settings-label type-eyebrow block mb-1.5">
           {t("ai.model")}
         </label>
         <input
@@ -134,7 +134,7 @@ function ProviderForm({ provider, onSave, onCancel, t }) {
       </div>
 
       <div>
-        <label className="ai-settings-label block text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+        <label className="ai-settings-label type-eyebrow block mb-1.5">
           {t("ai.apiKey")}
         </label>
         <div className="relative">
@@ -173,13 +173,13 @@ function ProviderForm({ provider, onSave, onCancel, t }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 rounded-lg py-2 text-sm font-medium ai-settings-cancel-btn"
+          className="ai-settings-cancel-btn flex-1 rounded-lg py-2"
         >
           {t("common.cancel")}
         </button>
         <button
           type="submit"
-          className="flex-1 rounded-lg py-2 text-sm font-semibold ai-settings-save-btn"
+          className="ai-settings-save-btn flex-1 rounded-lg py-2"
         >
           {t("common.save")}
         </button>
@@ -240,7 +240,7 @@ export default function AIProviderSettings({ onClose }) {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="ai-settings-title font-bold text-base">{t("ai.settingsTitle")}</h2>
+              <h2 className="ai-settings-title type-section-title">{t("ai.settingsTitle")}</h2>
               <button
                 onClick={onClose}
                 className="ai-settings-hint rounded-lg p-1 hover:opacity-70"
@@ -253,7 +253,7 @@ export default function AIProviderSettings({ onClose }) {
 
             {/* Active provider selector */}
             <div className="space-y-1.5">
-              <p className="ai-settings-label text-[11px] font-semibold uppercase tracking-wider">
+              <p className="ai-settings-label type-eyebrow">
                 {t("ai.activeProvider")}
               </p>
 
@@ -267,7 +267,7 @@ export default function AIProviderSettings({ onClose }) {
                   {activeId === null && <span className="h-1.5 w-1.5 rounded-full bg-current" />}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium ai-settings-title">{t("ai.serverDefault")}</p>
+                  <p className="ai-settings-title type-card-title">{t("ai.serverDefault")}</p>
                   <p className="text-[10px] ai-settings-hint">{t("ai.serverDefaultDesc")}</p>
                 </div>
               </button>
@@ -284,8 +284,8 @@ export default function AIProviderSettings({ onClose }) {
                     {activeId === p.id && <span className="h-1.5 w-1.5 rounded-full bg-current" />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium ai-settings-title truncate">{p.name}</p>
-                    <p className="text-[10px] ai-settings-hint font-mono truncate">{p.model}</p>
+                    <p className="ai-settings-title type-card-title truncate">{p.name}</p>
+                    <p className="ai-settings-hint type-code truncate">{p.model}</p>
                   </div>
                 </button>
               ))}
@@ -294,14 +294,14 @@ export default function AIProviderSettings({ onClose }) {
             {/* Provider list with edit/delete */}
             {providers.length > 0 && (
               <div className="space-y-1.5">
-                <p className="ai-settings-label text-[11px] font-semibold uppercase tracking-wider">
+                <p className="ai-settings-label type-eyebrow">
                   {t("ai.savedProviders")}
                 </p>
                 {providers.map((p) => (
                   <div key={p.id} className="ai-settings-card flex items-center gap-2 rounded-xl px-3 py-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold ai-settings-title truncate">{p.name}</p>
-                      <p className="text-[10px] ai-settings-hint font-mono">{maskKey(p.apiKey)}</p>
+                      <p className="ai-settings-title type-card-title truncate">{p.name}</p>
+                      <p className="ai-settings-hint type-code">{maskKey(p.apiKey)}</p>
                     </div>
                     <button
                       onClick={() => setFormTarget(p)}
@@ -322,7 +322,7 @@ export default function AIProviderSettings({ onClose }) {
 
             <button
               onClick={() => setFormTarget("new")}
-              className="w-full rounded-xl py-2 text-sm font-medium ai-settings-add-btn"
+              className="ai-settings-add-btn w-full rounded-xl py-2"
             >
               + {t("ai.addProvider")}
             </button>

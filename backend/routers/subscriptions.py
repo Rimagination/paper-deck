@@ -12,6 +12,28 @@ from backend.services.semantic_scholar import SemanticScholarError
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 
+def _merge_subscription_enrichment(
+    base_papers: list[dict],
+    enriched_by_id: dict[str, dict],
+) -> list[dict]:
+    merged_papers: list[dict] = []
+    for paper in base_papers:
+        pid = paper.get("paperId", "")
+        enriched = enriched_by_id.get(pid)
+        if not enriched:
+            merged_papers.append(paper)
+            continue
+
+        merged = {**paper, **enriched}
+        # Preserve the venue provenance from the subscribed OpenAlex source.
+        merged["venue"] = paper.get("venue") or enriched.get("venue")
+        merged["issn"] = paper.get("issn") or enriched.get("issn")
+        merged["eissn"] = paper.get("eissn") or enriched.get("eissn")
+        merged_papers.append(merged)
+
+    return merged_papers
+
+
 @router.get("/venues/search")
 async def search_venues(
     request: Request,
@@ -92,11 +114,7 @@ async def get_subscription_feed(request: Request, body: dict) -> dict:
             try:
                 enriched = await s2.get_papers_with_embeddings(enrichable_ids)
                 enriched_by_id = {p.get("paperId"): p for p in enriched if p and p.get("paperId")}
-                # Merge: prefer S2 data when available (includes embedding)
-                for i, paper in enumerate(all_papers):
-                    pid = paper.get("paperId", "")
-                    if pid in enriched_by_id:
-                        all_papers[i] = {**paper, **enriched_by_id[pid]}
+                all_papers = _merge_subscription_enrichment(all_papers, enriched_by_id)
             except SemanticScholarError:
                 pass  # fall through to unranked results
 

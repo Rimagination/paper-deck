@@ -19,7 +19,7 @@ function MetaPill({ label, value }) {
   return (
     <div className="detail-meta-pill">
       <span className="detail-meta-label">{label}</span>
-      <strong>{value}</strong>
+      <span className="type-data">{value}</span>
     </div>
   );
 }
@@ -174,18 +174,18 @@ export default function CardDetail({ card, mode, onClose }) {
             <div className="app-segmented flex items-center gap-1 rounded-xl p-1">
               <button
                 onClick={() => setCurrentMode("research")}
-                className={`app-segment-button rounded-lg px-3 py-1.5 text-xs font-medium ${currentMode === "research" ? "is-active" : ""}`}
+                className={`app-segment-button rounded-lg px-3 py-1.5 ${currentMode === "research" ? "is-active" : ""}`}
               >
                 {t("card.researchMode")}
               </button>
               <button
                 onClick={() => setCurrentMode("discovery")}
-                className={`app-segment-button rounded-lg px-3 py-1.5 text-xs font-medium ${currentMode === "discovery" ? "is-active" : ""}`}
+                className={`app-segment-button rounded-lg px-3 py-1.5 ${currentMode === "discovery" ? "is-active" : ""}`}
               >
                 {t("card.discoveryMode")}
               </button>
             </div>
-            <button onClick={onClose} className="app-outline-button rounded-xl px-4 py-2 text-sm font-medium">
+            <button onClick={onClose} className="app-outline-button rounded-xl px-4 py-2">
               {t("common.close")}
             </button>
           </div>
@@ -213,7 +213,7 @@ export default function CardDetail({ card, mode, onClose }) {
               <div className="detail-rail-actions">
                 <button
                   onClick={handleCollect}
-                  className={`app-accent-button rounded-xl px-4 py-3 text-sm font-semibold ${collected ? "opacity-80" : ""}`}
+                  className={`app-accent-button rounded-xl px-4 py-3 ${collected ? "opacity-80" : ""}`}
                 >
                   {collected ? t("card.collected") : t("card.collect")}
                 </button>
@@ -222,7 +222,7 @@ export default function CardDetail({ card, mode, onClose }) {
                     href={cardData?.doi ? `https://doi.org/${cardData.doi}` : cardData.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="app-outline-button rounded-xl px-4 py-3 text-sm font-medium text-center"
+                    className="app-outline-button rounded-xl px-4 py-3 text-center"
                   >
                     DOI
                   </a>

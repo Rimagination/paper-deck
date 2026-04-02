@@ -21,7 +21,7 @@ const OTHER_APPS = [
 function ScanSciGlobalNav() {
   return (
     <nav className="global-nav fixed left-0 right-0 top-0 z-[60] flex h-10 items-center justify-between px-3 backdrop-blur-md sm:px-5">
-      <a href="https://www.scansci.com" className="global-nav-brand flex items-center gap-1.5 text-[12px] font-bold">
+      <a href="https://www.scansci.com" className="global-nav-brand flex items-center gap-1.5">
         <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 flex-none" fill="currentColor">
           <path d="M6.5 1.5a5 5 0 1 0 0 10 5 5 0 0 0 0-10M0 6.5a6.5 6.5 0 1 1 11.598 4.036l3.433 3.433-1.06 1.06-3.434-3.432A6.5 6.5 0 0 1 0 6.5" />
         </svg>
@@ -29,7 +29,7 @@ function ScanSciGlobalNav() {
       </a>
       <div className="flex items-center gap-0.5">
         {OTHER_APPS.map((app) => (
-          <a key={app.name} href={app.url} className="global-nav-link rounded-md px-2.5 py-1 text-[11px] font-medium">
+          <a key={app.name} href={app.url} className="global-nav-link rounded-md px-2.5 py-1">
             {app.name}
           </a>
         ))}
@@ -67,7 +67,7 @@ function ViewTabs({ view, onViewChange, t, locale }) {
         <button
           key={tab.key}
           onClick={() => onViewChange(tab.key)}
-          className={`app-tab rounded-lg px-4 py-2 text-sm font-medium ${view === tab.key ? "is-active" : ""}`}
+          className={`app-tab rounded-lg px-4 py-2 ${view === tab.key ? "is-active" : ""}`}
         >
           {tab.label}
         </button>
@@ -91,7 +91,7 @@ function AuthButton({ authStatus, user, onLogin, t }) {
   }
 
   return (
-    <button onClick={onLogin} className="app-primary-button rounded-lg px-3 py-1.5 text-xs font-medium">
+    <button onClick={onLogin} className="app-primary-button rounded-lg px-3 py-1.5">
       {t("auth.signIn")}
     </button>
   );
@@ -229,14 +229,14 @@ export default function App() {
       <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col px-4 pt-10">
         <header className="flex flex-wrap items-center justify-between gap-4 py-4">
           <div className="flex min-w-0 items-center gap-4">
-            <h1 className="app-wordmark font-heading text-xl font-bold">PaperDeck</h1>
+            <h1 className="app-wordmark">PaperDeck</h1>
             <ViewTabs view={view} onViewChange={setView} t={t} locale={locale} />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="app-segmented flex items-center gap-1 rounded-lg p-0.5">
               <button
                 onClick={() => setCardMode("research")}
-                className={`app-segment-button rounded-md px-2.5 py-1 text-[11px] font-medium ${
+                className={`app-segment-button rounded-md px-2.5 py-1 ${
                   cardMode === "research" ? "is-active" : ""
                 }`}
               >
@@ -244,7 +244,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => setCardMode("discovery")}
-                className={`app-segment-button rounded-md px-2.5 py-1 text-[11px] font-medium ${
+                className={`app-segment-button rounded-md px-2.5 py-1 ${
                   cardMode === "discovery" ? "is-active" : ""
                 }`}
               >
@@ -254,7 +254,7 @@ export default function App() {
             <ThemeToggle theme={theme} onToggle={toggleTheme} t={t} />
             <button
               onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-              className="app-locale-button rounded-lg px-2.5 py-1.5 text-[11px] font-medium"
+              className="app-locale-button rounded-lg px-2.5 py-1.5"
             >
               {locale === "zh" ? "EN" : "中文"}
             </button>

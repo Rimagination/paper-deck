@@ -9,8 +9,8 @@ import { getZoneLabel } from "../cards/TierBadge";
 function GroupHeader({ title, count }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">{count}</span>
+      <h3 className="type-section-title text-slate-900">{title}</h3>
+      <span className="type-button rounded-full bg-slate-100 px-2.5 py-1 text-slate-500">{count}</span>
     </div>
   );
 }
@@ -105,13 +105,13 @@ export default function LibraryView({ cardMode, onViewCard }) {
       <div className="paper-surface rounded-[28px] p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-heading text-lg font-semibold text-slate-900">
+            <h2 className="font-heading type-section-title text-slate-900">
               {t("library.title")} ({groupedCards.reduce((sum, [, cards]) => sum + cards.length, 0)})
             </h2>
             {authStatus !== "authenticated" && (
               <p className="mt-1 text-xs text-slate-500">
                 {t("library.localModePrefix")}{" "}
-                <button onClick={startLogin} className="app-inline-link font-medium hover:underline">
+                <button onClick={startLogin} className="app-inline-link hover:underline">
                   {t("auth.signIn")}
                 </button>{" "}
                 {t("library.localModeSuffix")}
@@ -129,7 +129,7 @@ export default function LibraryView({ cardMode, onViewCard }) {
                 <button
                   key={item.key}
                   onClick={() => setModeFilter(item.key)}
-                  className={`app-segment-button rounded-md px-3 py-1.5 text-[11px] font-medium ${modeFilter === item.key ? "is-active" : ""}`}
+                  className={`app-segment-button rounded-md px-3 py-1.5 ${modeFilter === item.key ? "is-active" : ""}`}
                 >
                   {item.label}
                 </button>
@@ -171,10 +171,10 @@ export default function LibraryView({ cardMode, onViewCard }) {
               {cards.map((card) => (
                 <div key={card.paper_id} className="space-y-2">
                   <div className="flex items-center justify-between gap-2 px-1">
-                    <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">
+                    <span className="type-eyebrow text-slate-400">
                       {card.mode === "research" ? t("card.researchMode") : t("card.discoveryMode")}
                     </span>
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${card.readAt ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`type-button rounded-full px-2.5 py-1 ${card.readAt ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                       {card.readAt ? ui.read : ui.unread}
                     </span>
                   </div>

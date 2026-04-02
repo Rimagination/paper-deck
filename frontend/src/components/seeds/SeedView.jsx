@@ -185,7 +185,7 @@ function SectionFrame({ title, subtitle, action, children }) {
     <section className="paper-surface rounded-[28px] p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--text-main)" }}>
+          <h3 className="type-section-title" style={{ color: "var(--text-main)" }}>
             {title}
           </h3>
           {subtitle ? (
@@ -230,10 +230,10 @@ function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
     <section className="paper-surface rounded-[30px] p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
+          <p className="type-eyebrow text-sky-600">
             {t("seeds.memoryEyebrow")}
           </p>
-          <h3 className="mt-3 font-heading-cn text-2xl font-bold sm:text-3xl" style={{ color: "var(--text-main)" }}>
+          <h3 className="type-page-title mt-3 font-heading-cn" style={{ color: "var(--text-main)" }}>
             {heading}
           </h3>
           <p className="mt-3 max-w-3xl text-sm leading-7" style={{ color: "var(--text-muted)" }}>
@@ -242,7 +242,7 @@ function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
         </div>
         <button
           onClick={onOpenDraw}
-          className="app-accent-button rounded-2xl px-5 py-3 text-sm font-semibold"
+          className="app-accent-button type-button rounded-2xl px-5 py-3"
         >
           {t("seeds.openDraw")}
         </button>
@@ -288,7 +288,7 @@ function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
             {stats.map((item) => (
               <div key={item.label} className="discover-memory-stat">
                 <span>{item.label}</span>
-                <strong>{item.value}</strong>
+                <span className="type-data">{item.value}</span>
               </div>
             ))}
           </div>
@@ -317,7 +317,7 @@ function CompactMemoryPanel({ memory, locale, t, onOpenDraw }) {
                 memory.venues.map((venue) => (
                   <div key={venue.name} className="discover-memory-source-row">
                     <span>{venue.name}</span>
-                    <strong>{venue.count}</strong>
+                    <span className="type-data">{venue.count}</span>
                   </div>
                 ))
               ) : (
@@ -696,10 +696,10 @@ export default function SeedView({
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(272px,320px)] 2xl:grid-cols-[minmax(0,1.45fr)_320px]">
           <div className="min-w-0 space-y-5">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
+              <p className="type-eyebrow text-sky-600">
                 {t("seeds.memoryEyebrow")}
               </p>
-              <h2 className="mt-3 font-heading-cn text-3xl font-bold text-slate-950">
+              <h2 className="type-page-title mt-3 font-heading-cn text-slate-950">
                 {ui.heroTitle}
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
@@ -726,14 +726,14 @@ export default function SeedView({
                 <button
                   onClick={handleSearch}
                   disabled={!query.trim() || searchStatus === "searching" || seeds.length >= 20}
-                  className="app-primary-button rounded-2xl px-5 py-3.5 text-sm font-medium disabled:opacity-40"
+                  className="app-primary-button type-button rounded-2xl px-5 py-3.5 disabled:opacity-40"
                 >
                   {searchStatus === "searching" ? t("seeds.searching") : t("seeds.search")}
                 </button>
                 <button
                   onClick={handleOpenImport}
                   disabled={authStatus !== "authenticated"}
-                  className="app-outline-button rounded-2xl px-4 py-3.5 text-sm font-medium disabled:opacity-40"
+                  className="app-outline-button type-button rounded-2xl px-4 py-3.5 disabled:opacity-40"
                 >
                   {t("seeds.importFromAtlas")}
                 </button>
@@ -774,7 +774,7 @@ export default function SeedView({
                           }
                         }}
                         disabled={alreadyAdded || seeds.length >= 20}
-                        className="app-accent-button seed-search-add rounded-xl px-3.5 py-2 text-sm font-medium disabled:opacity-40"
+                        className="app-accent-button seed-search-add type-button rounded-xl px-3.5 py-2 disabled:opacity-40"
                       >
                         {alreadyAdded ? t("seeds.added") : t("seeds.add")}
                       </button>
@@ -791,17 +791,17 @@ export default function SeedView({
               <div className="discover-rail-stats">
                 <div>
                   <span>{t("seeds.selected")}</span>
-                  <strong>{seeds.length}</strong>
+                  <span className="type-data">{seeds.length}</span>
                 </div>
                 <div>
                   <span>{t("seeds.maxSeeds")}</span>
-                  <strong>20</strong>
+                  <span className="type-data">20</span>
                 </div>
               </div>
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || seeds.length === 0}
-                className="app-accent-button mt-4 w-full rounded-2xl px-6 py-3 text-sm font-semibold disabled:opacity-50"
+                className="app-accent-button type-button mt-4 w-full rounded-2xl px-6 py-3 disabled:opacity-50"
               >
                 {isGenerating ? t("seeds.generating") : t("seeds.generateProfile")}
               </button>
@@ -809,7 +809,7 @@ export default function SeedView({
               <button
                 onClick={onOpenDraw}
                 disabled={!hasProfile}
-                className="app-outline-button mt-3 w-full rounded-2xl px-4 py-3 text-sm font-medium disabled:opacity-40"
+                className="app-outline-button type-button mt-3 w-full rounded-2xl px-4 py-3 disabled:opacity-40"
               >
                 {t("seeds.openDraw")}
               </button>
@@ -829,14 +829,14 @@ export default function SeedView({
                       {savedProfileCount} {t("seeds.savedSeeds")}
                     </p>
                     {savedProfileTime ? <p className="text-xs text-slate-400">{savedProfileTime}</p> : null}
-                    <button onClick={restoreSavedProfile} className="app-inline-link mt-2 font-medium hover:underline">
+                    <button onClick={restoreSavedProfile} className="app-inline-link type-button mt-2 hover:underline">
                       {t("seeds.restoreSavedProfile")}
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="mt-2 text-sm text-rose-600">{savedProfileLoadError}</p>
-                    <button onClick={retryLoadSavedProfile} className="app-inline-link font-medium hover:underline">
+                    <button onClick={retryLoadSavedProfile} className="app-inline-link type-button hover:underline">
                       {retryText}
                     </button>
                   </div>
@@ -863,7 +863,7 @@ export default function SeedView({
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {seeds.map((paper) => (
               <div key={paper.paper_id} className="rounded-2xl border border-slate-100 bg-slate-50/65 px-4 py-3">
-                <p className="line-clamp-2 text-sm font-medium text-slate-800">{paper.title}</p>
+                <p className="type-card-title line-clamp-2 text-slate-800">{paper.title}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   {paper.authors?.slice(0, 2).join(", ")}
                   {paper.year ? ` / ${paper.year}` : ""}
@@ -888,7 +888,7 @@ export default function SeedView({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="app-dialog mx-4 max-h-[80vh] w-full max-w-lg overflow-hidden rounded-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h3 className="font-heading-cn text-base font-semibold">{t("seeds.importTitle")}</h3>
+              <h3 className="type-card-title font-heading-cn">{t("seeds.importTitle")}</h3>
               <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600">
                 {t("common.close")}
               </button>
@@ -916,7 +916,7 @@ export default function SeedView({
                         className="h-4 w-4 rounded border-slate-300 text-indigo-600"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-1 text-sm font-medium text-slate-800">{item.payload?.title}</p>
+                        <p className="type-card-title line-clamp-1 text-slate-800">{item.payload?.title}</p>
                         <p className="mt-0.5 text-xs text-slate-500">
                           {item.payload?.year || ""} / {item.payload?.citation_count || 0} cites
                         </p>
@@ -930,7 +930,7 @@ export default function SeedView({
               <div className="border-t border-slate-100 px-6 py-4">
                 <button
                   onClick={handleImportConfirm}
-                  className="app-accent-button w-full rounded-xl py-2.5 text-sm font-semibold"
+                  className="app-accent-button type-button w-full rounded-xl py-2.5"
                 >
                   {t("seeds.importSelected")} ({importSelected.size})
                 </button>

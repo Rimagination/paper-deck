@@ -157,7 +157,7 @@ export default function TierBadge({ zone, tier, size = "md", isNi = false }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-lg font-bold tracking-wide ${config.badgeClass} ${sizeClass}`}
+      className={`type-button inline-flex items-center gap-1 rounded-lg tracking-wide ${config.badgeClass} ${sizeClass}`}
     >
       {label}
     </span>

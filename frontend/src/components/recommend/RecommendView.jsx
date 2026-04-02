@@ -14,7 +14,7 @@ function PaperListItem({ paper, t, onViewCard }) {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{paper.title}</h3>
+            <h3 className="type-card-title line-clamp-2 text-slate-900">{paper.title}</h3>
             <p className="mt-1 text-xs text-slate-500">
               {paper.authors?.slice(0, 2).join(", ")}
               {paper.venue ? ` / ${paper.venue}` : ""}
@@ -37,7 +37,7 @@ function PaperListItem({ paper, t, onViewCard }) {
           </div>
           <button
             onClick={() => onViewCard(paper)}
-            className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
+            className="type-button rounded-lg bg-indigo-50 px-3 py-1 text-indigo-700 transition-colors hover:bg-indigo-100"
           >
             {t("recommend.viewCard")}
           </button>
@@ -142,7 +142,7 @@ export default function RecommendView({
         <p className="text-sm text-slate-500">{t("recommend.empty")}</p>
         <button
           onClick={onManageSubscriptions}
-          className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="type-button rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-slate-700 hover:bg-slate-50"
         >
           {t("nav.subscriptions")}
         </button>
@@ -155,7 +155,7 @@ export default function RecommendView({
       <div className="paper-surface rounded-2xl p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-heading-cn text-lg font-semibold text-slate-900">{t("recommend.title")}</h2>
+            <h2 className="font-heading-cn type-section-title text-slate-900">{t("recommend.title")}</h2>
             <p className="mt-1 text-sm text-slate-500">
               {hasSubscriptions
                 ? `${subscribedVenues.length} subscriptions active. New papers are prioritized from your journals.`
@@ -168,14 +168,14 @@ export default function RecommendView({
               <>
                 <button
                   onClick={onManageSubscriptions}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="type-button rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50"
                 >
                   {t("nav.subscriptions")}
                 </button>
                 <button
                   onClick={loadSubscriptionRecommendations}
                   disabled={isLoading}
-                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  className="type-button rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800 disabled:opacity-50"
                 >
                   {t("recommend.refresh")}
                 </button>
@@ -192,7 +192,7 @@ export default function RecommendView({
                 <button
                   onClick={loadRecommendations}
                   disabled={isLoading}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  className="type-button rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   {t("recommend.refresh")}
                 </button>
@@ -201,11 +201,11 @@ export default function RecommendView({
 
             {seedPaperIds.length > 0 && (
               <div className="flex items-center gap-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 pl-4 pr-1 shadow-md">
-                <span className="text-sm font-bold text-white">{t("recommend.drawCards")}</span>
+                <span className="type-button text-white">{t("recommend.drawCards")}</span>
                 <select
                   value={drawCount}
                   onChange={(event) => setDrawCount(parseInt(event.target.value, 10))}
-                  className="bg-transparent py-2 text-sm font-bold text-white outline-none [&>option]:text-black"
+                  className="type-button bg-transparent py-2 text-white outline-none [&>option]:text-black"
                 >
                   <option value={1}>1 {t("recommend.drawCount")}</option>
                   <option value={5}>5 {t("recommend.drawCount")}</option>
@@ -214,7 +214,7 @@ export default function RecommendView({
                 <button
                   onClick={handleDraw}
                   disabled={isDrawing}
-                  className="rounded-lg bg-white/20 px-3 py-1.5 text-sm font-bold text-white transition-colors hover:bg-white/30 disabled:opacity-50"
+                  className="type-button rounded-lg bg-white/20 px-3 py-1.5 text-white transition-colors hover:bg-white/30 disabled:opacity-50"
                 >
                   {isDrawing ? "..." : "GO"}
                 </button>
@@ -228,7 +228,7 @@ export default function RecommendView({
             {subscribedVenues.map((venue) => (
               <span
                 key={venue.id}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
+                className="type-button inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700"
               >
                 {venue.name}
                 <TierBadge zone={venue.zone} size="sm" />
@@ -250,7 +250,7 @@ export default function RecommendView({
           {hasSubscriptions && (
             <button
               onClick={loadSubscriptionRecommendations}
-              className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              className="type-button rounded-xl bg-slate-900 px-5 py-2.5 text-white hover:bg-slate-800"
             >
               {t("recommend.refresh")}
             </button>

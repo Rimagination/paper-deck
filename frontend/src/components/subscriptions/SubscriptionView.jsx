@@ -7,7 +7,7 @@ import TierBadge from "../cards/TierBadge";
 
 function VenueTag({ venue, onRemove }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700">
+    <span className="type-button inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-indigo-700">
       {venue.name}
       <TierBadge zone={venue.zone} size="sm" />
       <button
@@ -27,8 +27,8 @@ function SectionHeader({ title, subtitle, action }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200/70 pb-4">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+        <h3 className="type-section-title text-slate-900">{title}</h3>
+        <p className="type-body mt-1 text-slate-500">{subtitle}</p>
       </div>
       {action}
     </div>
@@ -145,7 +145,7 @@ export default function SubscriptionView({
     <div className="space-y-6">
       <section className="paper-surface rounded-[28px] p-6 sm:p-7">
         <div className="max-w-3xl">
-          <h2 className="font-heading-cn text-2xl font-semibold text-slate-950">
+          <h2 className="font-heading-cn type-page-title text-slate-950">
             {locale === "zh" ? "订阅" : "Subscriptions"}
           </h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">{t("sub.subtitle")}</p>
@@ -154,20 +154,20 @@ export default function SubscriptionView({
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <div className="discover-metric-card">
             <span>{ui.followedLabel}</span>
-            <strong>{subscribedVenues.length}</strong>
+            <span className="type-data">{subscribedVenues.length}</span>
           </div>
           <div className="discover-metric-card">
             <span>{t("sub.daysBack")}</span>
-            <strong>{daysBack} {t("sub.days")}</strong>
+            <span className="type-data">{daysBack} {t("sub.days")}</span>
           </div>
           <div className="discover-metric-card">
             <span>{ui.signalLabel}</span>
-            <strong>{hasProfile ? `${Math.round(minSimilarity * 100)}%+` : t("sub.matchAll")}</strong>
+            <span className="type-data">{hasProfile ? `${Math.round(minSimilarity * 100)}%+` : t("sub.matchAll")}</span>
           </div>
         </div>
 
         <div className="mt-5 rounded-[24px] border border-slate-200/80 bg-slate-50/70 px-5 py-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-500">{ui.structureNoteTitle}</p>
+          <p className="type-eyebrow text-indigo-500">{ui.structureNoteTitle}</p>
           <p className="mt-2 text-sm leading-7 text-slate-600">{ui.structureNoteBody}</p>
         </div>
 
@@ -184,7 +184,7 @@ export default function SubscriptionView({
           <button
             onClick={handleVenueSearch}
             disabled={!venueQuery.trim() || isSearchingVenues}
-            className="app-primary-button rounded-2xl px-5 py-3.5 text-sm font-medium disabled:opacity-40"
+            className="app-primary-button rounded-2xl px-5 py-3.5 disabled:opacity-40"
           >
             {isSearchingVenues ? t("seeds.searching") : t("seeds.search")}
           </button>
@@ -212,7 +212,7 @@ export default function SubscriptionView({
                     <button
                       onClick={() => addVenue(venue)}
                       disabled={already}
-                      className="app-accent-button rounded-xl px-4 py-2.5 text-sm font-medium disabled:opacity-40"
+                      className="app-accent-button rounded-xl px-4 py-2.5 disabled:opacity-40"
                     >
                       {already ? t("seeds.added") : t("sub.subscribe")}
                     </button>
@@ -225,7 +225,7 @@ export default function SubscriptionView({
 
         {subscribedVenues.length > 0 && (
           <div className="mt-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+            <p className="type-eyebrow text-slate-400">
               {t("sub.subscribed")}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -270,7 +270,7 @@ export default function SubscriptionView({
               <button
                 onClick={loadSubscribedFeed}
                 disabled={isFetchingFeed || subscribedVenues.length === 0}
-                className="app-primary-button rounded-2xl px-4 py-2.5 text-sm font-medium disabled:opacity-40"
+                className="app-primary-button rounded-2xl px-4 py-2.5 disabled:opacity-40"
               >
                 {isFetchingFeed ? t("common.loading") : t("sub.fetchFeed")}
               </button>
@@ -297,7 +297,7 @@ export default function SubscriptionView({
                       href={`https://doi.org/${paper.doi}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="app-outline-button rounded-xl px-4 py-2.5 text-sm font-medium"
+                      className="app-outline-button rounded-xl px-4 py-2.5"
                     >
                       DOI
                     </a>

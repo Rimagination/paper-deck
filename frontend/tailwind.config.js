@@ -4,9 +4,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["IBM Plex Sans", "Noto Sans SC", "sans-serif"],
-        heading: ["Times New Roman", "Times", "Georgia", "serif"],
-        "heading-cn": ["Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", "serif"],
+        sans: ["var(--font-ui)"],
+        heading: ["var(--font-title-latin)"],
+        "heading-cn": ["var(--font-title-cjk)"],
         mono: ["IBM Plex Mono", "monospace"],
       },
       animation: {

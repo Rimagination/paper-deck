@@ -171,7 +171,7 @@ function ZoneBar({ zone, count, maxCount }) {
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200">
         <div className={`h-full rounded-full ${fillClass}`} style={{ width }} />
       </div>
-      <span className="w-5 text-right text-xs font-medium text-slate-500">{count}</span>
+      <span className="type-button w-5 text-right text-slate-500">{count}</span>
     </div>
   );
 }
@@ -202,10 +202,10 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
     <section className="paper-surface rounded-[30px] p-6 sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-600">
+          <p className="type-eyebrow text-sky-600">
             {t("seeds.memoryEyebrow")}
           </p>
-          <h3 className="mt-3 font-heading-cn text-3xl font-semibold text-slate-950 sm:text-[34px]">
+          <h3 className="type-page-title mt-3 font-heading-cn text-slate-950">
             {t("seeds.memoryTitle")}
           </h3>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
@@ -220,7 +220,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
 
         <button
           onClick={onOpenDraw}
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="type-button rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-700 transition-colors hover:bg-slate-50"
         >
           {t("seeds.openDraw")}
         </button>
@@ -241,7 +241,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
             ))}
           </svg>
           <div className="memory-cloud-core">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700/70">
+            <p className="type-eyebrow text-sky-700/70">
               {t("seeds.memoryCloudEyebrow")}
             </p>
           </div>
@@ -266,15 +266,15 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
                 <div className="memory-cloud-stat-list">
                   <div className="memory-cloud-stat-row">
                     <span>{t("seeds.memorySeedCount")}</span>
-                    <strong>{memory.papers.length}</strong>
+                    <span className="type-data">{memory.papers.length}</span>
                   </div>
                   <div className="memory-cloud-stat-row">
                     <span>{t("seeds.memoryYears")}</span>
-                    <strong>{timeSpan}</strong>
+                    <span className="type-data">{timeSpan}</span>
                   </div>
                   <div className="memory-cloud-stat-row">
                     <span>{t("seeds.memoryCitations")}</span>
-                    <strong>{memory.avgCitations}</strong>
+                    <span className="type-data">{memory.avgCitations}</span>
                   </div>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
 
             {activeTab === "echoes" && (
               <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                <p className="type-eyebrow text-slate-400">
                   {t("seeds.memoryEchoes")}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -300,7 +300,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
 
             {activeTab === "venues" && (
               <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                <p className="type-eyebrow text-slate-400">
                   {t("seeds.memoryVenues")}
                 </p>
                 <div className="mt-4 space-y-3">
@@ -321,7 +321,7 @@ export default function InterestWorkspace({ profileInfo, onOpenDraw, t }) {
 
             {activeTab === "zones" && (
               <div className="rounded-[26px] border border-slate-200/80 bg-white/90 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+                <p className="type-eyebrow text-slate-400">
                   {t("seeds.memoryZones")}
                 </p>
                 <div className="mt-4 space-y-3">
