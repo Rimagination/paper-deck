@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+import re
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -26,6 +27,34 @@ from backend.services.tier_classifier import classify_tier
 router = APIRouter(prefix="/recommend", tags=["recommend"])
 
 GACHA_MIN_SIMILARITY = 0.2
+_SEED_SEARCH_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z-]{3,}")
+_SEED_SEARCH_STOPWORDS = {
+    "about",
+    "across",
+    "after",
+    "analysis",
+    "beyond",
+    "between",
+    "change",
+    "changes",
+    "effect",
+    "effects",
+    "global",
+    "priorities",
+    "priority",
+    "review",
+    "scenario",
+    "scenarios",
+    "study",
+    "studies",
+    "their",
+    "these",
+    "this",
+    "under",
+    "using",
+    "with",
+    "year",
+}
 
 
 def _normalize_match_key(value: str | None) -> str:
@@ -94,6 +123,43 @@ def _filter_gacha_candidates(papers: list[dict]) -> list[dict]:
         if isinstance(score, (int, float)) and score >= GACHA_MIN_SIMILARITY:
             filtered.append(paper)
     return filtered
+
+
+def _seed_search_queries(seed_papers: list[dict], limit: int = 4) -> list[str]:
+    queries: list[str] = []
+    seen_queries: set[str] = set()
+
+    for paper in seed_papers:
+        title = " ".join(str(paper.get("title") or "").split()).strip(" .")
+        if len(title) >= 8:
+            normalized_title = title.casefold()
+            if normalized_title not in seen_queries:
+                queries.append(title[:180])
+                seen_queries.add(normalized_title)
+        if len(queries) >= limit:
+            return queries
+
+    keyword_counts: dict[str, int] = {}
+    for paper in seed_papers:
+        text = " ".join(
+            str(part or "")
+            for part in (paper.get("title"), paper.get("abstract"), paper.get("venue"))
+        )
+        for token in _SEED_SEARCH_TOKEN_RE.findall(text):
+            normalized = token.casefold()
+            if normalized in _SEED_SEARCH_STOPWORDS:
+                continue
+            keyword_counts[normalized] = keyword_counts.get(normalized, 0) + 1
+
+    top_keywords = [
+        token
+        for token, _ in sorted(keyword_counts.items(), key=lambda item: (-item[1], item[0]))
+        if token not in seen_queries
+    ][:6]
+    if top_keywords:
+        queries.append(" ".join(top_keywords))
+
+    return queries[:limit]
 
 
 async def _build_card_response(
@@ -240,14 +306,25 @@ async def rank_recommendations(
 
     s2 = request.app.state.s2_client
     interest_embedding = await get_interest_embedding(request, seed_paper_ids)
-    if not interest_embedding:
-        seed_papers = await _resolve_similarity_seed_papers(request, seed_paper_ids, fallback_seed_papers)
+    seed_papers: list[dict] | None = None
+
+    async def rank_by_text_similarity() -> list[dict]:
+        nonlocal seed_papers
+        if seed_papers is None:
+            seed_papers = await _resolve_similarity_seed_papers(request, seed_paper_ids, fallback_seed_papers)
         if not seed_papers:
             return [{**paper, "similarity_score": 0.0} for paper in raw_papers]
         return rank_papers_by_text_similarity(seed_papers, raw_papers)
 
+    if not interest_embedding:
+        return await rank_by_text_similarity()
+
     recommendation_ids = [paper.get("paperId") for paper in raw_papers if paper.get("paperId")]
-    papers_with_embeddings = await s2.get_papers_with_embeddings(recommendation_ids)
+    try:
+        papers_with_embeddings = await s2.get_papers_with_embeddings(recommendation_ids)
+    except SemanticScholarError:
+        return await rank_by_text_similarity()
+
     embedding_by_id = {
         paper.get("paperId"): paper
         for paper in papers_with_embeddings
@@ -263,7 +340,8 @@ async def rank_recommendations(
     if not any((paper.get("similarity_score") or 0.0) <= 0.0 for paper in ranked):
         return ranked
 
-    seed_papers = await _resolve_similarity_seed_papers(request, seed_paper_ids, fallback_seed_papers)
+    if seed_papers is None:
+        seed_papers = await _resolve_similarity_seed_papers(request, seed_paper_ids, fallback_seed_papers)
     if not seed_papers:
         return ranked
 
@@ -372,6 +450,7 @@ async def _build_seed_echo_pool(
             if paper.paper_id
         ]
 
+    keyword_queries = _seed_search_queries(seed_papers)
     venue_queries: list[tuple[str, str | None, str | None]] = []
     seen_venues: set[str] = set()
     for paper in seed_papers:
@@ -397,6 +476,17 @@ async def _build_seed_echo_pool(
                 continue
             seen_ids.add(paper_id)
             fallback_pool.append({**paper, "similarity_score": paper.get("similarity_score") or 0.0})
+
+    search_papers = getattr(oa, "search_papers", None)
+    if callable(search_papers):
+        for query in keyword_queries:
+            related_papers = await search_papers(query, limit=15)
+            for paper in related_papers:
+                paper_id = str(paper.get("paperId") or "").strip()
+                if not paper_id or paper_id in excluded_ids or paper_id in seen_ids:
+                    continue
+                seen_ids.add(paper_id)
+                fallback_pool.append({**paper, "similarity_score": paper.get("similarity_score") or 0.0})
 
     if not fallback_pool:
         return []

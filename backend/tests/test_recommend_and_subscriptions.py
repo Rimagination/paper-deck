@@ -69,6 +69,61 @@ class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
             "Unrelated papers should stay below the text-similar candidate.",
         )
 
+    async def test_rank_recommendations_falls_back_to_text_similarity_when_s2_embedding_lookup_fails(self) -> None:
+        seed_paper = {
+            "paperId": "seed-1",
+            "title": "Biodiversity hotspots for conservation priorities",
+            "authors": [{"name": "N. Myers"}],
+            "abstract": "Habitat fragmentation and biodiversity loss reshape conservation priorities across ecosystems.",
+            "venue": "Nature",
+            "year": 2000,
+            "embedding": {"vector": [1.0, 0.0]},
+        }
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    cache=SimpleNamespace(
+                        get_json=AsyncMock(return_value=None),
+                        set_json=AsyncMock(),
+                    ),
+                    settings=SimpleNamespace(cache_ttl_embedding=3600),
+                    s2_client=SimpleNamespace(
+                        get_papers_with_embeddings=AsyncMock(
+                            side_effect=[
+                                [seed_paper],
+                                SemanticScholarError("S2 unavailable", status_code=503),
+                            ]
+                        ),
+                        get_papers_batch=AsyncMock(return_value=[seed_paper]),
+                    ),
+                    oa_client=SimpleNamespace(get_paper_by_lookup=AsyncMock(return_value=None)),
+                )
+            )
+        )
+        raw_papers = [
+            {
+                "paperId": "off-topic-1",
+                "title": "Compiler scheduling for distributed GPU kernels",
+                "abstract": "This systems paper studies kernel fusion, distributed compilers, and runtime scheduling.",
+                "venue": "Systems Journal",
+            },
+            {
+                "paperId": "match-1",
+                "title": "Biodiversity conservation under habitat fragmentation",
+                "abstract": "Conservation priorities shift as biodiversity declines across fragmented habitats.",
+                "venue": "Ecology Letters",
+            },
+        ]
+
+        ranked = await rank_recommendations(request, raw_papers, ["seed-1"])
+
+        self.assertEqual(
+            ranked[0]["paperId"],
+            "match-1",
+            "When S2 embedding lookup fails mid-ranking, recommendations should fall back to text similarity instead of collapsing to empty scores.",
+        )
+        self.assertGreater(ranked[0]["similarity_score"], 0.2)
+
     async def test_gacha_draw_does_not_error_when_fallback_similarity_ranking_is_unavailable(self) -> None:
         related_paper = {
             "paperId": "rec-1",
@@ -307,6 +362,91 @@ class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
             response.cards[0].paper_id,
             "rec-1",
             "When the ranked recommendation pool is empty, gacha should fall back to related venue papers instead of going empty immediately.",
+        )
+
+    async def test_gacha_draw_falls_back_to_openalex_keyword_search_when_venue_fallback_is_empty(self) -> None:
+        related_paper = {
+            "paperId": "rec-kw-1",
+            "title": "Projected impacts of climate and land-use change on global biodiversity",
+            "authors": [{"name": "B. Author"}],
+            "abstract": "B" * 120,
+            "venue": "Biology Letters",
+            "year": 2025,
+            "citationCount": 12,
+            "issn": "1111-1111",
+        }
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    settings=SimpleNamespace(max_recommendations=100),
+                    card_generator=object(),
+                    s2_client=SimpleNamespace(get_papers_batch=AsyncMock(return_value=[])),
+                    oa_client=SimpleNamespace(
+                        get_paper_by_lookup=AsyncMock(return_value=None),
+                        search_venues=AsyncMock(return_value=[]),
+                        get_recent_papers_by_venue=AsyncMock(return_value=[]),
+                        search_papers=AsyncMock(return_value=[related_paper]),
+                    ),
+                    journal_zone=None,
+                )
+            )
+        )
+        body = GachaRequest(
+            seed_paper_ids=["seed-1"],
+            seed_papers=[
+                PaperSummary(
+                    paper_id="seed-1",
+                    title="Global biodiversity scenarios for the year 2100",
+                    authors=["A. Author"],
+                    abstract="A" * 120,
+                    venue="Science",
+                    year=2024,
+                )
+            ],
+            count=1,
+            mode="research",
+            language="zh",
+        )
+
+        with (
+            patch(
+                "backend.routers.recommend._get_ranked_recommendation_pool",
+                new=AsyncMock(return_value=(["seed-1"], [])),
+            ),
+            patch(
+                "backend.routers.recommend.rank_recommendations",
+                new=AsyncMock(return_value=[{**related_paper, "similarity_score": 0.44}]),
+            ),
+            patch(
+                "backend.routers.recommend._build_card_response",
+                new=AsyncMock(
+                    return_value=CardResponse(
+                        paper_id="rec-kw-1",
+                        title="Projected impacts of climate and land-use change on global biodiversity",
+                        authors=["B. Author"],
+                        abstract="B" * 120,
+                        year=2025,
+                        venue="Biology Letters",
+                        citation_count=12,
+                        doi=None,
+                        url=None,
+                        mode="research",
+                        language="zh",
+                        card_content={"headline": "keyword"},
+                        tier="N",
+                        similarity_score=0.44,
+                    )
+                ),
+            ),
+        ):
+            response = await gacha_draw(request, body)
+
+        request.app.state.oa_client.search_papers.assert_awaited()
+        self.assertEqual(len(response.cards), 1)
+        self.assertEqual(
+            response.cards[0].paper_id,
+            "rec-kw-1",
+            "When venue-based fallback yields nothing, gacha should fall back to OpenAlex keyword search instead of returning an empty draw.",
         )
 
     async def test_gacha_draw_rejects_low_similarity_venue_fallback_papers(self) -> None:
