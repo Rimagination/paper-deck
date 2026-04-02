@@ -236,7 +236,10 @@ async def get_interest_embedding(request: Request, seed_paper_ids: list[str]) ->
         return cached
 
     resolved_seed_ids = await resolve_to_s2_ids(request, seed_paper_ids)
-    seed_papers = await s2.get_papers_with_embeddings(resolved_seed_ids)
+    try:
+        seed_papers = await s2.get_papers_with_embeddings(resolved_seed_ids)
+    except SemanticScholarError:
+        return []
     embeddings = []
     for paper in seed_papers:
         embedding_data = paper.get("embedding") or {}

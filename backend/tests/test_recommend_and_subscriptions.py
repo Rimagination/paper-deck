@@ -124,6 +124,57 @@ class RecommendAndSubscriptionBehaviorTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertGreater(ranked[0]["similarity_score"], 0.2)
 
+    async def test_rank_recommendations_falls_back_to_text_similarity_when_seed_embedding_fetch_fails(self) -> None:
+        seed_paper = {
+            "paperId": "seed-1",
+            "title": "Biodiversity hotspots for conservation priorities",
+            "authors": [{"name": "N. Myers"}],
+            "abstract": "Habitat fragmentation and biodiversity loss reshape conservation priorities across ecosystems.",
+            "venue": "Nature",
+            "year": 2000,
+        }
+        request = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    cache=SimpleNamespace(
+                        get_json=AsyncMock(return_value=None),
+                        set_json=AsyncMock(),
+                    ),
+                    settings=SimpleNamespace(cache_ttl_embedding=3600),
+                    s2_client=SimpleNamespace(
+                        get_papers_with_embeddings=AsyncMock(
+                            side_effect=SemanticScholarError("S2 unavailable", status_code=503)
+                        ),
+                        get_papers_batch=AsyncMock(return_value=[seed_paper]),
+                    ),
+                    oa_client=SimpleNamespace(get_paper_by_lookup=AsyncMock(return_value=None)),
+                )
+            )
+        )
+        raw_papers = [
+            {
+                "paperId": "off-topic-1",
+                "title": "Compiler scheduling for distributed GPU kernels",
+                "abstract": "This systems paper studies kernel fusion, distributed compilers, and runtime scheduling.",
+                "venue": "Systems Journal",
+            },
+            {
+                "paperId": "match-1",
+                "title": "Biodiversity conservation under habitat fragmentation",
+                "abstract": "Conservation priorities shift as biodiversity declines across fragmented habitats.",
+                "venue": "Ecology Letters",
+            },
+        ]
+
+        ranked = await rank_recommendations(request, raw_papers, ["seed-1"])
+
+        self.assertEqual(
+            ranked[0]["paperId"],
+            "match-1",
+            "If fetching seed embeddings fails, ranking should still fall back to text similarity instead of bubbling the upstream error.",
+        )
+        self.assertGreater(ranked[0]["similarity_score"], 0.2)
+
     async def test_gacha_draw_does_not_error_when_fallback_similarity_ranking_is_unavailable(self) -> None:
         related_paper = {
             "paperId": "rec-1",
