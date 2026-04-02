@@ -6,6 +6,7 @@ import { markCardRead } from "../../readingState";
 import { useTheme } from "../../theme";
 import { getTierConfig } from "../cards/TierBadge";
 import PaperCard from "../cards/PaperCard";
+import { fetchNextDrawBatch } from "./drawSession";
 
 const ORBITAL_BODIES = [
   { size: "var(--draw-stage-orbit-1-size)", duration: "18s", delay: "-2s", direction: "normal", dotClass: "is-mercury" },
@@ -231,8 +232,12 @@ export default function DrawView({
     return getGachaCards(result);
   }
 
-  function acceptDrawnCards(nextCards) {
-    nextCards.forEach((card) => seenIds.current.add(card.paper_id));
+  function acceptDrawnCards(nextCards, nextSeenPaperIds = null) {
+    if (Array.isArray(nextSeenPaperIds)) {
+      seenIds.current = new Set(nextSeenPaperIds);
+    } else {
+      nextCards.forEach((card) => seenIds.current.add(card.paper_id));
+    }
     setCards((prev) => [...prev, ...nextCards]);
     setDrawStatus("ready");
   }
@@ -240,8 +245,12 @@ export default function DrawView({
   async function fetchMore(options = {}) {
     if (isFetching || !hasInterestMemory || effectiveSeedPaperIds.length === 0) return;
 
-    const { forceLoadingStage = false } = options;
+    const { forceLoadingStage = false, recycleSeenCards = false } = options;
     const hadCards = cards.length > 0;
+    const collectedPaperIds = getCollectedPaperIds();
+    if (recycleSeenCards) {
+      seenIds.current = new Set(collectedPaperIds);
+    }
     setIsFetching(true);
     setFetchError("");
     if (!hadCards || forceLoadingStage) {
@@ -249,22 +258,18 @@ export default function DrawView({
     }
 
     try {
-      const excluded = [...new Set([...getCollectedPaperIds(), ...seenIds.current])];
-      const nextCards = await requestCards(excluded);
+      const { cards: nextCards, nextSeenPaperIds } = await fetchNextDrawBatch({
+        requestCards,
+        collectedPaperIds,
+        seenPaperIds: [...seenIds.current],
+      });
 
       if (nextCards.length > 0) {
-        acceptDrawnCards(nextCards);
+        acceptDrawnCards(nextCards, nextSeenPaperIds);
         return;
       }
 
-      seenIds.current = new Set(getCollectedPaperIds());
-      const retryCards = await requestCards([...seenIds.current]);
-
-      if (retryCards.length > 0) {
-        acceptDrawnCards(retryCards);
-        return;
-      }
-
+      seenIds.current = new Set(nextSeenPaperIds);
       setFetchError(ui.exhaustedBody);
       setDrawStatus(hadCards ? "ready" : "empty");
     } catch {
@@ -571,7 +576,7 @@ export default function DrawView({
         title={drawStatus === "empty" ? ui.exhaustedTitle : ui.errorTitle}
         body={fetchError || (drawStatus === "empty" ? ui.exhaustedBody : ui.errorBody)}
         actionLabel={ui.retryAction}
-        onAction={() => fetchMore({ forceLoadingStage: true })}
+        onAction={() => fetchMore({ forceLoadingStage: true, recycleSeenCards: true })}
       />
     );
   }
@@ -582,7 +587,7 @@ export default function DrawView({
         title={ui.exhaustedTitle}
         body={fetchError || ui.exhaustedBody}
         actionLabel={ui.retryAction}
-        onAction={() => fetchMore({ forceLoadingStage: true })}
+        onAction={() => fetchMore({ forceLoadingStage: true, recycleSeenCards: true })}
       />
     );
   }
