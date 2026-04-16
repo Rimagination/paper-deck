@@ -47,19 +47,24 @@ jobs:
           npm ci
           npm run build
 
-      - name: Ensure checked-in dist is up to date
-        run: git diff --exit-code -- frontend/dist
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit generated frontend bundle for Hugging Face
+        run: |
+          if ! git diff --quiet -- frontend/dist; then
+            git status --short -- frontend/dist
+            git add frontend/dist
+            git commit -m "Build frontend bundle for Hugging Face"
+          fi
 
       - name: Backend import smoke test
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           python -c "from backend.main import app; print(app.title)"
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Push repository to Hugging Face Space
         env:
