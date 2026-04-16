@@ -4565,13 +4565,20 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 .seed-search-results {
   display: grid;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .seed-search-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 56px;
+  overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.82);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.76);
@@ -4586,10 +4593,12 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
   align-items: baseline;
   gap: 10px;
   min-width: 0;
-  flex: 1;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .seed-search-title {
+  flex: 1 1 auto;
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -4604,7 +4613,9 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 }
 
 .seed-search-meta {
-  flex-shrink: 0;
+  flex: 0 1 min(42%, 340px);
+  min-width: 0;
+  max-width: min(42%, 340px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4614,7 +4625,7 @@ html[data-theme="dark"] .hover\:bg-indigo-50:hover {
 }
 
 .seed-search-add {
-  flex-shrink: 0;
+  min-width: 72px;
   box-shadow: none;
 }
 
